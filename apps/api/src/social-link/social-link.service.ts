@@ -1,29 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateSocialLinkRequestInterface,
+  UpdateSocialLinkRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { SocialLinkNotFoundException, SocialLinkOwnerRequiredException } from 'src/_common/exceptions/social-link.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateSocialLinkRequest } from './dtos/create-social-link.request.dto';
-import { SocialLinkResponse } from './dtos/social-link.response.dto';
-import { UpdateSocialLinkRequest } from './dtos/update-social-link.request.dto';
+import { socialLinkQueryArgs, type SocialLinkResponse } from './dtos/social-link.response.dto';
 
 @Injectable()
 export class SocialLinkService {
   constructor(private prismaService: PrismaService) { }
 
   async createSocialLink(
-    createSocialLinkReq: CreateSocialLinkRequest,
+    createSocialLinkReq: CreateSocialLinkRequestInterface,
     currentUserId: string,
   ): Promise<SocialLinkResponse> {
     this.assertValidOwner(createSocialLinkReq.userId, createSocialLinkReq.organizationId);
 
     const socialLink = await this.prismaService.socialLink.create({
       data: { ...createSocialLinkReq, createdByUserId: currentUserId },
-      include: {
-        user: true,
-        organization: true,
-        createdBy: true,
-      },
+      ...socialLinkQueryArgs,
     });
 
     return socialLink;
@@ -31,7 +29,7 @@ export class SocialLinkService {
 
   async updateSocialLink(
     id: string,
-    updateSocialLinkReq: UpdateSocialLinkRequest,
+    updateSocialLinkReq: UpdateSocialLinkRequestInterface,
   ): Promise<SocialLinkResponse> {
     const existingSocialLink = await this.prismaService.socialLink.findUnique({
       where: { id },
@@ -49,11 +47,7 @@ export class SocialLinkService {
     const socialLink = await this.prismaService.socialLink.update({
       where: { id },
       data: updateSocialLinkReq,
-      include: {
-        user: true,
-        organization: true,
-        createdBy: true,
-      },
+      ...socialLinkQueryArgs,
     });
 
     return socialLink;
@@ -76,11 +70,7 @@ export class SocialLinkService {
   async findSocialLinkById(id: string): Promise<SocialLinkResponse> {
     const socialLink = await this.prismaService.socialLink.findUnique({
       where: { id },
-      include: {
-        user: true,
-        organization: true,
-        createdBy: true,
-      },
+      ...socialLinkQueryArgs,
     });
 
     if (!socialLink) {
@@ -95,22 +85,14 @@ export class SocialLinkService {
   ): Promise<SocialLinkResponse[]> {
     return this.prismaService.socialLink.findMany({
       where: { organizationId },
-      include: {
-        user: true,
-        organization: true,
-        createdBy: true,
-      },
+      ...socialLinkQueryArgs,
     });
   }
 
   async findSocialLinksByUserId(userId: string): Promise<SocialLinkResponse[]> {
     return this.prismaService.socialLink.findMany({
       where: { userId: userId },
-      include: {
-        user: true,
-        organization: true,
-        createdBy: true,
-      },
+      ...socialLinkQueryArgs,
     });
   }
 
