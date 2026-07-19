@@ -4,7 +4,7 @@ import type { HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateTripAssignmentRequest } from '../dtos/create-trip-assignment.request.dto';
-import { TripAssignmentWithMeta } from '../dtos/trip-assignment.response.dto';
+import type { TripAssignmentWithMeta } from '../dtos/trip-assignment.response.dto';
 import { UpdateTripAssignmentRequest } from '../dtos/update-trip-assignment.request.dto';
 import { TripAssignmentService } from '../services/trip-assignment.service';
 

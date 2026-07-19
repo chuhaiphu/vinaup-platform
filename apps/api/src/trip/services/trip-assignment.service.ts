@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import {
+  TRIP_STATUS,
+  type CreateTripAssignmentRequestInterface,
+  type UpdateTripAssignmentRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { CAR_STATUS } from 'src/_common/constants/car.constant';
-import { TRIP_STATUS } from 'src/_common/constants/trip.constant';
 import { CarLockedException } from 'src/_common/exceptions/car.exception';
 import {
   TripAssignmentCarAlreadyInTripException,
@@ -13,14 +17,13 @@ import {
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateTripAssignmentRequest } from '../dtos/create-trip-assignment.request.dto';
 import {
-  ConflictingTrip,
-  TripAssignmentMeta,
-  TripAssignmentResponse,
-  TripAssignmentWithMeta,
+  tripAssignmentQueryArgs,
+  type ConflictingTrip,
+  type TripAssignmentMeta,
+  type TripAssignmentResponse,
+  type TripAssignmentWithMeta,
 } from '../dtos/trip-assignment.response.dto';
-import { UpdateTripAssignmentRequest } from '../dtos/update-trip-assignment.request.dto';
 
 // Normalized shape of one overlapping assignment returned by findOverlappingTripAssignments:
 // member relation rows are flattened to a plain id list for the meta builder.
@@ -44,7 +47,7 @@ export class TripAssignmentService {
     const tripAssignments = await this.prismaService.tripAssignment.findMany({
       where: { tripId },
       orderBy: { createdAt: 'desc' },
-      include: { car: true, members: { include: { organizationMember: true } } },
+      ...tripAssignmentQueryArgs,
     });
     if (!tripAssignments.length) return [];
 
@@ -57,13 +60,20 @@ export class TripAssignmentService {
   }
 
   async createTripAssignment(
-    createTripAssignmentReq: CreateTripAssignmentRequest,
+    createTripAssignmentReq: CreateTripAssignmentRequestInterface,
   ): Promise<TripAssignmentWithMeta> {
-    // The trip's existence is guaranteed by @IsTripExist on the DTO.
+    // Replaces the old @IsTripExist async validator — a DB-backed existence
+    // rule lives in the service, not the schema (Coding Convention §7.3).
+    const trip = await this.prismaService.trip.findUnique({
+      where: { id: createTripAssignmentReq.tripId },
+      select: { id: true },
+    });
+    if (!trip) throw new TripNotFoundException();
+
     // Car and members are assigned later via update.
     const created = await this.prismaService.tripAssignment.create({
       data: { tripId: createTripAssignmentReq.tripId, note: createTripAssignmentReq.note },
-      include: { car: true, members: { include: { organizationMember: true } } },
+      ...tripAssignmentQueryArgs,
     });
 
     // A brand-new turn has no car and no members, so it cannot conflict yet.
@@ -75,7 +85,7 @@ export class TripAssignmentService {
 
   async updateTripAssignment(
     id: string,
-    updateTripAssignmentReq: UpdateTripAssignmentRequest,
+    updateTripAssignmentReq: UpdateTripAssignmentRequestInterface,
   ): Promise<TripAssignmentWithMeta> {
     const existing = await this.prismaService.tripAssignment.findUnique({
       where: { id },
@@ -118,7 +128,7 @@ export class TripAssignmentService {
           create: memberIdsToCreate,
         },
       },
-      include: { car: true, members: { include: { organizationMember: true } } },
+      ...tripAssignmentQueryArgs,
     });
 
     const overlappingTripAssignments = await this.findOverlappingTripAssignments(

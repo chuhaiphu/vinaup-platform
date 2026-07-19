@@ -1,27 +1,27 @@
-import { Organization, OrganizationCustomer, User } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-import { TripAssignmentResponse } from './trip-assignment.response.dto';
+export const tripQueryArgs = {
+  include: {
+    createdBy: true,
+    organization: true,
+    organizationCustomer: true,
+  },
+} satisfies Prisma.TripDefaultArgs;
 
-export class TripResponse {
-  id!: string;
-  code!: string | null;
-  description!: string;
-  content!: string | null;
-  startDate!: Date;
-  endDate!: Date;
-  status!: string;
-  rentalPrice!: number;
-  taxRate!: number;
-  commissionRate!: number;
-  note!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
-  createdBy!: User | null;
-  organization!: Organization;
-  organizationCustomer!: OrganizationCustomer | null;
-  externalOrganizationName!: string | null;
-  externalCustomerName!: string | null;
-  // Optional: only the list endpoint includes assignments (drivers + cars) so cards can
-  // summarise them; detail/create/update omit it, hence optional to keep those callers valid.
-  tripAssignments?: TripAssignmentResponse[];
-}
+// ─── List variant: embed assignments so each list card can summarise drivers + cars ─────
+export const tripListQueryArgs = {
+  include: {
+    ...tripQueryArgs.include,
+    tripAssignments: {
+      include: {
+        car: true,
+        members: { include: { organizationMember: true } },
+      },
+    },
+  },
+} satisfies Prisma.TripDefaultArgs;
+
+// Only the list endpoint embeds assignments; detail/create/update omit them, hence optional.
+export type TripResponse = Prisma.TripGetPayload<typeof tripQueryArgs> & {
+  tripAssignments?: Prisma.TripGetPayload<typeof tripListQueryArgs>['tripAssignments'];
+};

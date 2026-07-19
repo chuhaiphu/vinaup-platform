@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
+import {
+  TRIP_STATUS,
+  type CreateTripRequestInterface,
+  type TripFilterRequestInterface,
+  type UpdateTripRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { TRIP_STATUS } from 'src/_common/constants/trip.constant';
+import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { TripNotFoundException } from 'src/_common/exceptions/trip.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateTripRequest } from '../dtos/create-trip.request.dto';
-import { TripFilterParam } from '../dtos/trip-filter.param.dto';
-import { TripResponse } from '../dtos/trip.response.dto';
-import { UpdateTripRequest } from '../dtos/update-trip.request.dto';
+import { tripListQueryArgs, tripQueryArgs, type TripResponse } from '../dtos/trip.response.dto';
 
 @Injectable()
 export class TripService {
@@ -16,7 +19,7 @@ export class TripService {
 
   async findTripsByOrganizationId(
     organizationId: string,
-    filter?: TripFilterParam
+    filter?: TripFilterRequestInterface
   ): Promise<TripResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -29,47 +32,40 @@ export class TripService {
     return this.prismaService.trip.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        // ─── Embed assignments so each list card can summarise drivers + cars ─────
-        tripAssignments: {
-          include: {
-            car: true,
-            members: { include: { organizationMember: true } },
-          },
-        },
-      },
+      ...tripListQueryArgs,
     });
   }
 
+  // Replaces the old @IsOrganizationExist async validator — a DB-backed existence
+  // rule lives in the service, not the schema (Coding Convention §7.3).
+  private async assertOrganizationExists(organizationId: string): Promise<void> {
+    const organization = await this.prismaService.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true },
+    });
+    if (!organization) throw new OrganizationNotFoundException();
+  }
+
   async createTrip(
-    createTripReq: CreateTripRequest,
+    createTripReq: CreateTripRequestInterface,
     currentUserId: string
   ): Promise<TripResponse> {
+    await this.assertOrganizationExists(createTripReq.organizationId);
+
     return this.prismaService.trip.create({
       data: {
         ...createTripReq,
         createdByUserId: currentUserId,
         status: TRIP_STATUS.DRAFT,
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-      },
+      ...tripQueryArgs,
     });
   }
 
   async findTripById(id: string): Promise<TripResponse> {
     const trip = await this.prismaService.trip.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-      },
+      ...tripQueryArgs,
     });
 
     if (!trip) {
@@ -81,7 +77,7 @@ export class TripService {
 
   async updateTrip(
     id: string,
-    updateTripReq: UpdateTripRequest
+    updateTripReq: UpdateTripRequestInterface
   ): Promise<TripResponse> {
     const existingTrip = await this.prismaService.trip.findUnique({
       where: { id },
@@ -91,14 +87,14 @@ export class TripService {
       throw new TripNotFoundException();
     }
 
+    if (updateTripReq.organizationId) {
+      await this.assertOrganizationExists(updateTripReq.organizationId);
+    }
+
     return this.prismaService.trip.update({
       where: { id },
       data: updateTripReq,
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-      },
+      ...tripQueryArgs,
     });
   }
 

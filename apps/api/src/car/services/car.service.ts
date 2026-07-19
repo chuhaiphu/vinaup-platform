@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { TRIP_STATUS } from '@vinaup-platform/validation';
 
 import { CAR_OPERATIONAL_STATUS } from 'src/_common/constants/car.constant';
-import { TRIP_STATUS } from 'src/_common/constants/trip.constant';
 import { CarNotFoundException } from 'src/_common/exceptions/car.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';

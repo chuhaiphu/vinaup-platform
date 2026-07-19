@@ -1,15 +1,4 @@
-import { IsOptional } from 'class-validator';
+import { createTripAssignmentSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-import { IsStringNotBlank, TrimToUndefined } from 'src/_core/decorators/validation.decorator';
-import { IsTripExist } from 'src/_core/validators/trip.validator';
-
-export class CreateTripAssignmentRequest {
-  @IsStringNotBlank()
-  @IsTripExist()
-  tripId!: string;
-
-  @TrimToUndefined()
-  @IsOptional()
-  @IsStringNotBlank()
-  note?: string | null;
-}
+export class CreateTripAssignmentRequest extends createZodDto(createTripAssignmentSchema) {}

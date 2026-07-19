@@ -19,8 +19,8 @@ import type {
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateTripRequest } from '../dtos/create-trip.request.dto';
-import { TripFilterParam } from '../dtos/trip-filter.param.dto';
-import { TripResponse } from '../dtos/trip.response.dto';
+import { TripFilterRequest } from '../dtos/trip-filter.request.dto';
+import type { TripResponse } from '../dtos/trip.response.dto';
 import { UpdateTripRequest } from '../dtos/update-trip.request.dto';
 import { TripService } from '../services/trip.service';
 
@@ -32,7 +32,7 @@ export class TripController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: TripFilterParam
+    @Query() filter: TripFilterRequest
   ): Promise<HttpResponse<TripResponse[]>> {
     const data = await this.tripService.findTripsByOrganizationId(
       organizationId,

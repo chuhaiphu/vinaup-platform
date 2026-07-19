@@ -1,16 +1,11 @@
-import { BaseMeta } from 'src/_common/interfaces/interface';
-import { Car, OrganizationMember, Trip, TripAssignmentMember } from 'src/prisma/generated/client';
+import type { BaseMeta } from 'src/_common/interfaces/interface';
+import { Prisma, Trip } from 'src/prisma/generated/client';
 
-export class TripAssignmentResponse {
-  id!: string;
-  tripId!: string;
-  carId!: string | null;
-  car!: Car | null;
-  members!: (TripAssignmentMember & { organizationMember: OrganizationMember })[];
-  note!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
-}
+export const tripAssignmentQueryArgs = {
+  include: { car: true, members: { include: { organizationMember: true } } },
+} satisfies Prisma.TripAssignmentDefaultArgs;
+
+export type TripAssignmentResponse = Prisma.TripAssignmentGetPayload<typeof tripAssignmentQueryArgs>;
 
 export type ConflictingTrip = Pick<Trip, 'id' | 'description' | 'startDate' | 'endDate'>;
 
