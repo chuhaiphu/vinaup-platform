@@ -1,7 +1,4 @@
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { updateFuelPriceSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-export class UpdateFuelPriceRequest {
-  @IsNumber()
-  @IsNotEmpty()
-  electricity!: number;
-}
+export class UpdateFuelPriceRequest extends createZodDto(updateFuelPriceSchema) {}

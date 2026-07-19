@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import type { UpdateFuelPriceRequestInterface } from '@vinaup-platform/validation';
 
 import { VNEXPRESS_FUEL_API_URL } from 'src/_common/constants/fuel-price.constant';
 import { FuelPriceFetchFailedException } from 'src/_common/exceptions/fuel-price.exception';
 import type { VnexpressFuelApiResponse } from 'src/_common/interfaces/fuel-price.interface';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import type { FuelPriceResponse } from './dtos/fuel-price.response.dto';
-import type { UpdateFuelPriceRequest } from './dtos/update-fuel-price.request.dto';
+import { fuelPriceQueryArgs, type FuelPriceResponse } from './dtos/fuel-price.response.dto';
 
 @Injectable()
 export class FuelPriceService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async getFuelPrice(): Promise<FuelPriceResponse | null> {
-    return this.prismaService.fuelPrice.findFirst();
+    return this.prismaService.fuelPrice.findFirst({ ...fuelPriceQueryArgs });
   }
 
   async syncFuelPrice(): Promise<FuelPriceResponse> {
@@ -41,14 +41,16 @@ export class FuelPriceService {
       where: { id: 'SINGLETON' },
       update: fuelPriceData,
       create: { id: 'SINGLETON', ...fuelPriceData, electricity: 0 },
+      ...fuelPriceQueryArgs,
     });
   }
 
-  async updateElectricity(dto: UpdateFuelPriceRequest): Promise<FuelPriceResponse> {
+  async updateElectricity(dto: UpdateFuelPriceRequestInterface): Promise<FuelPriceResponse> {
     return this.prismaService.fuelPrice.upsert({
       where: { id: 'SINGLETON' },
       update: { electricity: dto.electricity },
       create: { id: 'SINGLETON', e10Ron95: 0, e5Ron92: 0, diesel: 0, electricity: dto.electricity },
+      ...fuelPriceQueryArgs,
     });
   }
 }
