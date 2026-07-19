@@ -8,6 +8,12 @@ export const dateFilterFields = {
   endDate: z.iso.datetime().optional(),
 };
 
+// endDate ≥ startDate compared as instants — a pure cross-field rule shared by
+// every date-range create/update schema; skipped when either side is missing
+// (partial update).
+export const isEndDateOnOrAfterStartDate = (value: { startDate?: string; endDate?: string }) =>
+  !value.startDate || !value.endDate || new Date(value.startDate) <= new Date(value.endDate);
+
 // The range is both-or-neither: an open-ended range is not supported, so each
 // end is required as soon as the other is provided.
 export const assertDateRangeComplete = (

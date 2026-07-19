@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateInvoiceRequestInterface,
+  InvoiceFilterRequestInterface,
+  UpdateInvoiceRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
+import { InvoiceNotFoundException, InvoiceTypeNotFoundException } from 'src/_common/exceptions/invoice.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateInvoiceRequest } from './dtos/create-invoice.request.dto';
-import { InvoiceFilterParam } from './dtos/invoice-filter.param.dto';
-import { InvoiceTypeResponse } from './dtos/invoice-type.response.dto';
-import { InvoiceResponse } from './dtos/invoice.response.dto';
-import { UpdateInvoiceRequest } from './dtos/update-invoice.request.dto';
+import type { InvoiceTypeResponse } from './dtos/invoice-type.response.dto';
+import { invoiceQueryArgs, type InvoiceResponse } from './dtos/invoice.response.dto';
 
 @Injectable()
 export class InvoiceService {
@@ -16,7 +18,7 @@ export class InvoiceService {
 
   async findInvoicesByOrganizationId(
     organizationId: string,
-    filter?: InvoiceFilterParam,
+    filter?: InvoiceFilterRequestInterface,
   ): Promise<InvoiceResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -30,15 +32,20 @@ export class InvoiceService {
     const invoices = await this.prismaService.invoice.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        invoiceType: true
-      },
+      ...invoiceQueryArgs,
     });
 
     return invoices;
+  }
+
+  // Replaces the old @IsInvoiceTypeExist async validator — a DB-backed existence
+  // rule lives in the service, not the schema (Coding Convention §7.3).
+  private async assertInvoiceTypeExists(invoiceTypeId: string): Promise<void> {
+    const invoiceType = await this.prismaService.invoiceType.findUnique({
+      where: { id: invoiceTypeId },
+      select: { id: true },
+    });
+    if (!invoiceType) throw new InvoiceTypeNotFoundException();
   }
 
   async findInvoiceTypes(): Promise<InvoiceTypeResponse[]> {
@@ -47,28 +54,25 @@ export class InvoiceService {
   }
 
   async createInvoice(
-    createInvoiceReq: CreateInvoiceRequest,
+    createInvoiceReq: CreateInvoiceRequestInterface,
     currentUserId: string,
   ): Promise<InvoiceResponse> {
+    await this.assertInvoiceTypeExists(createInvoiceReq.invoiceTypeId);
+
     const newInvoice = await this.prismaService.invoice.create({
       data: {
         ...createInvoiceReq,
         createdByUserId: currentUserId,
         status: 'PROCESSING',
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        invoiceType: true
-      },
+      ...invoiceQueryArgs,
     });
     return newInvoice;
   }
 
   async updateInvoice(
     id: string,
-    updateInvoiceReq: UpdateInvoiceRequest,
+    updateInvoiceReq: UpdateInvoiceRequestInterface,
   ): Promise<InvoiceResponse> {
     const existingInvoice = await this.prismaService.invoice.findUnique({
       where: { id },
@@ -78,15 +82,14 @@ export class InvoiceService {
       throw new InvoiceNotFoundException();
     }
 
+    if (updateInvoiceReq.invoiceTypeId) {
+      await this.assertInvoiceTypeExists(updateInvoiceReq.invoiceTypeId);
+    }
+
     const updatedInvoice = await this.prismaService.invoice.update({
       where: { id },
       data: updateInvoiceReq,
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        invoiceType: true
-      },
+      ...invoiceQueryArgs,
     });
     return updatedInvoice;
   }
@@ -108,12 +111,7 @@ export class InvoiceService {
   async findInvoiceById(id: string): Promise<InvoiceResponse> {
     const invoice = await this.prismaService.invoice.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        invoiceType: true
-      }
+      ...invoiceQueryArgs,
     })
 
     if (!invoice) {

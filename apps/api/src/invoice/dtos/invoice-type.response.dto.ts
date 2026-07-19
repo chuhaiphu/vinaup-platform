@@ -1,5 +1,4 @@
-export class InvoiceTypeResponse {
-  id!: string;
-  code!: string;
-  description!: string;
-}
+import type { InvoiceType } from 'src/prisma/generated/client';
+
+// Full-row response (no projection → no query-args const).
+export type InvoiceTypeResponse = InvoiceType;

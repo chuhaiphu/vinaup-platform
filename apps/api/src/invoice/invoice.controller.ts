@@ -20,7 +20,7 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationInvoiceMutationGuard } from 'src/_core/guards/organization-invoice-mutation.guard';
 
 import { CreateInvoiceRequest } from './dtos/create-invoice.request.dto';
-import { InvoiceFilterParam } from './dtos/invoice-filter.param.dto';
+import { InvoiceFilterRequest } from './dtos/invoice-filter.request.dto';
 import { InvoiceTypeResponse } from './dtos/invoice-type.response.dto';
 import { InvoiceResponse } from './dtos/invoice.response.dto';
 import { UpdateInvoiceRequest } from './dtos/update-invoice.request.dto';
@@ -34,7 +34,7 @@ export class InvoiceController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: InvoiceFilterParam
+    @Query() filter: InvoiceFilterRequest
   ): Promise<HttpResponse<InvoiceResponse[]>> {
     const data = await this.invoiceService.findInvoicesByOrganizationId(
       organizationId,

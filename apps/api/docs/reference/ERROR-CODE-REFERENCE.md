@@ -124,6 +124,7 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `error` code       | HTTP | Exception class            | Thrown by                                                                                     |
 | ------------------ | ---- | -------------------------- | --------------------------------------------------------------------------------------------- |
 | `INVOICE_NOT_FOUND`| 404  | `InvoiceNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-invoice-mutation.guard.ts`](../../src/_core/guards/organization-invoice-mutation.guard.ts) |
+| `INVOICE_TYPE_NOT_FOUND`| 404 | `InvoiceTypeNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts) — the `invoiceTypeId` on create/update does not exist |
 
 ### Wage · `wage.exception.ts`
 
