@@ -16,7 +16,7 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationReceiptPaymentCategoryMutationGuard } from 'src/_core/guards/organization-receipt-payment-category-mutation.guard';
 
 import { CreateReceiptPaymentCategoryRequest } from '../dtos/create-receipt-payment-category.request.dto';
-import { ReceiptPaymentCategoryResponse } from '../dtos/receipt-payment-category.response.dto';
+import type { ReceiptPaymentCategoryResponse } from '../dtos/receipt-payment-category.response.dto';
 import { UpdateReceiptPaymentCategoryRequest } from '../dtos/update-receipt-payment-category.request.dto';
 import { ReceiptPaymentCategoryService } from '../services/receipt-payment-category.service';
 

@@ -1,14 +1,4 @@
-import { Organization, User } from 'src/prisma/generated/client';
+import type { ReceiptPaymentCategory } from 'src/prisma/generated/client';
 
-export class ReceiptPaymentCategoryResponse {
-  id!: string;
-  name!: string;
-  description!: string | null;
-  isSystem!: boolean;
-  userId!: string | null;
-  organizationId!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
-  user?: User | null;
-  organization?: Organization | null;
-}
+// Full-row response (no projection → no query-args const).
+export type ReceiptPaymentCategoryResponse = ReceiptPaymentCategory;

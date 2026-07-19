@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateReceiptPaymentCategoryRequestInterface,
+  UpdateReceiptPaymentCategoryRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { ReceiptPaymentCategoryNotFoundException, ReceiptPaymentCategorySystemReadonlyException } from 'src/_common/exceptions/receipt-payment.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateReceiptPaymentCategoryRequest } from '../dtos/create-receipt-payment-category.request.dto';
-import { ReceiptPaymentCategoryResponse } from '../dtos/receipt-payment-category.response.dto';
-import { UpdateReceiptPaymentCategoryRequest } from '../dtos/update-receipt-payment-category.request.dto';
+import type { ReceiptPaymentCategoryResponse } from '../dtos/receipt-payment-category.response.dto';
 
 @Injectable()
 export class ReceiptPaymentCategoryService {
@@ -38,7 +40,7 @@ export class ReceiptPaymentCategoryService {
   }
 
   async createCategory(
-    createReq: CreateReceiptPaymentCategoryRequest,
+    createReq: CreateReceiptPaymentCategoryRequestInterface,
     currentUserId: string,
   ): Promise<ReceiptPaymentCategoryResponse> {
     const { organizationId, ...rest } = createReq;
@@ -53,7 +55,7 @@ export class ReceiptPaymentCategoryService {
 
   async updateCategory(
     id: string,
-    updateReq: UpdateReceiptPaymentCategoryRequest,
+    updateReq: UpdateReceiptPaymentCategoryRequestInterface,
   ): Promise<ReceiptPaymentCategoryResponse> {
     const existing = await this.prismaService.receiptPaymentCategory.findUnique({ where: { id } });
 

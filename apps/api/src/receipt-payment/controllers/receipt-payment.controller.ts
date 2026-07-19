@@ -22,8 +22,8 @@ import { CreateReceiptPaymentRequest } from '../dtos/create-receipt-payment.requ
 import { FindReceiptPaymentsByInvoiceIdsRequest } from '../dtos/find-receipt-payments-by-invoice-ids.request.dto';
 import { FindReceiptPaymentsByProjectIdsRequest } from '../dtos/find-receipt-payments-by-project-ids.request.dto';
 import { FindReceiptPaymentsByWageIdsRequest } from '../dtos/find-receipt-payments-by-wage-ids.request.dto';
-import { ReceiptPaymentFilterParam } from '../dtos/receipt-payment-filter.param.dto';
-import { ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
+import { ReceiptPaymentFilterRequest } from '../dtos/receipt-payment-filter.request.dto';
+import type { ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
 import { UpdateReceiptPaymentRequest } from '../dtos/update-receipt-payment.request.dto';
 import { ReceiptPaymentService } from '../services/receipt-payment.service';
 
@@ -101,7 +101,7 @@ export class ReceiptPaymentController {
   @Get('/')
   async findByCurrentUser(
     @Request() req: AuthenticatedRequest,
-    @Query() filter: ReceiptPaymentFilterParam
+    @Query() filter: ReceiptPaymentFilterRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data = await this.receiptPaymentService.findReceiptPaymentsByCurrentUser(
       req.user.userId,
@@ -223,7 +223,7 @@ export class ReceiptPaymentController {
   @Get('/organization/:organizationId')
   async findAllByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: ReceiptPaymentFilterParam
+    @Query() filter: ReceiptPaymentFilterRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
       await this.receiptPaymentService.findReceiptPaymentsByOrganizationId(

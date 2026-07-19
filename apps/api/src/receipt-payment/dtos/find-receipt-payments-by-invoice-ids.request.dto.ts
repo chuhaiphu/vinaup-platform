@@ -1,7 +1,4 @@
-import { IsArray, IsString } from 'class-validator';
+import { findReceiptPaymentsByInvoiceIdsSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-export class FindReceiptPaymentsByInvoiceIdsRequest {
-  @IsArray()
-  @IsString({ each: true })
-  invoiceIds!: string[];
-}
+export class FindReceiptPaymentsByInvoiceIdsRequest extends createZodDto(findReceiptPaymentsByInvoiceIdsSchema) {}

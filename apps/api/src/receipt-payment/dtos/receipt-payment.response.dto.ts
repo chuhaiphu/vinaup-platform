@@ -1,30 +1,20 @@
-import { Booking, CarMaintenanceLog, Invoice, Project, ReceiptPaymentCategory, TourCalculation, TourImplementationReceiptPayment, TourSettlement, Trip, User, Wage } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class ReceiptPaymentResponse {
-  id!: string;
-  type!: string;
-  description!: string | null;
-  unitPrice!: number;
-  currency!: string;
-  transactionType!: string;
-  transactionDate!: Date;
-  quantity!: number;
-  frequency!: number;
-  vatRate!: number;
-  depositAmount!: number;
-  depositType!: string | null;
-  note!: string | null;
-  createdBy!: User | null;
-  project!: Project | null;
-  invoice!: Invoice | null;
-  tourCalculation!: TourCalculation | null;
-  tourImplementationReceiptPayments!: TourImplementationReceiptPayment[];
-  tourSettlement!: TourSettlement | null;
-  booking!: Booking | null;
-  wage!: Wage | null;
-  categoryId!: string | null;
-  category!: ReceiptPaymentCategory | null;
-  carMaintenanceLogId!: string | null;
-  carMaintenanceLog!: CarMaintenanceLog | null;
-  trip!: Trip | null;
-}
+export const receiptPaymentQueryArgs = {
+  include: {
+    createdBy: true,
+    project: true,
+    organization: true,
+    invoice: { include: { invoiceType: true } },
+    booking: true,
+    tourCalculation: true,
+    tourImplementationReceiptPayments: true,
+    tourSettlement: true,
+    wage: true,
+    category: true,
+    carMaintenanceLog: true,
+    trip: true,
+  },
+} satisfies Prisma.ReceiptPaymentDefaultArgs;
+
+export type ReceiptPaymentResponse = Prisma.ReceiptPaymentGetPayload<typeof receiptPaymentQueryArgs>;

@@ -1,22 +1,70 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateReceiptPaymentRequestInterface,
+  ReceiptPaymentFilterRequestInterface,
+  UpdateReceiptPaymentRequestInterface,
+} from '@vinaup-platform/validation';
 
+import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
+import { CarMaintenanceLogNotFoundException } from 'src/_common/exceptions/car.exception';
+import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
+import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
+import { ProjectNotFoundException } from 'src/_common/exceptions/project.exception';
 import { ReceiptPaymentNotFoundException, ReceiptPaymentNotTourParticipantException } from 'src/_common/exceptions/receipt-payment.exception';
-import { TourImplementationNotFoundException } from 'src/_common/exceptions/tour.exception';
+import {
+  TourCalculationNotFoundException,
+  TourImplementationNotFoundException,
+  TourSettlementNotFoundException,
+} from 'src/_common/exceptions/tour.exception';
+import { TripNotFoundException } from 'src/_common/exceptions/trip.exception';
+import { WageNotFoundException } from 'src/_common/exceptions/wage.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateReceiptPaymentRequest } from '../dtos/create-receipt-payment.request.dto';
-import { ReceiptPaymentFilterParam } from '../dtos/receipt-payment-filter.param.dto';
-import { ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
-import { UpdateReceiptPaymentRequest } from '../dtos/update-receipt-payment.request.dto';
+import { receiptPaymentQueryArgs, type ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
 
 @Injectable()
 export class ReceiptPaymentService {
   constructor(private readonly prismaService: PrismaService) { }
 
+  // Replaces the old @Is<Entity>Exist async validators — DB-backed existence
+  // rules live in the service, not the schema (Coding Convention §7.3).
+  private async assertReceiptPaymentRelationsExist(input: {
+    projectId?: string | null;
+    invoiceId?: string | null;
+    organizationId?: string | null;
+    tourCalculationId?: string | null;
+    tourImplementationId?: string | null;
+    tourSettlementId?: string | null;
+    bookingId?: string | null;
+    wageId?: string | null;
+    carMaintenanceLogId?: string | null;
+    tripId?: string | null;
+  }): Promise<void> {
+    const relationChecks: [string | null | undefined, () => Promise<{ id: string } | null>, () => Error][] = [
+      [input.projectId, () => this.prismaService.project.findUnique({ where: { id: input.projectId! }, select: { id: true } }), () => new ProjectNotFoundException()],
+      [input.invoiceId, () => this.prismaService.invoice.findUnique({ where: { id: input.invoiceId! }, select: { id: true } }), () => new InvoiceNotFoundException()],
+      [input.organizationId, () => this.prismaService.organization.findUnique({ where: { id: input.organizationId! }, select: { id: true } }), () => new OrganizationNotFoundException()],
+      [input.tourCalculationId, () => this.prismaService.tourCalculation.findUnique({ where: { id: input.tourCalculationId! }, select: { id: true } }), () => new TourCalculationNotFoundException()],
+      [input.tourImplementationId, () => this.prismaService.tourImplementation.findUnique({ where: { id: input.tourImplementationId! }, select: { id: true } }), () => new TourImplementationNotFoundException()],
+      [input.tourSettlementId, () => this.prismaService.tourSettlement.findUnique({ where: { id: input.tourSettlementId! }, select: { id: true } }), () => new TourSettlementNotFoundException()],
+      [input.bookingId, () => this.prismaService.booking.findUnique({ where: { id: input.bookingId! }, select: { id: true } }), () => new BookingNotFoundException()],
+      [input.wageId, () => this.prismaService.wage.findUnique({ where: { id: input.wageId! }, select: { id: true } }), () => new WageNotFoundException()],
+      [input.carMaintenanceLogId, () => this.prismaService.carMaintenanceLog.findUnique({ where: { id: input.carMaintenanceLogId! }, select: { id: true } }), () => new CarMaintenanceLogNotFoundException()],
+      [input.tripId, () => this.prismaService.trip.findUnique({ where: { id: input.tripId! }, select: { id: true } }), () => new TripNotFoundException()],
+    ];
+    for (const [id, find, buildError] of relationChecks) {
+      if (!id) continue;
+      const found = await find();
+      if (!found) throw buildError();
+    }
+  }
+
   async createReceiptPayment(
-    createReceiptPaymentReq: CreateReceiptPaymentRequest,
+    createReceiptPaymentReq: CreateReceiptPaymentRequestInterface,
     currentUserId: string
   ): Promise<ReceiptPaymentResponse> {
+    await this.assertReceiptPaymentRelationsExist(createReceiptPaymentReq);
+
     const { tourImplementationId, groupCode, ...restCreateReceiptPaymentReq } =
       createReceiptPaymentReq;
     const newReceiptPayment = await this.prismaService.receiptPayment.create({
@@ -24,20 +72,7 @@ export class ReceiptPaymentService {
         ...restCreateReceiptPaymentReq,
         createdByUserId: currentUserId,
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        booking: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
     if (tourImplementationId && groupCode) {
       const tourImplementation =
@@ -60,20 +95,7 @@ export class ReceiptPaymentService {
       // we query receiptPayment again to ensure tourImplementationReceiptPayments is populated in the response.
       return this.prismaService.receiptPayment.findUniqueOrThrow({
         where: { id: newReceiptPayment.id },
-        include: {
-          createdBy: true,
-          project: true,
-          organization: true,
-          invoice: true,
-          booking: true,
-          tourCalculation: true,
-          tourImplementationReceiptPayments: true,
-          tourSettlement: true,
-          wage: true,
-          category: true,
-          carMaintenanceLog: true,
-          trip: true,
-        },
+        ...receiptPaymentQueryArgs,
       });
     }
 
@@ -82,7 +104,7 @@ export class ReceiptPaymentService {
 
   async updateReceiptPayment(
     id: string,
-    updateReceiptPaymentReq: UpdateReceiptPaymentRequest
+    updateReceiptPaymentReq: UpdateReceiptPaymentRequestInterface
   ): Promise<ReceiptPaymentResponse> {
     const existingReceiptPayment =
       await this.prismaService.receiptPayment.findUnique({
@@ -92,6 +114,8 @@ export class ReceiptPaymentService {
     if (!existingReceiptPayment) {
       throw new ReceiptPaymentNotFoundException();
     }
+
+    await this.assertReceiptPaymentRelationsExist(updateReceiptPaymentReq);
 
     // tourImplementationId and groupCode belong to junction table tourImplementationReceiptPayment
     const { tourImplementationId, groupCode, ...restUpdateReceiptPaymentReq } =
@@ -119,20 +143,7 @@ export class ReceiptPaymentService {
     const updatedReceiptPayment = await this.prismaService.receiptPayment.update({
       where: { id },
       data: restUpdateReceiptPaymentReq,
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        booking: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
     return updatedReceiptPayment;
   }
@@ -154,7 +165,7 @@ export class ReceiptPaymentService {
 
   async findReceiptPaymentsByCurrentUser(
     currentUserId: string,
-    filter?: ReceiptPaymentFilterParam
+    filter?: ReceiptPaymentFilterRequestInterface
   ): Promise<ReceiptPaymentResponse[]> {
     const dateFilterClause = (() => {
       if (!filter?.startDate || !filter?.endDate) return {};
@@ -172,20 +183,7 @@ export class ReceiptPaymentService {
 
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: whereClause,
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        booking: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
       orderBy: {
         transactionDate: 'desc',
       },
@@ -197,20 +195,7 @@ export class ReceiptPaymentService {
   async findReceiptPaymentById(id: string): Promise<ReceiptPaymentResponse> {
     const receiptPayment = await this.prismaService.receiptPayment.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     if (!receiptPayment) {
@@ -228,20 +213,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -255,20 +227,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -282,20 +241,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -309,20 +255,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -336,20 +269,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -410,20 +330,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -437,20 +344,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -458,7 +352,7 @@ export class ReceiptPaymentService {
 
   async findReceiptPaymentsByOrganizationId(
     organizationId: string,
-    filter?: ReceiptPaymentFilterParam
+    filter?: ReceiptPaymentFilterRequestInterface
   ): Promise<ReceiptPaymentResponse[]> {
     const dateFilterClause = (() => {
       if (!filter?.startDate || !filter?.endDate) return {};
@@ -477,20 +371,7 @@ export class ReceiptPaymentService {
 
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: whereClause,
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: { include: { invoiceType: true } },
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -502,20 +383,7 @@ export class ReceiptPaymentService {
     return this.prismaService.receiptPayment.findMany({
       where: { wageId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
   }
 
@@ -525,20 +393,7 @@ export class ReceiptPaymentService {
     return this.prismaService.receiptPayment.findMany({
       where: { wageId: { in: wageIds } },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
   }
 
@@ -550,20 +405,7 @@ export class ReceiptPaymentService {
       orderBy: {
         createdAt: 'desc',
       },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
 
     return receiptPayments;
@@ -575,20 +417,7 @@ export class ReceiptPaymentService {
     return this.prismaService.receiptPayment.findMany({
       where: { carMaintenanceLogId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
   }
 
@@ -598,20 +427,7 @@ export class ReceiptPaymentService {
     return this.prismaService.receiptPayment.findMany({
       where: { tripId },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        project: true,
-        organization: true,
-        invoice: true,
-        tourCalculation: true,
-        tourImplementationReceiptPayments: true,
-        tourSettlement: true,
-        booking: true,
-        wage: true,
-        category: true,
-        carMaintenanceLog: true,
-        trip: true,
-      },
+      ...receiptPaymentQueryArgs,
     });
   }
 }
