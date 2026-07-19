@@ -15,7 +15,7 @@ import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateProjectCategoryRequest } from '../dtos/create-project-category.request.dto';
-import { ProjectCategoryResponse } from '../dtos/project-category.response.dto';
+import type { ProjectCategoryResponse } from '../dtos/project-category.response.dto';
 import { UpdateProjectCategoryRequest } from '../dtos/update-project-category.request.dto';
 import { ProjectCategoryService } from '../services/project-category.service';
 

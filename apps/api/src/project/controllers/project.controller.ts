@@ -21,8 +21,8 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationProjectMutationGuard } from 'src/_core/guards/organization-project-mutation.guard';
 
 import { CreateProjectRequest } from '../dtos/create-project.request.dto';
-import { ProjectFilterParam } from '../dtos/project-filter.param.dto';
-import { ProjectResponse } from '../dtos/project.response.dto';
+import { ProjectFilterRequest } from '../dtos/project-filter.request.dto';
+import type { ProjectResponse } from '../dtos/project.response.dto';
 import { UpdateProjectRequest } from '../dtos/update-project.request.dto';
 import { ProjectService } from '../services/project.service';
 
@@ -35,7 +35,7 @@ export class ProjectController {
   @Get()
   async findByCurrentUser(
     @Request() req: AuthenticatedRequest,
-    @Query() filter: ProjectFilterParam
+    @Query() filter: ProjectFilterRequest
   ): Promise<HttpResponse<ProjectResponse[]>> {
     const data = await this.projectService.findProjectsByCurrentUser(
       req.user.userId,
@@ -52,7 +52,7 @@ export class ProjectController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: ProjectFilterParam
+    @Query() filter: ProjectFilterRequest
   ): Promise<HttpResponse<ProjectResponse[]>> {
     const data = await this.projectService.findProjectsByOrganizationId(
       organizationId,

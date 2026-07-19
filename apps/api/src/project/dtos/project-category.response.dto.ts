@@ -1,14 +1,7 @@
-import { Organization, Project, User } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class ProjectCategoryResponse {
-  id!: string;
-  name!: string;
-  description!: string | null;
-  userId!: string | null;
-  organizationId!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
-  user?: User | null;
-  organization?: Organization | null;
-  projects?: Project[];
-}
+export const projectCategoryQueryArgs = {
+  include: { projects: true },
+} satisfies Prisma.ProjectCategoryDefaultArgs;
+
+export type ProjectCategoryResponse = Prisma.ProjectCategoryGetPayload<typeof projectCategoryQueryArgs>;

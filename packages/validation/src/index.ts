@@ -8,6 +8,8 @@ export type { BookingStatus } from './constants/booking.constant';
 export { INVOICE_STATUS } from './constants/invoice.constant';
 export type { InvoiceStatus } from './constants/invoice.constant';
 export { VN_PHONE_REGEX } from './constants/phone.constant';
+export { PROJECT_STATUS } from './constants/project.constant';
+export type { ProjectStatus } from './constants/project.constant';
 export { DOCUMENT_TYPE } from './constants/signature.constant';
 export type { DocumentType } from './constants/signature.constant';
 export { SOCIAL_LINK_PLATFORM } from './constants/social-link.constant';
@@ -31,6 +33,13 @@ export {
   manageReceiverSignaturesSchema,
   updateSignatureUrlSchema,
 } from './zod-schemas/signature.schema';
+export {
+  createProjectCategorySchema,
+  createProjectSchema,
+  projectFilterSchema,
+  updateProjectCategorySchema,
+  updateProjectSchema,
+} from './zod-schemas/project.schema';
 export { createSocialLinkSchema, updateSocialLinkSchema } from './zod-schemas/social-link.schema';
 export { createUserSchema, updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
 export { createWageSchema, updateWageSchema, wageFilterSchema } from './zod-schemas/wage.schema';
@@ -54,6 +63,13 @@ export type {
   ManageReceiverSignaturesRequestInterface,
   UpdateSignatureUrlRequestInterface,
 } from './interfaces/signature.interface';
+export type {
+  CreateProjectCategoryRequestInterface,
+  CreateProjectRequestInterface,
+  ProjectFilterRequestInterface,
+  UpdateProjectCategoryRequestInterface,
+  UpdateProjectRequestInterface,
+} from './interfaces/project.interface';
 export type {
   CreateSocialLinkRequestInterface,
   UpdateSocialLinkRequestInterface,

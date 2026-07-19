@@ -1,14 +1,16 @@
 import { Injectable } from "@nestjs/common";
+import type {
+  CreateProjectRequestInterface,
+  ProjectFilterRequestInterface,
+  UpdateProjectRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { BusyDateRange } from "src/_common/dtos/response/busy-days.response.dto";
 import { ProjectNotFoundException } from "src/_common/exceptions/project.exception";
 import { generateDateOverlapClause } from "src/_common/utils/generator/generate-date-overlap-clause";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { CreateProjectRequest } from "../dtos/create-project.request.dto";
-import { ProjectFilterParam } from "../dtos/project-filter.param.dto";
-import { ProjectResponse } from "../dtos/project.response.dto";
-import { UpdateProjectRequest } from "../dtos/update-project.request.dto";
+import { projectQueryArgs, type ProjectResponse } from "../dtos/project.response.dto";
 
 
 @Injectable()
@@ -17,7 +19,7 @@ export class ProjectService {
 
   async findProjectsByCurrentUser(
     currentUserId: string,
-    filter: ProjectFilterParam,
+    filter: ProjectFilterRequestInterface,
   ): Promise<ProjectResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -32,19 +34,14 @@ export class ProjectService {
         ...(filter?.categoryId && { categoryId: filter.categoryId }),
       },
       orderBy: { createdAt: "desc" },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        category: true,
-      },
+      ...projectQueryArgs,
     });
     return projects;
   }
 
   async findProjectsByOrganizationId(
     organizationId: string,
-    filter: ProjectFilterParam,
+    filter: ProjectFilterRequestInterface,
   ): Promise<ProjectResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -59,12 +56,7 @@ export class ProjectService {
         ...(filter?.categoryId && { categoryId: filter.categoryId }),
       },
       orderBy: { createdAt: "desc" },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        category: true,
-      },
+      ...projectQueryArgs,
     });
 
     return projects;
@@ -87,7 +79,7 @@ export class ProjectService {
   }
 
   async createProject(
-    createProjectReq: CreateProjectRequest,
+    createProjectReq: CreateProjectRequestInterface,
     currentUserId: string,
   ): Promise<ProjectResponse> {
     const newProject = await this.prismaService.project.create({
@@ -96,19 +88,14 @@ export class ProjectService {
         createdByUserId: currentUserId,
         status: "PROCESSING",
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        category: true,
-      },
+      ...projectQueryArgs,
     });
     return newProject;
   }
 
   async updateProject(
     id: string,
-    updateProjectReq: UpdateProjectRequest,
+    updateProjectReq: UpdateProjectRequestInterface,
   ): Promise<ProjectResponse> {
     const existingProject = await this.prismaService.project.findUnique({
       where: { id },
@@ -121,12 +108,7 @@ export class ProjectService {
     const updatedProject = await this.prismaService.project.update({
       where: { id },
       data: updateProjectReq,
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        category: true,
-      },
+      ...projectQueryArgs,
     });
     return updatedProject;
   }
@@ -148,12 +130,7 @@ export class ProjectService {
   async findProjectById(id: string): Promise<ProjectResponse> {
     const project = await this.prismaService.project.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        category: true,
-      },
+      ...projectQueryArgs,
     });
 
     if (!project) {
