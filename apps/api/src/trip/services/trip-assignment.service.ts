@@ -62,8 +62,6 @@ export class TripAssignmentService {
   async createTripAssignment(
     createTripAssignmentReq: CreateTripAssignmentRequestInterface,
   ): Promise<TripAssignmentWithMeta> {
-    // Replaces the old @IsTripExist async validator — a DB-backed existence
-    // rule lives in the service, not the schema (Coding Convention §7.3).
     const trip = await this.prismaService.trip.findUnique({
       where: { id: createTripAssignmentReq.tripId },
       select: { id: true },

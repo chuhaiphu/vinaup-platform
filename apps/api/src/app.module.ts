@@ -6,7 +6,6 @@ import appConfig from './_core/configs/app.config';
 import authConfig from './_core/configs/auth.config';
 import { AppExceptionFilter } from './_core/filters/app-exception.filter';
 import { AuthExceptionFilter } from './_core/filters/auth-exception.filter';
-import { ValidatorsModule } from './_core/validators/validators.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { BookingModule } from './booking/booking.module';
@@ -60,8 +59,7 @@ import { WageModule } from './wage/wage.module';
     TripModule,
     WageModule,
     FuelPriceModule,
-    ValidatorsModule,
-  ],
+    ],
   controllers: [AppController],
   providers: [
     AppService,

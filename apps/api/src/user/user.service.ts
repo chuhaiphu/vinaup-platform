@@ -38,6 +38,7 @@ export class UserService {
       organizationLinkedCount,
     };
   }
+
   async signUp(createUserReq: CreateUserRequestInterface): Promise<UserResponse> {
     const { password, ...createUserData } = createUserReq;
     const isAuthExisted = await this.prismaService.auth.findFirst({

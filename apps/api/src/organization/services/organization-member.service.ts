@@ -19,9 +19,6 @@ import { organizationMemberQueryArgs, type OrganizationMemberResponse } from '..
 @Injectable()
 export class OrganizationMemberService {
   constructor(private readonly prismaService: PrismaService) {}
-
-  // Replace the old @IsOrganizationExist / @IsOrganizationRoleExist / @IsUserExist async
-  // validators — DB-backed existence rules live in the service (Coding Convention §7.3).
   private async assertMemberRelationsExist(input: {
     organizationId?: string;
     organizationRoleId?: string;

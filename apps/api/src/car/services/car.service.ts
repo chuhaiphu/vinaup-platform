@@ -65,8 +65,6 @@ export class CarService {
     return this.attachMeta(car, assignedCarIdSet);
   }
 
-  // Replaces the old @IsOrganizationExist async validator — a DB-backed existence
-  // rule lives in the service, not the schema (Coding Convention §7.3).
   private async assertOrganizationExists(organizationId: string): Promise<void> {
     const organization = await this.prismaService.organization.findUnique({
       where: { id: organizationId },

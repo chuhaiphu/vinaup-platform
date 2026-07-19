@@ -1,4 +1,4 @@
-// @vinaup-platform/validation — public surface. Exports added per domain as the Zod migration lands.
+// @vinaup-platform/validation — public surface.
 import { z } from 'zod';
 
 z.config(z.locales.vi());

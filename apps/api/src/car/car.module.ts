@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { ValidatorsModule } from 'src/_core/validators/validators.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 
@@ -20,10 +19,7 @@ import { CarService } from './services/car.service';
     PrismaModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
-    // Registers the custom class-validator constraints this domain's DTOs use,
-    // so class-validator can resolve them at validation time.
-    ValidatorsModule,
-  ],
+    ],
   controllers: [CarController, CarAssignmentController, CarMaintenanceLogController],
   providers: [CarService, CarAssignmentService, CarMaintenanceLogService],
   // Exported for cross-module reuse: other modules can inject these car services

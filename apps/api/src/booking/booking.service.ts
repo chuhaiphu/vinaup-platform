@@ -75,8 +75,6 @@ export class BookingService {
     return bookingsWithMeta;
   }
 
-  // Replace the old @IsOrganizationExist / @IsTourImplementationExist async
-  // validators — DB-backed existence rules live in the service (Coding Convention §7.3).
   private async assertBookingRelationsExist(input: {
     organizationId?: string;
     tourImplementationId?: string | null;

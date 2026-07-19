@@ -25,9 +25,6 @@ import { receiptPaymentQueryArgs, type ReceiptPaymentResponse } from '../dtos/re
 @Injectable()
 export class ReceiptPaymentService {
   constructor(private readonly prismaService: PrismaService) { }
-
-  // Replaces the old @Is<Entity>Exist async validators — DB-backed existence
-  // rules live in the service, not the schema (Coding Convention §7.3).
   private async assertReceiptPaymentRelationsExist(input: {
     projectId?: string | null;
     invoiceId?: string | null;

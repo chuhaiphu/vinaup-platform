@@ -38,8 +38,6 @@ export class InvoiceService {
     return invoices;
   }
 
-  // Replaces the old @IsInvoiceTypeExist async validator — a DB-backed existence
-  // rule lives in the service, not the schema (Coding Convention §7.3).
   private async assertInvoiceTypeExists(invoiceTypeId: string): Promise<void> {
     const invoiceType = await this.prismaService.invoiceType.findUnique({
       where: { id: invoiceTypeId },

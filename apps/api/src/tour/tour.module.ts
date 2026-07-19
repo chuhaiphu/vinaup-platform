@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { ValidatorsModule } from 'src/_core/validators/validators.module';
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 
@@ -22,10 +21,7 @@ import { TourService } from './services/tour.service';
     PrismaModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
-    // Registers the custom class-validator constraints this domain's DTOs use,
-    // so class-validator can resolve them at validation time.
-    ValidatorsModule,
-  ],
+    ],
   controllers: [
     TourController,
     TourCalculationController,
