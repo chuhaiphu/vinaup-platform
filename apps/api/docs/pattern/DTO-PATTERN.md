@@ -42,13 +42,15 @@ export const updateEntitySchema = createEntitySchema.partial();
 
 `.partial()` makes every field optional while preserving its rules **including nullability**, so nullability is declared once, on the create schema. → [Validation Pattern: Optionality & nullability](VALIDATION-PATTERN.md#optionality--nullability-gating-undefined-and-null)
 
-**Filter** — composed from shared param shapes by spreading their `.shape`:
+**Filter** — composed from the shared field set, with the cross-field rule attached last (a spread copies fields, never refinements):
 
 ```ts
-export const entityFilterSchema = z.object({
-  ...dateFilterSchema.shape,          // shared `_shared/date-filter.schema.ts`, reused by every date-range list
-  ...entityStatusFilterSchema.shape,
-});
+export const entityFilterSchema = z
+  .strictObject({
+    ...dateFilterFields,              // shared `_shared/date-filter.schema.ts`, reused by every date-range list
+    status: z.enum(ENTITY_STATUS).optional(),
+  })
+  .superRefine(assertDateRangeComplete);
 ```
 
 ### Request DTOs are taken from the schema
@@ -158,7 +160,7 @@ Because the per-record meta is gathered into each item (`...entity, meta: { … 
 
 ## Why
 
-DTOs make the wire contract explicit and reviewable in one place, independent of how data is stored or computed internally. Deriving update and filter schemas from shared bases (`.partial()`, shape spreads, `dateFilterSchema`) means each field and rule is written once; sharing the schema across apps means the contract can't drift between client and server.
+DTOs make the wire contract explicit and reviewable in one place, independent of how data is stored or computed internally. Deriving update and filter schemas from shared bases (`.partial()`, shape spreads, `dateFilterFields`) means each field and rule is written once; sharing the schema across apps means the contract can't drift between client and server.
 
 ---
 
@@ -166,7 +168,7 @@ DTOs make the wire contract explicit and reviewable in one place, independent of
 
 1. **Request shape = a Zod schema** in `@vinaup-platform/validation`; its interface comes from `z.infer`. → [Validation Pattern](VALIDATION-PATTERN.md)
 2. **Derive, don't restate** — update = `createSchema.partial()`; filter = compose shared shapes by spread.
-3. **Reuse shared params** — date-range filtering uses `dateFilterSchema`; do not redeclare `startDate`/`endDate`.
+3. **Reuse shared params** — date-range filtering spreads `dateFilterFields`; do not redeclare `startDate`/`endDate`.
 4. **Bridge into the API with `createZodDto`** — name DTOs by role; controllers reference the DTO class only.
 5. **Derive the response type from a query-args const** — declare `<action><Thing>QueryArgs = { select: { … } } satisfies Prisma.<Model>DefaultArgs`, type it `Prisma.<Model>GetPayload<typeof …>`, and reuse the const in the service query. Split into a wider query const + a narrower wire const when the response is a strict subset of what the query must fetch.
 6. **Pair a response DTO with a `Meta extends BaseMeta`** when the endpoint returns per-record flags; expose a per-module `XxxWithMeta = XxxResponse & { meta: XxxMeta }` alias and compute the meta in the service.

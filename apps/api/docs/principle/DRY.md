@@ -38,21 +38,22 @@ export const updateBookingSchema = createBookingSchema.partial();
 Cross-cutting request shapes live in `packages/validation/src/zod-schemas/_shared/`, not re-declared per domain.
 
 ```ts
-// _shared/date-filter.schema.ts — used by every list endpoint that filters by date range
-export const dateFilterSchema = z
-  .strictObject({
-    startDate: z.iso.datetime().optional(),
-    endDate: z.iso.datetime().optional(),
-  })
-  .refine((v) => !v.endDate || !!v.startDate, {
-    message: 'startDate is required when endDate is provided',
-    path: ['startDate'],
-  });
+// _shared/date-filter.schema.ts — used by every list endpoint that filters by date range.
+// A field SET (not a schema): a spread copies fields but never refinements, so the
+// cross-field rule ships separately and each filter schema attaches it last.
+export const dateFilterFields = {
+  startDate: z.iso.datetime().optional(),
+  endDate: z.iso.datetime().optional(),
+};
+
+export const assertDateRangeComplete = (value, ctx) => {
+  /* both-or-neither: each end is required as soon as the other is provided */
+};
 ```
 
 ### 4. Reusable schema fragments & existence checks
 
-Recurring field rules are written once as Zod fragments and composed into request schemas (e.g. a shared `vnPhoneSchema`, `dateFilterSchema`). Existence checks ("does this id exist?") are **not** duplicated as a per-field rule — they live once in the service/guard that owns the entity. → [Validation Pattern](../pattern/VALIDATION-PATTERN.md)
+Recurring field rules are written once as Zod fragments and composed into request schemas (e.g. the shared `VN_PHONE_REGEX`, `dateFilterFields`). Existence checks ("does this id exist?") are **not** duplicated as a per-field rule — they live once in the service/guard that owns the entity. → [Validation Pattern](../pattern/VALIDATION-PATTERN.md)
 
 ### 5. Shared pure helpers in `_common/utils/`
 

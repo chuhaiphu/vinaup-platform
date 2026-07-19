@@ -69,7 +69,7 @@ Only `TOKEN_INVALID` routes through the cookie-clearing `AuthExceptionFilter`; e
 
 | `error` code     | HTTP | Exception class         | Thrown by                                                                                                     |
 | ---------------- | ---- | ----------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `USER_NOT_FOUND` | 404  | `UserNotFoundException` | [`user.service.ts`](../../src/user/user.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts) |
+| `USER_NOT_FOUND` | 404  | `UserNotFoundException` | [`user.service.ts`](../../src/user/user.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) |
 
 ### Organization · `organization.exception.ts`
 
@@ -77,7 +77,7 @@ The membership/permission family below is **reused by every** `organization-*-mu
 
 | `error` code                       | HTTP | Exception class                          | Thrown by                                                                                     |
 | ---------------------------------- | ---- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `ORGANIZATION_NOT_FOUND`           | 404  | `OrganizationNotFoundException`          | [`organization.service.ts`](../../src/organization/services/organization.service.ts), [`tour.service.ts`](../../src/tour/services/tour.service.ts) |
+| `ORGANIZATION_NOT_FOUND`           | 404  | `OrganizationNotFoundException`          | [`organization.service.ts`](../../src/organization/services/organization.service.ts), [`tour.service.ts`](../../src/tour/services/tour.service.ts), [`booking.service.ts`](../../src/booking/booking.service.ts), [`car.service.ts`](../../src/car/services/car.service.ts), [`trip.service.ts`](../../src/trip/services/trip.service.ts), [`organization-customer.service.ts`](../../src/organization/services/organization-customer.service.ts), [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `ORGANIZATION_MEMBER_NOT_FOUND`    | 404  | `OrganizationMemberNotFoundException`    | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) |
 | `ORGANIZATION_CUSTOMER_NOT_FOUND`  | 404  | `OrganizationCustomerNotFoundException`  | [`organization-customer.service.ts`](../../src/organization/services/organization-customer.service.ts) |
 | `ORGANIZATION_ROLE_NOT_FOUND`      | 404  | `OrganizationRoleNotFoundException`      | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) — the `organizationRoleId` on create/update does not exist |
@@ -92,7 +92,7 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `error` code                     | HTTP | Exception class                       | Thrown by                                                                                    |
 | -------------------------------- | ---- | ------------------------------------- | ------------------------------------------------------------------------------------------- |
 | `CAR_NOT_FOUND`                  | 404  | `CarNotFoundException`                | [`car.service.ts`](../../src/car/services/car.service.ts), [`car-assignment.service.ts`](../../src/car/services/car-assignment.service.ts) |
-| `CAR_MAINTENANCE_LOG_NOT_FOUND`  | 404  | `CarMaintenanceLogNotFoundException`  | [`car-maintenance-log.service.ts`](../../src/car/services/car-maintenance-log.service.ts)   |
+| `CAR_MAINTENANCE_LOG_NOT_FOUND`  | 404  | `CarMaintenanceLogNotFoundException`  | [`car-maintenance-log.service.ts`](../../src/car/services/car-maintenance-log.service.ts)  , [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `CAR_ASSIGNMENT_MEMBER_NOT_FOUND`| 404  | `CarAssignmentMemberNotFoundException`| [`car-assignment.service.ts`](../../src/car/services/car-assignment.service.ts) — a target member is not in the car's organization |
 | `CAR_LOCKED`                     | 409  | `CarLockedException`                  | [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts) — the car's technical status is `LOCKED`, so it cannot be assigned |
 
@@ -100,7 +100,7 @@ The membership/permission family below is **reused by every** `organization-*-mu
 
 | `error` code                          | HTTP | Exception class                          | Thrown by                                                                                     |
 | ------------------------------------- | ---- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `TRIP_NOT_FOUND`                      | 404  | `TripNotFoundException`                  | [`trip.service.ts`](../../src/trip/services/trip.service.ts), [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts) |
+| `TRIP_NOT_FOUND`                      | 404  | `TripNotFoundException`                  | [`trip.service.ts`](../../src/trip/services/trip.service.ts), [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `TRIP_ASSIGNMENT_NOT_FOUND`           | 404  | `TripAssignmentNotFoundException`        | [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts) — update/delete a non-existent turn |
 | `TRIP_ASSIGNMENT_CAR_NOT_FOUND`       | 404  | `TripAssignmentCarNotFoundException`     | [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts) — the car is not in the trip's organization |
 | `TRIP_ASSIGNMENT_MEMBER_NOT_FOUND`    | 404  | `TripAssignmentMemberNotFoundException`  | [`trip-assignment.service.ts`](../../src/trip/services/trip-assignment.service.ts) — a member is not in the trip's organization |
@@ -110,28 +110,28 @@ The membership/permission family below is **reused by every** `organization-*-mu
 
 | `error` code                | HTTP | Exception class                  | Thrown by                                                                                                |
 | --------------------------- | ---- | -------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `PROJECT_NOT_FOUND`         | 404  | `ProjectNotFoundException`       | [`project.service.ts`](../../src/project/services/project.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts) |
+| `PROJECT_NOT_FOUND`         | 404  | `ProjectNotFoundException`       | [`project.service.ts`](../../src/project/services/project.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `PROJECT_CATEGORY_NOT_FOUND`| 404  | `ProjectCategoryNotFoundException`| [`project-category.service.ts`](../../src/project/services/project-category.service.ts)                  |
 
 ### Booking · `booking.exception.ts`
 
 | `error` code                    | HTTP | Exception class                     | Thrown by                                                                                     |
 | ------------------------------- | ---- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
-| `BOOKING_NOT_FOUND`             | 404  | `BookingNotFoundException`          | [`booking.service.ts`](../../src/booking/booking.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-booking-mutation.guard.ts`](../../src/_core/guards/organization-booking-mutation.guard.ts) |
+| `BOOKING_NOT_FOUND`             | 404  | `BookingNotFoundException`          | [`booking.service.ts`](../../src/booking/booking.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-booking-mutation.guard.ts`](../../src/_core/guards/organization-booking-mutation.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `BOOKING_COMPLETED_IMMUTABLE`   | 400  | `BookingCompletedImmutableException`| [`booking.service.ts`](../../src/booking/booking.service.ts) — cannot delete a completed booking |
 
 ### Invoice · `invoice.exception.ts`
 
 | `error` code       | HTTP | Exception class            | Thrown by                                                                                     |
 | ------------------ | ---- | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `INVOICE_NOT_FOUND`| 404  | `InvoiceNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-invoice-mutation.guard.ts`](../../src/_core/guards/organization-invoice-mutation.guard.ts) |
+| `INVOICE_NOT_FOUND`| 404  | `InvoiceNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-invoice-mutation.guard.ts`](../../src/_core/guards/organization-invoice-mutation.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `INVOICE_TYPE_NOT_FOUND`| 404 | `InvoiceTypeNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts) — the `invoiceTypeId` on create/update does not exist |
 
 ### Wage · `wage.exception.ts`
 
 | `error` code    | HTTP | Exception class         | Thrown by                                       |
 | --------------- | ---- | ----------------------- | ----------------------------------------------- |
-| `WAGE_NOT_FOUND`| 404  | `WageNotFoundException` | [`wage.service.ts`](../../src/wage/wage.service.ts) |
+| `WAGE_NOT_FOUND`| 404  | `WageNotFoundException` | [`wage.service.ts`](../../src/wage/wage.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 
 ### Receipt-Payment · `receipt-payment.exception.ts`
 
@@ -147,15 +147,15 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `error` code                            | HTTP | Exception class                          | Thrown by                                                                                     |
 | --------------------------------------- | ---- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
 | `TOUR_NOT_FOUND`                        | 404  | `TourNotFoundException`                  | [`tour.service.ts`](../../src/tour/services/tour.service.ts), [`organization-tour-mutation.guard.ts`](../../src/_core/guards/organization-tour-mutation.guard.ts) |
-| `TOUR_CALCULATION_NOT_FOUND`            | 404  | `TourCalculationNotFoundException`       | [`tour-calculation.service.ts`](../../src/tour/services/tour-calculation.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts) |
+| `TOUR_CALCULATION_NOT_FOUND`            | 404  | `TourCalculationNotFoundException`       | [`tour-calculation.service.ts`](../../src/tour/services/tour-calculation.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `TOUR_CALCULATION_CANCEL_LOG_NOT_FOUND` | 404  | `TourCalculationCancelLogNotFoundException`| [`tour-calculation.service.ts`](../../src/tour/services/tour-calculation.service.ts)         |
-| `TOUR_IMPLEMENTATION_NOT_FOUND`         | 404  | `TourImplementationNotFoundException`    | [`tour-implementation.service.ts`](../../src/tour/services/tour-implementation.service.ts), [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
+| `TOUR_IMPLEMENTATION_NOT_FOUND`         | 404  | `TourImplementationNotFoundException`    | [`tour-implementation.service.ts`](../../src/tour/services/tour-implementation.service.ts), [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts), [`booking.service.ts`](../../src/booking/booking.service.ts) |
 | `TOUR_IMPLEMENTATION_NOT_ASSIGNED`      | 403  | `TourImplementationNotAssignedException` | [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts)   |
 | `TOUR_IMPLEMENTATION_CANNOT_REMOVE_SELF`| 403  | `TourImplementationCannotRemoveSelfException`| [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts) |
 | `TOUR_IMPLEMENTATION_CANNOT_REMOVE_CREATOR`| 400 | `TourImplementationCannotRemoveCreatorException`| [`tour-implementation.service.ts`](../../src/tour/services/tour-implementation.service.ts) |
 | `TOUR_IMPLEMENTATION_ASSIGNED_USER_NOT_FOUND`| 404 | `TourImplementationAssignedUserNotFoundException`| [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts) |
 | `TOUR_IMPLEMENTATION_ASSIGNMENT_NOT_FOUND`| 404 | `TourImplementationAssignmentNotFoundException`| [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts) |
-| `TOUR_SETTLEMENT_NOT_FOUND`             | 404  | `TourSettlementNotFoundException`        | [`tour-settlement.service.ts`](../../src/tour/services/tour-settlement.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts) |
+| `TOUR_SETTLEMENT_NOT_FOUND`             | 404  | `TourSettlementNotFoundException`        | [`tour-settlement.service.ts`](../../src/tour/services/tour-settlement.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `TOUR_SETTLEMENT_CANCEL_LOG_NOT_FOUND`  | 404  | `TourSettlementCancelLogNotFoundException`| [`tour-settlement.service.ts`](../../src/tour/services/tour-settlement.service.ts)           |
 
 ### Signature · `signature.exception.ts`
