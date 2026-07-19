@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
-import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
+import {
+  BOOKING_STATUS,
+  DOCUMENT_TYPE,
+  type BookingFilterRequestInterface,
+  type CreateBookingRequestInterface,
+  type UpdateBookingRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { BOOKING_STATUS } from 'src/_common/constants/booking.constant';
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
 import { BookingCompletedImmutableException, BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
+import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
+import { TourImplementationNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { BookingFilterParam } from './dtos/booking-filter.param.dto';
-import { BookingResponse, BookingWithMeta } from './dtos/booking.response.dto';
-import { CreateBookingRequest } from './dtos/create-booking.request.dto';
-import { UpdateBookingRequest } from './dtos/update-booking.request.dto';
+import { bookingQueryArgs, type BookingResponse, type BookingWithMeta } from './dtos/booking.response.dto';
 
 @Injectable()
 export class BookingService {
@@ -19,7 +23,7 @@ export class BookingService {
 
   async findBookingsByOrganizationId(
     organizationId: string,
-    filter?: BookingFilterParam
+    filter?: BookingFilterRequestInterface
   ): Promise<BookingWithMeta[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -32,12 +36,7 @@ export class BookingService {
     const bookings = await this.prismaService.booking.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     if (!bookings.length) {
@@ -76,22 +75,41 @@ export class BookingService {
     return bookingsWithMeta;
   }
 
+  // Replace the old @IsOrganizationExist / @IsTourImplementationExist async
+  // validators — DB-backed existence rules live in the service (Coding Convention §7.3).
+  private async assertBookingRelationsExist(input: {
+    organizationId?: string;
+    tourImplementationId?: string | null;
+  }): Promise<void> {
+    if (input.organizationId) {
+      const organization = await this.prismaService.organization.findUnique({
+        where: { id: input.organizationId },
+        select: { id: true },
+      });
+      if (!organization) throw new OrganizationNotFoundException();
+    }
+    if (input.tourImplementationId) {
+      const tourImplementation = await this.prismaService.tourImplementation.findUnique({
+        where: { id: input.tourImplementationId },
+        select: { id: true },
+      });
+      if (!tourImplementation) throw new TourImplementationNotFoundException();
+    }
+  }
+
   async createBooking(
-    createBookingReq: CreateBookingRequest,
+    createBookingReq: CreateBookingRequestInterface,
     currentUserId: string
   ): Promise<BookingResponse> {
+    await this.assertBookingRelationsExist(createBookingReq);
+
     const newBooking = await this.prismaService.booking.create({
       data: {
         ...createBookingReq,
         createdByUserId: currentUserId,
         status: BOOKING_STATUS.DRAFT,
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     await this.prismaService.signature.createMany({
@@ -115,7 +133,7 @@ export class BookingService {
 
   async updateBooking(
     id: string,
-    updateBookingReq: UpdateBookingRequest
+    updateBookingReq: UpdateBookingRequestInterface
   ): Promise<BookingResponse> {
     const existingBooking = await this.prismaService.booking.findUnique({
       where: { id },
@@ -124,6 +142,8 @@ export class BookingService {
     if (!existingBooking) {
       throw new BookingNotFoundException();
     }
+
+    await this.assertBookingRelationsExist(updateBookingReq);
 
     const signedSenderSignature = await this.prismaService.signature.findFirst({
       where: {
@@ -140,12 +160,7 @@ export class BookingService {
     const updatedBooking = await this.prismaService.booking.update({
       where: { id },
       data: updateBookingReq,
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     return updatedBooking;
@@ -175,12 +190,7 @@ export class BookingService {
   ): Promise<BookingWithMeta> {
     const booking = await this.prismaService.booking.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     if (!booking) {
@@ -217,7 +227,7 @@ export class BookingService {
 
   async findBookingsByOrganizationCustomerOrganizationId(
     organizationId: string,
-    filter?: BookingFilterParam
+    filter?: BookingFilterRequestInterface
   ): Promise<BookingWithMeta[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -232,12 +242,7 @@ export class BookingService {
     const bookings = await this.prismaService.booking.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     if (!bookings.length) {
@@ -277,7 +282,7 @@ export class BookingService {
 
   async findBookingsByTourImplementationId(
     tourImplementationId: string,
-    filter?: BookingFilterParam
+    filter?: BookingFilterRequestInterface
   ): Promise<BookingResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -290,12 +295,7 @@ export class BookingService {
     const bookings = await this.prismaService.booking.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourImplementation: true,
-      },
+      ...bookingQueryArgs,
     });
 
     return bookings;

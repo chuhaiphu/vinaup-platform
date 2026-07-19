@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import {
+  BOOKING_STATUS,
   DOCUMENT_TYPE,
   type DocumentType,
   type ManageReceiverSignaturesRequestInterface,
   type UpdateSignatureUrlRequestInterface,
 } from '@vinaup-platform/validation';
 
-import { BOOKING_STATUS } from 'src/_common/constants/booking.constant';
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
 import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';

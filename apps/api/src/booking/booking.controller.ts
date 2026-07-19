@@ -20,7 +20,7 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationBookingMutationGuard } from 'src/_core/guards/organization-booking-mutation.guard';
 
 import { BookingService } from './booking.service';
-import { BookingFilterParam } from './dtos/booking-filter.param.dto';
+import { BookingFilterRequest } from './dtos/booking-filter.request.dto';
 import {
   BookingResponse,
   BookingWithMeta,
@@ -37,7 +37,7 @@ export class BookingController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: BookingFilterParam
+    @Query() filter: BookingFilterRequest
   ): Promise<HttpResponse<BookingWithMeta[]>> {
     const data = await this.bookingService.findBookingsByOrganizationId(
       organizationId,
@@ -73,7 +73,7 @@ export class BookingController {
   @Get('/tour-implementation/:tourImplementationId')
   async findByTourImplementationId(
     @Param('tourImplementationId') tourImplementationId: string,
-    @Query() filter: BookingFilterParam
+    @Query() filter: BookingFilterRequest
   ): Promise<HttpResponse<BookingResponse[]>> {
     const data = await this.bookingService.findBookingsByTourImplementationId(
       tourImplementationId,
@@ -91,7 +91,7 @@ export class BookingController {
   @Get('/by-organization-customer/organization/:organizationId')
   async findByOrganizationCustomerOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: BookingFilterParam
+    @Query() filter: BookingFilterRequest
   ): Promise<HttpResponse<BookingWithMeta[]>> {
     const data =
       await this.bookingService.findBookingsByOrganizationCustomerOrganizationId(
