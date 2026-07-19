@@ -1,3 +1,4 @@
+import { updateWageSchema } from '@vinaup-platform/validation';
 import dayjs, { Dayjs } from 'dayjs';
 import { useImperativeHandle, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -41,16 +42,22 @@ export function PersonalWageInfoModalContent({
   const [startDate, setStartDate] = useState<Dayjs>(dayjs(wageStartDate));
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(wageEndDate));
   const [note, setNote] = useState(wageNote ?? '');
-  const [inputErrors, setInputErrors] = useState<{ description?: boolean }>({});
+  const [inputErrors, setInputErrors] = useState<{ description?: string }>({});
 
   const isSameDay = startDate.isSame(endDate, 'day');
   const dateRangeType = isSameDay ? 'day' : 'period';
 
+  // Field rules come from the shared schema, so the message matches what the API returns.
+  const getDescriptionError = (value: string): string | undefined => {
+    const result = updateWageSchema.safeParse({ description: value });
+    if (result.success) return undefined;
+    return result.error.issues.find((issue) => issue.path[0] === 'description')?.message;
+  };
+
   const handleConfirm = () => {
-    const errors: typeof inputErrors = {};
-    if (!description.trim()) errors.description = true;
-    setInputErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    const descriptionError = getDescriptionError(description);
+    setInputErrors({ description: descriptionError });
+    if (descriptionError) return;
 
     onSubmit?.({
       description,
@@ -72,7 +79,7 @@ export function PersonalWageInfoModalContent({
           setDescription(value);
           setInputErrors((prev) => ({
             ...prev,
-            description: !value.trim() ? true : undefined,
+            description: getDescriptionError(value),
           }));
         }}
         alignLabel="left"
@@ -81,6 +88,9 @@ export function PersonalWageInfoModalContent({
         placeholder="..."
         maxLength={40}
       />
+      {!!inputErrors.description && (
+        <Text style={styles.fieldErrorText}>{inputErrors.description}</Text>
+      )}
       <FlatTextInput
         label="Mã số"
         value={code}
@@ -189,6 +199,11 @@ export function PersonalWageInfoModalContent({
 }
 
 const styles = StyleSheet.create({
+  fieldErrorText: {
+    color: COLORS.red600,
+    fontSize: FONT_SIZES.sm,
+    marginBottom: SPACING.sm,
+  },
   inputGroup: {
     marginBottom: SPACING.sm,
     marginTop: SPACING.sm,

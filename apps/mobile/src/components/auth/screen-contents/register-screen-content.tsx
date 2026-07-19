@@ -1,5 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6/static';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { createUserSchema } from '@vinaup-platform/validation';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -24,17 +25,34 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
+import { useValidatedFields, type FieldErrors } from '@/hooks/use-validated-fields';
 import { useAuthContext } from '@/providers/auth/auth-provider';
+
+type RegisterFieldName = 'name' | 'email' | 'password';
 
 export function RegisterScreenContent() {
   const { isLoading, performRegister } = useAuthContext();
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const { fieldValues, fieldErrors, setFieldValue, validateAll } = useValidatedFields(
+    { name: '', email: '', password: '' },
+    (input) => {
+      const result = createUserSchema.safeParse(input);
+      if (result.success) return { success: true, data: input };
+      const nextFieldErrors: FieldErrors<RegisterFieldName> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as RegisterFieldName;
+        if (field && !nextFieldErrors[field]) nextFieldErrors[field] = issue.message;
+      }
+      return { success: false, fieldErrors: nextFieldErrors };
+    },
+  );
+
   const handleRegister = async () => {
-    const isSuccess = await performRegister({ email, password, name: fullName });
+    const data = validateAll();
+    if (!data) return;
+
+    const isSuccess = await performRegister(data);
     if (isSuccess) {
       Alert.alert('Đăng ký thành công', 'Vui lòng đăng nhập.', [
         { text: 'OK', onPress: () => router.replace('/login') },
@@ -54,29 +72,31 @@ export function RegisterScreenContent() {
           <View style={styles.inputContainer}>
             <TextInput
               placeholder="Tên cá nhân"
-              style={styles.input}
-              value={fullName}
-              onChangeText={setFullName}
+              style={[styles.input, !!fieldErrors.name && styles.inputError]}
+              value={fieldValues.name}
+              onChangeText={(value) => setFieldValue('name', value)}
               autoCapitalize="words"
               placeholderTextColor={COLORS.gray400}
             />
+            {!!fieldErrors.name && <Text style={styles.errorText}>{fieldErrors.name}</Text>}
 
             <TextInput
               placeholder="Nhập email"
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
+              style={[styles.input, !!fieldErrors.email && styles.inputError]}
+              value={fieldValues.email}
+              onChangeText={(value) => setFieldValue('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               placeholderTextColor={COLORS.gray400}
             />
+            {!!fieldErrors.email && <Text style={styles.errorText}>{fieldErrors.email}</Text>}
 
             <View style={styles.passwordInput}>
               <TextInput
                 placeholder="Nhập mật khẩu"
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
+                style={[styles.input, !!fieldErrors.password && styles.inputError]}
+                value={fieldValues.password}
+                onChangeText={(value) => setFieldValue('password', value)}
                 secureTextEntry={!showPassword}
                 placeholderTextColor={COLORS.gray400}
               />
@@ -88,6 +108,7 @@ export function RegisterScreenContent() {
                 />
               </Pressable>
             </View>
+            {!!fieldErrors.password && <Text style={styles.errorText}>{fieldErrors.password}</Text>}
           </View>
 
           <Button
@@ -155,6 +176,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.yellow400,
+  },
+  inputError: {
+    borderColor: COLORS.red400,
+  },
+  errorText: {
+    color: COLORS.red300,
+    fontSize: FONT_SIZES.sm,
+    marginTop: -SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   eyeIcon: {
     position: 'absolute',

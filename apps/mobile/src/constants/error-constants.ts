@@ -19,6 +19,7 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   ORGANIZATION_NOT_FOUND: 'Không tìm thấy tổ chức.',
   ORGANIZATION_MEMBER_NOT_FOUND: 'Không tìm thấy thành viên trong tổ chức.',
   ORGANIZATION_CUSTOMER_NOT_FOUND: 'Không tìm thấy khách hàng của tổ chức.',
+  ORGANIZATION_ROLE_NOT_FOUND: 'Không tìm thấy vai trò trong tổ chức.',
   ORGANIZATION_NOT_MEMBER: 'Bạn không phải thành viên của tổ chức này.',
   ORGANIZATION_MEMBER_LOCKED: 'Tài khoản của bạn đang bị khoá trong tổ chức này.',
   ORGANIZATION_PERMISSION_DENIED: 'Bạn không có quyền thực hiện thao tác này.',
@@ -47,6 +48,7 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
 
   // ─── Invoice ─────────────────────────────────────────────────────────────
   INVOICE_NOT_FOUND: 'Không tìm thấy hoá đơn.',
+  INVOICE_TYPE_NOT_FOUND: 'Không tìm thấy loại hoá đơn.',
 
   // ─── Wage ────────────────────────────────────────────────────────────────
   WAGE_NOT_FOUND: 'Không tìm thấy bảng tiền công.',

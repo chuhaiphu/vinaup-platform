@@ -1,3 +1,4 @@
+import { updateProjectSchema } from '@vinaup-platform/validation';
 import dayjs, { Dayjs } from 'dayjs';
 import { useImperativeHandle, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -49,7 +50,7 @@ export function PersonalProjectInfoModalContent({
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(prjEndDate));
   const [note, setNote] = useState(prjNote ?? '');
   const [inputErrors, setInputErrors] = useState<{
-    description?: boolean;
+    description?: string;
   }>({});
   const [selectedCategory, setSelectedCategory] = useState<ProjectCategoryResponse | null>(
     projectCategory ?? null,
@@ -58,11 +59,17 @@ export function PersonalProjectInfoModalContent({
   const isSameDay = startDate.isSame(endDate, 'day');
   const dateRangeType = isSameDay ? 'day' : 'period';
 
+  // Field rules come from the shared schema, so the message matches what the API returns.
+  const getDescriptionError = (value: string): string | undefined => {
+    const result = updateProjectSchema.safeParse({ description: value });
+    if (result.success) return undefined;
+    return result.error.issues.find((issue) => issue.path[0] === 'description')?.message;
+  };
+
   const handleConfirm = () => {
-    const errors: typeof inputErrors = {};
-    if (!description.trim()) errors.description = true;
-    setInputErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    const descriptionError = getDescriptionError(description);
+    setInputErrors({ description: descriptionError });
+    if (descriptionError) return;
 
     onSubmit?.({
       description,
@@ -87,7 +94,7 @@ export function PersonalProjectInfoModalContent({
             setDescription(value);
             setInputErrors((prev) => ({
               ...prev,
-              description: !value.trim() ? true : undefined,
+              description: getDescriptionError(value),
             }));
           }}
           alignLabel="left"
@@ -96,6 +103,9 @@ export function PersonalProjectInfoModalContent({
           placeholder="..."
           maxLength={40}
         />
+        {!!inputErrors.description && (
+          <Text style={styles.fieldErrorText}>{inputErrors.description}</Text>
+        )}
 
         <FlatTextInput
           label="Mã số"
@@ -222,6 +232,11 @@ export function PersonalProjectInfoModalContent({
 }
 
 const styles = StyleSheet.create({
+  fieldErrorText: {
+    color: COLORS.red600,
+    fontSize: FONT_SIZES.sm,
+    marginBottom: SPACING.sm,
+  },
   inputGroup: {
     marginBottom: SPACING.sm,
     marginTop: SPACING.sm,

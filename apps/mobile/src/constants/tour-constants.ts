@@ -1,11 +1,9 @@
-export const TOUR_STATUS = {
-  PENDING: 'PENDING',
-  CONFIRMED: 'CONFIRMED',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED',
-} as const;
-export type TourStatus = (typeof TOUR_STATUS)[keyof typeof TOUR_STATUS];
+import { TOUR_STATUS } from '@vinaup-platform/validation';
+import type { TourStatus } from '@vinaup-platform/validation';
+
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { TOUR_IMPLEMENTATION_ADVANCE_TYPE, TOUR_STATUS } from '@vinaup-platform/validation';
+export type { TourImplementationAdvanceType, TourStatus } from '@vinaup-platform/validation';
 
 export const TourStatusDisplay: Record<TourStatus, string> = {
   [TOUR_STATUS.PENDING]: 'Chờ chốt',
@@ -23,13 +21,6 @@ export const TourStatusOptions: { value: TourStatus | ''; label: string }[] = [
   { value: TOUR_STATUS.COMPLETED, label: TourStatusDisplay[TOUR_STATUS.COMPLETED] },
   { value: TOUR_STATUS.CANCELLED, label: TourStatusDisplay[TOUR_STATUS.CANCELLED] },
 ];
-
-export const TOUR_IMPLEMENTATION_ADVANCE_TYPE = {
-  CASH: 'CASH',
-  BANK: 'BANK',
-} as const;
-export type TourImplementationAdvanceType =
-  (typeof TOUR_IMPLEMENTATION_ADVANCE_TYPE)[keyof typeof TOUR_IMPLEMENTATION_ADVANCE_TYPE];
 
 export const USER_ASSIGNED_OPTION = {
   TEXT_INPUT: 0,

@@ -1,3 +1,4 @@
+import { updateProjectSchema } from '@vinaup-platform/validation';
 import dayjs, { Dayjs } from 'dayjs';
 import { useImperativeHandle, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -42,17 +43,23 @@ export function ProjectInfoModalContent({
   const [endDate, setEndDate] = useState<Dayjs>(dayjs(prjEndDate));
   const [note, setNote] = useState(prjNote ?? '');
   const [inputErrors, setInputErrors] = useState<{
-    description?: boolean;
+    description?: string;
   }>({});
 
   const isSameDay = startDate.isSame(endDate, 'day');
   const dateRangeType = isSameDay ? 'day' : 'period';
 
+  // Field rules come from the shared schema, so the message matches what the API returns.
+  const getDescriptionError = (value: string): string | undefined => {
+    const result = updateProjectSchema.safeParse({ description: value });
+    if (result.success) return undefined;
+    return result.error.issues.find((issue) => issue.path[0] === 'description')?.message;
+  };
+
   const handleConfirm = () => {
-    const errors: typeof inputErrors = {};
-    if (!description.trim()) errors.description = true;
-    setInputErrors(errors);
-    if (Object.keys(errors).length > 0) return;
+    const descriptionError = getDescriptionError(description);
+    setInputErrors({ description: descriptionError });
+    if (descriptionError) return;
 
     onSubmit?.({
       description,
@@ -74,7 +81,7 @@ export function ProjectInfoModalContent({
           setDescription(value);
           setInputErrors((prev) => ({
             ...prev,
-            description: !value.trim() ? true : undefined,
+            description: getDescriptionError(value),
           }));
         }}
         alignLabel="left"
@@ -84,6 +91,9 @@ export function ProjectInfoModalContent({
         maxLength={40}
         editable={!isLoading}
       />
+      {!!inputErrors.description && (
+        <Text style={styles.fieldErrorText}>{inputErrors.description}</Text>
+      )}
 
       <FlatTextInput
         label="Mã số"
@@ -201,6 +211,11 @@ export function ProjectInfoModalContent({
 }
 
 const styles = StyleSheet.create({
+  fieldErrorText: {
+    color: COLORS.red600,
+    fontSize: FONT_SIZES.sm,
+    marginBottom: SPACING.sm,
+  },
   inputGroup: {
     marginBottom: SPACING.sm,
     marginTop: SPACING.sm,

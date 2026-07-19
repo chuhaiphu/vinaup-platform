@@ -1,10 +1,9 @@
-export const BOOKING_STATUS = {
-  DRAFT: 'DRAFT',
-  SENDER_SIGNED: 'SENDER_SIGNED',
-  COMPLETED: 'COMPLETED',
-} as const;
+import { BOOKING_STATUS } from '@vinaup-platform/validation';
+import type { BookingStatus } from '@vinaup-platform/validation';
 
-export type BookingStatus = (typeof BOOKING_STATUS)[keyof typeof BOOKING_STATUS];
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { BOOKING_STATUS } from '@vinaup-platform/validation';
+export type { BookingStatus } from '@vinaup-platform/validation';
 
 export const BookingStatusDisplay: Record<BookingStatus, string> = {
   [BOOKING_STATUS.DRAFT]: 'Nháp',

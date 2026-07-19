@@ -1,13 +1,9 @@
-export const INVOICE_STATUS = {
-  PROCESSING: 'PROCESSING',
-  DONE: 'DONE',
-  PAID: 'PAID',
-  PENDING: 'PENDING',
-  SHIPPING: 'SHIPPING',
-  RECEIVED: 'RECEIVED',
-  CANCELLED: 'CANCELLED',
-} as const;
-export type InvoiceStatus = (typeof INVOICE_STATUS)[keyof typeof INVOICE_STATUS];
+import { INVOICE_STATUS } from '@vinaup-platform/validation';
+import type { InvoiceStatus } from '@vinaup-platform/validation';
+
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { INVOICE_STATUS } from '@vinaup-platform/validation';
+export type { InvoiceStatus } from '@vinaup-platform/validation';
 
 export const InvoiceStatusDisplay: Record<InvoiceStatus, string> = {
   [INVOICE_STATUS.PROCESSING]: 'Đang xử lý',

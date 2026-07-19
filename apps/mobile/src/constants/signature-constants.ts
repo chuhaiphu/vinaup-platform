@@ -1,11 +1,6 @@
-export const DOCUMENT_TYPE = {
-  PROJECT: 'PROJECT',
-  TOUR_CALCULATION: 'TOUR_CALCULATION',
-  TOUR_SETTLEMENT: 'TOUR_SETTLEMENT',
-  INVOICE: 'INVOICE',
-  BOOKING: 'BOOKING',
-} as const;
-export type DocumentType = (typeof DOCUMENT_TYPE)[keyof typeof DOCUMENT_TYPE];
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { DOCUMENT_TYPE } from '@vinaup-platform/validation';
+export type { DocumentType } from '@vinaup-platform/validation';
 
 export const SIGNATURE_ROLE = {
   SENDER: 'SENDER',

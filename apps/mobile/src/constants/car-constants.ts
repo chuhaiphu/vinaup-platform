@@ -1,16 +1,15 @@
+import { CAR_STATUS } from '@vinaup-platform/validation';
+import type { CarStatus } from '@vinaup-platform/validation';
+
 import { CarResponse } from '@/interfaces/car-interfaces';
 
 import { BADGE_VARIANT, BadgeVariant } from './style-constants';
 
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { CAR_STATUS } from '@vinaup-platform/validation';
+export type { CarStatus } from '@vinaup-platform/validation';
+
 // Technical status — user-set, stored on Car.status. LOCKED blocks trip assignment.
-export const CAR_STATUS = {
-  READY: 'READY',
-  NEEDS_CHECK: 'NEEDS_CHECK',
-  LOCKED: 'LOCKED',
-} as const;
-
-export type CarStatus = (typeof CAR_STATUS)[keyof typeof CAR_STATUS];
-
 export const CarStatusDisplay: Record<CarStatus, string> = {
   [CAR_STATUS.READY]: 'Sẵn sàng',
   [CAR_STATUS.NEEDS_CHECK]: 'Cần kiểm tra',

@@ -1,5 +1,6 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6/static';
 import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { localSignInSchema } from '@vinaup-platform/validation';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -23,16 +24,32 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
+import { useValidatedFields, type FieldErrors } from '@/hooks/use-validated-fields';
 import { useAuthContext } from '@/providers/auth/auth-provider';
 
 export function LoginScreenContent() {
   const { isLoading, performLogin } = useAuthContext();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
+  const { fieldValues, fieldErrors, setFieldValue, validateAll } = useValidatedFields(
+    { email: '', password: '' },
+    (input) => {
+      const result = localSignInSchema.safeParse(input);
+      if (result.success) return { success: true, data: result.data };
+      const nextFieldErrors: FieldErrors<'email' | 'password'> = {};
+      for (const issue of result.error.issues) {
+        const field = issue.path[0] as 'email' | 'password';
+        if (field && !nextFieldErrors[field]) nextFieldErrors[field] = issue.message;
+      }
+      return { success: false, fieldErrors: nextFieldErrors };
+    },
+  );
+
   const handleLogin = async () => {
-    const isSuccess = await performLogin({ email, password });
+    const data = validateAll();
+    if (!data) return;
+
+    const isSuccess = await performLogin(data);
     if (isSuccess) {
       router.replace('/');
     }
@@ -49,20 +66,21 @@ export function LoginScreenContent() {
           <View style={styles.inputContainer}>
             <TextInput
               placeholder="Nhập email"
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
+              style={[styles.input, !!fieldErrors.email && styles.inputError]}
+              value={fieldValues.email}
+              onChangeText={(value) => setFieldValue('email', value)}
               keyboardType="email-address"
               autoCapitalize="none"
               placeholderTextColor={COLORS.gray400}
             />
+            {!!fieldErrors.email && <Text style={styles.errorText}>{fieldErrors.email}</Text>}
 
             <View style={styles.passwordInput}>
               <TextInput
                 placeholder="Nhập mật khẩu"
-                style={styles.input}
-                value={password}
-                onChangeText={setPassword}
+                style={[styles.input, !!fieldErrors.password && styles.inputError]}
+                value={fieldValues.password}
+                onChangeText={(value) => setFieldValue('password', value)}
                 secureTextEntry={!showPassword}
                 placeholderTextColor={COLORS.gray400}
               />
@@ -74,6 +92,7 @@ export function LoginScreenContent() {
                 />
               </Pressable>
             </View>
+            {!!fieldErrors.password && <Text style={styles.errorText}>{fieldErrors.password}</Text>}
           </View>
 
           <Button
@@ -141,6 +160,15 @@ const styles = StyleSheet.create({
     marginBottom: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.yellow400,
+  },
+  inputError: {
+    borderColor: COLORS.red400,
+  },
+  errorText: {
+    color: COLORS.red300,
+    fontSize: FONT_SIZES.sm,
+    marginTop: -SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   eyeIcon: {
     position: 'absolute',

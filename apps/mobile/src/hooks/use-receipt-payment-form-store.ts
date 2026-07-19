@@ -1,3 +1,4 @@
+import { updateReceiptPaymentSchema } from '@vinaup-platform/validation';
 import dayjs, { Dayjs } from 'dayjs';
 import { create } from 'zustand';
 
@@ -9,9 +10,20 @@ import {
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 
 export interface ReceiptPaymentInputErrors {
-  description?: boolean;
-  unitPrice?: boolean;
+  description?: string;
+  unitPrice?: string;
 }
+
+// Field rules come from the shared schema, so the message matches what the API returns.
+const getDescriptionError = (value: string): string | undefined => {
+  const result = updateReceiptPaymentSchema.safeParse({ description: value });
+  if (result.success) return undefined;
+  return result.error.issues.find((issue) => issue.path[0] === 'description')?.message;
+};
+
+// unitPrice > 0 is a client-only rule — the schema only requires a number.
+const getUnitPriceError = (value: string): string | undefined =>
+  !value.trim() || Number(value) <= 0 ? 'Đơn giá phải lớn hơn 0' : undefined;
 
 interface ReceiptPaymentFormDefaults {
   receiptPaymentType?: ReceiptPaymentType;
@@ -53,7 +65,7 @@ interface ReceiptPaymentFormStore {
   setDepositAmount: (value: string) => void;
   setDepositType: (value: ReceiptPaymentDepositType) => void;
   setInputErrors: (value: ReceiptPaymentInputErrors) => void;
-  validateByInputField: (input: 'description' | 'unitPrice', value: string) => boolean;
+  validateByInputField: (input: 'description' | 'unitPrice', value: string) => string | undefined;
   validateBeforeSave: () => boolean;
   initializeForm: (defaults?: ReceiptPaymentFormDefaults) => void;
   resetForm: () => void;
@@ -95,19 +107,19 @@ export const useReceiptPaymentFormStore = create<ReceiptPaymentFormStore>()((set
   validateByInputField: (input, value) => {
     switch (input) {
       case 'description':
-        return !value.trim();
+        return getDescriptionError(value);
       case 'unitPrice':
-        return !value.trim() || Number(value) <= 0;
+        return getUnitPriceError(value);
       default:
-        return false;
+        return undefined;
     }
   },
 
   validateBeforeSave: () => {
     const { description, unitPrice } = get();
     const nextErrors: ReceiptPaymentInputErrors = {
-      description: !description.trim(),
-      unitPrice: Number(unitPrice) <= 0,
+      description: getDescriptionError(description),
+      unitPrice: getUnitPriceError(unitPrice),
     };
 
     set({ inputErrors: nextErrors });

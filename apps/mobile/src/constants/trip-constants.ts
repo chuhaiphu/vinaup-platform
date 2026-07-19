@@ -1,11 +1,9 @@
-export const TRIP_STATUS = {
-  DRAFT: 'DRAFT',
-  ONGOING: 'ONGOING',
-  COMPLETED: 'COMPLETED',
-  CANCELLED: 'CANCELLED',
-} as const;
+import { TRIP_STATUS } from '@vinaup-platform/validation';
+import type { TripStatus } from '@vinaup-platform/validation';
 
-export type TripStatus = (typeof TRIP_STATUS)[keyof typeof TRIP_STATUS];
+// Wire enums referenced by shared Zod schemas live in the package (§1.3).
+export { TRIP_STATUS } from '@vinaup-platform/validation';
+export type { TripStatus } from '@vinaup-platform/validation';
 
 export const TripStatusDisplay: Record<TripStatus, string> = {
   [TRIP_STATUS.DRAFT]: 'Nháp',
