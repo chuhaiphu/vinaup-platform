@@ -12,8 +12,8 @@ import type { HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationTourCalculationMutationGuard } from 'src/_core/guards/organization-tour-calculation-mutation.guard';
 
-import { TourCalculationCancelLogResponse } from '../dtos/tour-calculation-cancel-log.response.dto';
-import { TourCalculationResponse, TourCalculationWithMeta } from '../dtos/tour-calculation.response.dto';
+import type { TourCalculationCancelLogResponse } from '../dtos/tour-calculation-cancel-log.response.dto';
+import type { TourCalculationResponse, TourCalculationWithMeta } from '../dtos/tour-calculation.response.dto';
 import { UpdateTourCalculationRequest } from '../dtos/update-tour-calculation.request.dto';
 import { TourCalculationService } from '../services/tour-calculation.service';
 

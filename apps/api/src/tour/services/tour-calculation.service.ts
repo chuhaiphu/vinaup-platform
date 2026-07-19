@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import {
+  type UpdateTourCalculationRequestInterface,
+} from '@vinaup-platform/validation';
 import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
 
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
@@ -9,7 +12,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 import { TourCalculationCancelLogResponse } from '../dtos/tour-calculation-cancel-log.response.dto';
 import { TourCalculationResponse, TourCalculationWithMeta } from '../dtos/tour-calculation.response.dto';
-import { UpdateTourCalculationRequest } from '../dtos/update-tour-calculation.request.dto';
 
 @Injectable()
 export class TourCalculationService {
@@ -94,7 +96,7 @@ export class TourCalculationService {
 
   async updateTourCalculation(
     tourCalculationId: string,
-    updateTourCalculationReq: UpdateTourCalculationRequest
+    updateTourCalculationReq: UpdateTourCalculationRequestInterface
   ): Promise<TourCalculationResponse> {
     const updatedTourCalculation = await this.prismaService.$transaction(
       async (transaction) => {

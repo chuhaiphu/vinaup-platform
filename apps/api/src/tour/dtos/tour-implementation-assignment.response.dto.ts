@@ -1,14 +1,14 @@
 import { BaseMeta } from 'src/_common/interfaces/interface';
 import { Tour, UserAssignedTourImplementation } from 'src/prisma/generated/client';
 
-export class TourImplementationAssignmentResponse {
-  id!: string;
-  tourImplementationId!: string;
-  carName!: string | null;
-  seatCount!: number | null;
-  position!: number;
-  createdAt!: Date;
-  usersAssigned!: UserAssignedTourImplementation[];
+export interface TourImplementationAssignmentResponse {
+  id: string;
+  tourImplementationId: string;
+  carName: string | null;
+  seatCount: number | null;
+  position: number;
+  createdAt: Date;
+  usersAssigned: UserAssignedTourImplementation[];
 }
 
 export type ConflictingTour = Pick<Tour, 'id' | 'description' | 'startDate' | 'endDate'>;

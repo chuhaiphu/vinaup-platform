@@ -1,17 +1,19 @@
 import { Injectable } from '@nestjs/common';
+import {
+  TOUR_STATUS,
+  type TourFilterRequestInterface,
+  type CreateTourRequestInterface,
+  type UpdateTourRequestInterface,
+} from '@vinaup-platform/validation';
 import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
 
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
-import { TOUR_STATUS } from 'src/_common/constants/tour.constant';
 import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { TourCalculationNotFoundException, TourImplementationNotFoundException, TourNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateTourRequest } from '../dtos/create-tour.request.dto';
-import { TourFilterParam } from '../dtos/tour-filter.param.dto';
 import { TourResponse } from '../dtos/tour.response.dto';
-import { UpdateTourRequest } from '../dtos/update-tour.request.dto';
 
 @Injectable()
 export class TourService {
@@ -19,7 +21,7 @@ export class TourService {
 
   async findToursByOrganizationId(
     organizationId: string,
-    filter?: TourFilterParam
+    filter?: TourFilterRequestInterface
   ): Promise<TourResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -46,7 +48,7 @@ export class TourService {
   }
 
   async createTour(
-    createTourReq: CreateTourRequest,
+    createTourReq: CreateTourRequestInterface,
     currentUserId: string
   ): Promise<TourResponse> {
     const exisitingTourOrganization =
@@ -175,7 +177,7 @@ export class TourService {
 
   async updateTour(
     id: string,
-    updateTourReq: UpdateTourRequest
+    updateTourReq: UpdateTourRequestInterface
   ): Promise<TourResponse> {
     const existingTour = await this.prismaService.tour.findUnique({
       where: { id },

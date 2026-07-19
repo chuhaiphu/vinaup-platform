@@ -12,8 +12,8 @@ import type { HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationTourSettlementMutationGuard } from 'src/_core/guards/organization-tour-settlement-mutation.guard';
 
-import { TourSettlementCancelLogResponse } from '../dtos/tour-settlement-cancel-log.response.dto';
-import { TourSettlementResponse, TourSettlementWithMeta } from '../dtos/tour-settlement.response.dto';
+import type { TourSettlementCancelLogResponse } from '../dtos/tour-settlement-cancel-log.response.dto';
+import type { TourSettlementResponse, TourSettlementWithMeta } from '../dtos/tour-settlement.response.dto';
 import { UpdateTourSettlementRequest } from '../dtos/update-tour-settlement.request.dto';
 import { TourSettlementService } from '../services/tour-settlement.service';
 

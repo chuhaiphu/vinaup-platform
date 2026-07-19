@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import {
+  type ManageMembersAssignedRequestInterface,
+  type UpdateTourImplementationRequestInterface,
+} from '@vinaup-platform/validation';
 
 import {
   TourImplementationCannotRemoveCreatorException,
@@ -7,7 +11,6 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 
 import { TourImplementationAssignmentService } from './tour-implementation-assignment.service';
-import { ManageMembersAssignedRequest } from '../dtos/manage-members-assigned.request.dto';
 import {
   MemberAssignedTourImplementationResponse,
   MemberAssignedTourImplementationWithMeta,
@@ -16,7 +19,6 @@ import {
   TourImplementationResponse,
   TourImplementationWithMeta,
 } from '../dtos/tour-implementation.response.dto';
-import { UpdateTourImplementationRequest } from '../dtos/update-tour-implementation.request.dto';
 
 @Injectable()
 export class TourImplementationService {
@@ -80,7 +82,7 @@ export class TourImplementationService {
 
   async updateTourImplementation(
     tourImplementationId: string,
-    updateTourImplementationReq: UpdateTourImplementationRequest,
+    updateTourImplementationReq: UpdateTourImplementationRequestInterface,
     currentUserId: string,
   ): Promise<TourImplementationResponse> {
     await this.tourImplementationAssignmentService.assertTourImplementationAssigned(
@@ -141,7 +143,7 @@ export class TourImplementationService {
 
   async manageMembersAssigned(
     tourImplementationId: string,
-    payload: ManageMembersAssignedRequest,
+    payload: ManageMembersAssignedRequestInterface,
     currentUserId: string,
   ): Promise<MemberAssignedTourImplementationResponse[]> {
     await this.tourImplementationAssignmentService.assertTourImplementationAssigned(

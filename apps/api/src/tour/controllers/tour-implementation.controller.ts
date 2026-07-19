@@ -18,8 +18,8 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationTourImplementationMutationGuard } from 'src/_core/guards/organization-tour-implementation-mutation.guard';
 
 import { ManageMembersAssignedRequest } from '../dtos/manage-members-assigned.request.dto';
-import { MemberAssignedTourImplementationResponse, MemberAssignedTourImplementationWithMeta } from '../dtos/member-assigned-tour-implementation.response.dto';
-import { TourImplementationResponse, TourImplementationWithMeta } from '../dtos/tour-implementation.response.dto';
+import type { MemberAssignedTourImplementationResponse, MemberAssignedTourImplementationWithMeta } from '../dtos/member-assigned-tour-implementation.response.dto';
+import type { TourImplementationResponse, TourImplementationWithMeta } from '../dtos/tour-implementation.response.dto';
 import { UpdateTourImplementationRequest } from '../dtos/update-tour-implementation.request.dto';
 import { TourImplementationService } from '../services/tour-implementation.service';
 

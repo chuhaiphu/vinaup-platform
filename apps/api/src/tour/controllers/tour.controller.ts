@@ -20,8 +20,8 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationTourMutationGuard } from 'src/_core/guards/organization-tour-mutation.guard';
 
 import { CreateTourRequest } from '../dtos/create-tour.request.dto';
-import { TourFilterParam } from '../dtos/tour-filter.param.dto';
-import { TourResponse } from '../dtos/tour.response.dto';
+import { TourFilterRequest } from '../dtos/tour-filter.request.dto';
+import type { TourResponse } from '../dtos/tour.response.dto';
 import { UpdateTourRequest } from '../dtos/update-tour.request.dto';
 import { TourService } from '../services/tour.service';
 
@@ -33,7 +33,7 @@ export class TourController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: TourFilterParam
+    @Query() filter: TourFilterRequest
   ): Promise<HttpResponse<TourResponse[]>> {
     const data = await this.tourService.findToursByOrganizationId(
       organizationId,

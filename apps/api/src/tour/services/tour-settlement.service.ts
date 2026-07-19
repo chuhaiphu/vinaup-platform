@@ -1,4 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import {
+  type UpdateTourSettlementRequestInterface,
+} from '@vinaup-platform/validation';
 import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
 
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
@@ -9,7 +12,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
 
 import { TourSettlementCancelLogResponse } from '../dtos/tour-settlement-cancel-log.response.dto';
 import { TourSettlementResponse, TourSettlementWithMeta } from '../dtos/tour-settlement.response.dto';
-import { UpdateTourSettlementRequest } from '../dtos/update-tour-settlement.request.dto';
 
 @Injectable()
 export class TourSettlementService {
@@ -52,7 +54,7 @@ export class TourSettlementService {
 
   async updateTourSettlement(
     tourSettlementId: string,
-    updateTourSettlementReq: UpdateTourSettlementRequest
+    updateTourSettlementReq: UpdateTourSettlementRequestInterface
   ): Promise<TourSettlementResponse> {
     return this.prismaService.$transaction(async (transaction) => {
       const existingTourSettlement =

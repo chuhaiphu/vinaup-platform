@@ -19,10 +19,10 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationTourImplementationMutationGuard } from 'src/_core/guards/organization-tour-implementation-mutation.guard';
 
 import { CreateUserAssignedRequest } from '../dtos/create-user-assigned.request.dto';
-import { TourImplementationAssignmentWithMeta } from '../dtos/tour-implementation-assignment.response.dto';
+import type { TourImplementationAssignmentWithMeta } from '../dtos/tour-implementation-assignment.response.dto';
 import { UpdateTourImplementationAssignmentRequest } from '../dtos/update-tour-implementation-assignment.request.dto';
 import { UpdateUserAssignedRequest } from '../dtos/update-user-assigned.request.dto';
-import { UserAssignedTourImplementationResponse } from '../dtos/user-assigned-tour-implementation.response.dto';
+import type { UserAssignedTourImplementationResponse } from '../dtos/user-assigned-tour-implementation.response.dto';
 import { TourImplementationAssignmentService } from '../services/tour-implementation-assignment.service';
 
 @Controller('tour-implementation-assignment')

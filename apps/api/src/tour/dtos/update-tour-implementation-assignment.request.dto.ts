@@ -1,22 +1,4 @@
-import { IsInt, IsOptional, Min, ValidateIf } from 'class-validator';
+import { updateTourImplementationAssignmentSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-import { IsStringNotBlank, TrimToUndefined } from 'src/_core/decorators/validation.decorator';
-
-export class UpdateTourImplementationAssignmentRequest {
-  // carName and seatCount are nullable columns → @IsOptional keeps them clearable with null.
-  @TrimToUndefined()
-  @IsOptional()
-  @IsStringNotBlank()
-  carName?: string | null;
-
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  seatCount?: number | null;
-
-  // position is a NON-nullable column: omit is fine, null rejected.
-  @IsInt()
-  @Min(1)
-  @ValidateIf((_, value) => value !== undefined)
-  position?: number;
-}
+export class UpdateTourImplementationAssignmentRequest extends createZodDto(updateTourImplementationAssignmentSchema) {}

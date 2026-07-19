@@ -1,8 +1,4 @@
-import { ArrayUnique, IsArray, IsString } from 'class-validator';
+import { manageMembersAssignedSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-export class ManageMembersAssignedRequest {
-  @IsArray()
-  @ArrayUnique()
-  @IsString({ each: true })
-  organizationMemberIds!: string[];
-}
+export class ManageMembersAssignedRequest extends createZodDto(manageMembersAssignedSchema) {}

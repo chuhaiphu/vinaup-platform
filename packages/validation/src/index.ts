@@ -30,6 +30,8 @@ export { SOCIAL_LINK_PLATFORM } from './constants/social-link.constant';
 export { TRIP_STATUS } from './constants/trip.constant';
 export type { TripStatus } from './constants/trip.constant';
 export type { SocialLinkPlatform } from './constants/social-link.constant';
+export { TOUR_IMPLEMENTATION_ADVANCE_TYPE, TOUR_STATUS } from './constants/tour.constant';
+export type { TourImplementationAdvanceType, TourStatus } from './constants/tour.constant';
 export { WAGE_STATUS } from './constants/wage.constant';
 export type { WageStatus } from './constants/wage.constant';
 
@@ -88,6 +90,18 @@ export {
   updateTripAssignmentSchema,
   updateTripSchema,
 } from './zod-schemas/trip.schema';
+export {
+  createTourSchema,
+  createUserAssignedSchema,
+  manageMembersAssignedSchema,
+  tourFilterSchema,
+  updateTourCalculationSchema,
+  updateTourImplementationAssignmentSchema,
+  updateTourImplementationSchema,
+  updateTourSchema,
+  updateTourSettlementSchema,
+  updateUserAssignedSchema,
+} from './zod-schemas/tour.schema';
 export { createUserSchema, updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
 export { createWageSchema, updateWageSchema, wageFilterSchema } from './zod-schemas/wage.schema';
 export { assertDateRangeComplete, dateFilterFields } from './zod-schemas/_shared/date-filter.schema';
@@ -152,6 +166,18 @@ export type {
   UpdateTripAssignmentRequestInterface,
   UpdateTripRequestInterface,
 } from './interfaces/trip.interface';
+export type {
+  CreateTourRequestInterface,
+  CreateUserAssignedRequestInterface,
+  ManageMembersAssignedRequestInterface,
+  TourFilterRequestInterface,
+  UpdateTourCalculationRequestInterface,
+  UpdateTourImplementationAssignmentRequestInterface,
+  UpdateTourImplementationRequestInterface,
+  UpdateTourRequestInterface,
+  UpdateTourSettlementRequestInterface,
+  UpdateUserAssignedRequestInterface,
+} from './interfaces/tour.interface';
 export type {
   CreateUserRequestInterface,
   UpdateUserRequestInterface,

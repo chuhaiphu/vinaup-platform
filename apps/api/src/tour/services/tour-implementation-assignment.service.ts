@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
+import {
+  TOUR_STATUS,
+  type CreateUserAssignedRequestInterface,
+  type UpdateTourImplementationAssignmentRequestInterface,
+  type UpdateUserAssignedRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { TOUR_STATUS } from 'src/_common/constants/tour.constant';
 import {
   TourImplementationAssignmentNotFoundException,
   TourImplementationCannotRemoveSelfException,
@@ -12,15 +17,12 @@ import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-
 import { TourImplementationAssignment, UserAssignedTourImplementation } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateUserAssignedRequest } from '../dtos/create-user-assigned.request.dto';
 import {
   ConflictingTour,
   TourImplementationAssignmentMeta,
   TourImplementationAssignmentResponse,
   TourImplementationAssignmentWithMeta,
 } from '../dtos/tour-implementation-assignment.response.dto';
-import { UpdateTourImplementationAssignmentRequest } from '../dtos/update-tour-implementation-assignment.request.dto';
-import { UpdateUserAssignedRequest } from '../dtos/update-user-assigned.request.dto';
 import { UserAssignedTourImplementationResponse } from '../dtos/user-assigned-tour-implementation.response.dto';
 
 // Normalized shape of one overlapping assignment returned by findOverlappingTourImplementationAssignments:
@@ -153,7 +155,7 @@ export class TourImplementationAssignmentService {
 
   async updateTourImplementationAssignment(
     assignmentId: string,
-    payload: UpdateTourImplementationAssignmentRequest,
+    payload: UpdateTourImplementationAssignmentRequestInterface,
     currentUserId: string,
   ): Promise<TourImplementationAssignmentWithMeta> {
     const existingAssignment = await this.prismaService.tourImplementationAssignment.findUnique({
@@ -258,7 +260,7 @@ export class TourImplementationAssignmentService {
   }
 
   async addUserAssignedToTourImplementation(
-    payload: CreateUserAssignedRequest,
+    payload: CreateUserAssignedRequestInterface,
   ): Promise<UserAssignedTourImplementationResponse> {
     await this.findAssignmentByIdOrThrow(payload.tourImplementationAssignmentId);
 
@@ -282,7 +284,7 @@ export class TourImplementationAssignmentService {
 
   async updateUserAssignedToTourImplementation(
     userAssignedId: string,
-    payload: UpdateUserAssignedRequest,
+    payload: UpdateUserAssignedRequestInterface,
   ): Promise<UserAssignedTourImplementationResponse> {
     const existingRecord = await this.prismaService.userAssignedTourImplementation.findUnique({
       where: { id: userAssignedId },

@@ -14,4 +14,3 @@ export const TOUR_IMPLEMENTATION_ADVANCE_TYPE = {
 } as const;
 
 export type TourImplementationAdvanceType = (typeof TOUR_IMPLEMENTATION_ADVANCE_TYPE)[keyof typeof TOUR_IMPLEMENTATION_ADVANCE_TYPE];
-
