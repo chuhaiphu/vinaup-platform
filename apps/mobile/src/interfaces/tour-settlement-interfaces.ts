@@ -4,6 +4,8 @@ import { SignatureResponse } from './signature-interfaces';
 import { TourResponse, TourCancelLogtourCancelLogSnapshot } from './tour-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type { UpdateTourSettlementRequestInterface as UpdateTourSettlementRequest } from '@vinaup-platform/validation';
+
 export interface TourSettlementMeta extends BaseMeta {}
 
 export type TourSettlementWithMeta = TourSettlementResponse & {
@@ -21,14 +23,6 @@ export interface TourSettlementResponse {
   createdBy: UserResponse | null;
   tourId: string;
   tour: TourResponse;
-}
-
-export interface UpdateTourSettlementRequest {
-  adultTicketCount?: number;
-  childTicketCount?: number;
-  adultTicketPrice?: number;
-  childTicketPrice?: number;
-  taxRate?: number;
 }
 
 export interface TourSettlementCancelLogSnapshot {

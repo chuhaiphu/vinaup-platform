@@ -10,23 +10,23 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 
 // ─── One list-filter trigger + its picker sheet ───────────────────────────────
-export interface FilterSelectProps {
+export interface FilterSelectProps<OptionValue extends string> {
   /** Shown when nothing is selected; also the sheet header title. */
   placeholder: string;
   options: SingleSelectOption[];
-  value: string;
-  onChange: (value: string) => void;
+  value: OptionValue | '';
+  onChange: (value: OptionValue) => void;
   /** Aligns the trigger content when it shares a row with a sibling filter. */
   align?: 'left' | 'right';
 }
 
-export function FilterSelect({
+export function FilterSelect<OptionValue extends string>({
   placeholder,
   options,
   value,
   onChange,
   align = 'left',
-}: FilterSelectProps) {
+}: FilterSelectProps<OptionValue>) {
   const sheetRef = useRef<SlideSheetRef>(null);
   const insets = useSafeAreaInsets();
 
@@ -55,7 +55,7 @@ export function FilterSelect({
         <SingleSelect
           options={options}
           value={value}
-          onSelectOption={(val) => sheetRef.current?.close(() => onChange(val))}
+          onSelectOption={(val) => sheetRef.current?.close(() => onChange(val as OptionValue))}
         />
         <View style={{ height: insets.bottom }} />
       </SlideSheet>

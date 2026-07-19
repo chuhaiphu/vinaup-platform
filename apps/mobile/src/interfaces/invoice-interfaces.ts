@@ -5,6 +5,11 @@ import { OrganizationCustomerResponse } from './organization-customer-interfaces
 import { OrganizationResponse } from './organization-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateInvoiceRequestInterface as CreateInvoiceRequest,
+  UpdateInvoiceRequestInterface as UpdateInvoiceRequest,
+} from '@vinaup-platform/validation';
+
 export interface InvoiceResponse {
   id: string;
   invoiceTypeId: string;
@@ -28,23 +33,3 @@ export interface InvoiceResponse {
   organizationCustomerId: string | null;
   organizationCustomer: OrganizationCustomerResponse | null;
 }
-
-export interface CreateInvoiceRequest {
-  code?: string | null;
-  invoiceTypeId: string;
-  description: string;
-  endDate: string;
-  startDate: string;
-  note?: string | null;
-  organizationId?: string | null;
-  organizationCustomerId?: string | null;
-  externalOrganizationName?: string | null;
-  externalCustomerName?: string | null;
-}
-
-export type UpdateInvoiceRequest = Partial<CreateInvoiceRequest> & {
-  status?: InvoiceStatus;
-  discountAmount?: number;
-  vatRate?: number;
-  surchargeAmount?: number;
-};

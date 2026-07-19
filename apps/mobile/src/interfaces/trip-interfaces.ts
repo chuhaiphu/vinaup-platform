@@ -7,6 +7,13 @@ import { OrganizationResponse } from './organization-interfaces';
 import { OrganizationMemberResponse } from './organization-member-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateTripAssignmentRequestInterface as CreateTripAssignmentRequest,
+  CreateTripRequestInterface as CreateTripRequest,
+  UpdateTripAssignmentRequestInterface as UpdateTripAssignmentRequest,
+  UpdateTripRequestInterface as UpdateTripRequest,
+} from '@vinaup-platform/validation';
+
 export interface TripResponse {
   id: string;
   code: string | null;
@@ -31,26 +38,6 @@ export interface TripResponse {
   externalCustomerName: string | null;
   tripAssignments?: TripAssignmentResponse[];
 }
-
-export interface CreateTripRequest {
-  code?: string | null;
-  description: string;
-  content?: string | null;
-  startDate: string;
-  endDate: string;
-  rentalPrice?: number;
-  taxRate?: number;
-  commissionRate?: number;
-  note?: string | null;
-  organizationId: string;
-  organizationCustomerId?: string | null;
-  externalOrganizationName?: string | null;
-  externalCustomerName?: string | null;
-}
-
-export type UpdateTripRequest = Partial<Omit<CreateTripRequest, 'organizationId'>> & {
-  status?: TripStatus;
-};
 
 export interface TripAssignmentMemberResponse {
   id: string;
@@ -78,16 +65,3 @@ export interface TripAssignmentMeta extends BaseMeta {
 }
 
 export type TripAssignmentWithMeta = TripAssignmentResponse & { meta: TripAssignmentMeta };
-
-export interface CreateTripAssignmentRequest {
-  tripId: string;
-  note?: string | null;
-}
-
-export interface UpdateTripAssignmentRequest {
-  // omit = leave unchanged, null = unset the car
-  carId?: string | null;
-  // replace-set: the full member list to keep (omit = leave unchanged)
-  organizationMemberIds?: string[];
-  note?: string | null;
-}

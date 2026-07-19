@@ -3,6 +3,11 @@ import { OrganizationCustomerStatus } from '@/constants/organization-constants';
 import { OrganizationResponse } from './organization-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateOrganizationCustomerRequestInterface as CreateOrganizationCustomerRequest,
+  UpdateOrganizationCustomerRequestInterface as UpdateOrganizationCustomerRequest,
+} from '@vinaup-platform/validation';
+
 export interface OrganizationCustomerResponse {
   id: string;
   organizationId: string;
@@ -20,16 +25,3 @@ export interface OrganizationCustomerResponse {
   joinedAt: string;
   organization: OrganizationResponse;
 }
-
-export interface CreateOrganizationCustomerRequest {
-  organizationId: string;
-  name: string;
-  phone: string;
-  email?: string | null;
-  status: OrganizationCustomerStatus;
-  joinedAt: string;
-  clientUserId?: string | null;
-  clientOrganizationId?: string | null;
-}
-
-export type UpdateOrganizationCustomerRequest = Partial<CreateOrganizationCustomerRequest>;

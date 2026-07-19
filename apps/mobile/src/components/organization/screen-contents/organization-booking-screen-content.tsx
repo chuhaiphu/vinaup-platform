@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { BookingStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -17,7 +18,7 @@ import { OrganizationBookingListProvider } from '@/providers/organization/bookin
 export function OrganizationBookingScreenContent() {
   const { organizationId } = useLocalSearchParams<{ organizationId: string }>();
   const [selectedDate, setSelectedDate] = useState(dayjs());
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<BookingStatus | ''>('');
   const [pickerVisible, setPickerVisible] = useState(false);
 
   const suspenseKey = `org-booking-list-${organizationId}-${selectedDate.format('YYYY-MM')}-${statusFilter}`;
@@ -56,12 +57,12 @@ export function OrganizationBookingScreenContent() {
           key={suspenseKey}
           organizationId={organizationId}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
         >
           <BookingListSection
             organizationId={organizationId}
             selectedDate={selectedDate}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
           />
         </OrganizationBookingListProvider>
       </Suspense>

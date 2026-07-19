@@ -1,10 +1,10 @@
 import { OrganizationResponse } from './organization-interfaces';
 import { UserResponse } from './user-interfaces';
 
-export interface LocalSignInRequest {
-  email: string;
-  password: string;
-}
+export type {
+  CreateUserRequestInterface as CreateUserRequest,
+  LocalSignInRequestInterface as LocalSignInRequest,
+} from '@vinaup-platform/validation';
 
 export interface AuthResponse {
   accessToken: string;
@@ -15,15 +15,6 @@ export interface AuthResponse {
 
 export interface RefreshTokenResponse {
   accessToken: string;
-}
-
-export interface CreateUserRequest {
-  email: string;
-  password: string;
-  name: string;
-  phone?: string | null;
-  province?: string | null;
-  avatarUrl?: string | null;
 }
 
 export interface AccessTokenPayload {

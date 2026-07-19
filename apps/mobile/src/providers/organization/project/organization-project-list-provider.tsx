@@ -1,3 +1,4 @@
+import type { ProjectStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useFetch } from 'fetchwire';
 import { createContext, useContext } from 'react';
@@ -38,7 +39,7 @@ export function OrganizationProjectListProvider({
 }: {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: ProjectStatus;
   filterMode: DatePickerMode;
   children: React.ReactNode;
 }) {

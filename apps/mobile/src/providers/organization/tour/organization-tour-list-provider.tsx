@@ -1,3 +1,4 @@
+import type { TourStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useFetch } from 'fetchwire';
 import { createContext, useContext } from 'react';
@@ -33,7 +34,7 @@ export function OrganizationTourListProvider({
 }: {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: TourStatus;
   filterMode: DatePickerMode;
   children: React.ReactNode;
 }) {

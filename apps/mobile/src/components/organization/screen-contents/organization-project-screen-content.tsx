@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { ProjectStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -20,7 +21,7 @@ export function OrganizationProjectScreenContent() {
   const params = useLocalSearchParams<{ organizationId: string; month?: string; day?: string }>();
   const { organizationId, month, day } = params;
 
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
   const [filterMode, setFilterMode] = useState<DatePickerMode>('month');
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -86,13 +87,13 @@ export function OrganizationProjectScreenContent() {
           key={suspenseKey}
           organizationId={organizationId}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
           filterMode={filterMode}
         >
           <OrganizationProjectListSection
             organizationId={organizationId}
             selectedDate={selectedDate}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
             filterMode={filterMode}
           />
         </OrganizationProjectListProvider>

@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { TourStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -20,7 +21,7 @@ export function OrganizationTourScreenContent() {
   const params = useLocalSearchParams<{ organizationId: string; month?: string; day?: string }>();
   const { organizationId, month, day } = params;
 
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<TourStatus | ''>('');
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // ─── Derive filterMode from URL params ───
@@ -79,12 +80,12 @@ export function OrganizationTourScreenContent() {
           key={suspenseKey}
           organizationId={organizationId}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
           filterMode={filterMode}
         >
           <OrganizationTourListSection
             organizationId={organizationId}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
           />
         </OrganizationTourListProvider>
       </Suspense>

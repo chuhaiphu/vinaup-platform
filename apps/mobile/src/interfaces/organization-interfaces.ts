@@ -1,20 +1,10 @@
 import { OrganizationIndustryResponse } from './organization-industry-interfaces';
 import { UserResponse } from './user-interfaces';
 
-export interface CreateOrganizationRequest {
-  name: string;
-  email?: string | null;
-  phone: string;
-  address?: string | null;
-  province: string;
-  website?: string | null;
-  avatarUrl?: string | null;
-  organizationIndustryId: string;
-}
-
-export type UpdateOrganizationRequest = Partial<CreateOrganizationRequest> & {
-  description?: string | null;
-};
+export type {
+  CreateOrganizationRequestInterface as CreateOrganizationRequest,
+  UpdateOrganizationRequestInterface as UpdateOrganizationRequest,
+} from '@vinaup-platform/validation';
 
 export interface OrganizationResponse {
   id: string;

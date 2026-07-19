@@ -1,3 +1,4 @@
+import type { ProjectStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useRouter } from 'expo-router';
 import { prefetch } from 'fetchwire';
@@ -16,7 +17,7 @@ import { calculateReceiptPaymentsSummary } from '@/utils/calculator/calculate-re
 export interface OrganizationProjectListSectionProps {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: ProjectStatus;
   filterMode: DatePickerMode;
 }
 

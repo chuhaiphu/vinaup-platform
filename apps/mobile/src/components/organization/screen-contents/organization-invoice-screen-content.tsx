@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { InvoiceStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -27,7 +28,7 @@ export function OrganizationInvoiceScreenContent() {
   const { organizationId, month, day } = params;
   const invoiceTypeCode = params.invoiceTypeCode || 'SELL';
 
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [filterMode, setFilterMode] = useState<DatePickerMode>('month');
   const [pickerVisible, setPickerVisible] = useState(false);
 
@@ -93,14 +94,14 @@ export function OrganizationInvoiceScreenContent() {
           key={suspenseKey}
           organizationId={organizationId}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
           invoiceTypeCode={invoiceTypeCode}
           filterMode={filterMode}
         >
           <InvoiceListSection
             organizationId={organizationId}
             selectedDate={selectedDate}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
             invoiceTypeCode={invoiceTypeCode}
             filterMode={filterMode}
           />

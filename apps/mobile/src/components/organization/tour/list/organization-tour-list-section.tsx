@@ -1,3 +1,4 @@
+import type { TourStatus } from '@vinaup-platform/validation';
 import { useRouter } from 'expo-router';
 import { prefetch } from 'fetchwire';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
@@ -10,7 +11,7 @@ import { useOrganizationTourListContext } from '@/providers/organization/tour/or
 
 export type OrganizationTourListSectionProps = {
   organizationId: string;
-  statusFilter: string;
+  statusFilter?: TourStatus;
 };
 
 export function OrganizationTourListSection(_props: OrganizationTourListSectionProps) {

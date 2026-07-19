@@ -1,3 +1,4 @@
+import type { InvoiceStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -11,7 +12,7 @@ import { calculateReceiptPaymentsSummary } from '@/utils/calculator/calculate-re
 export interface InvoiceListSectionProps {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: InvoiceStatus;
   invoiceTypeCode: string;
   filterMode: DatePickerMode;
 }

@@ -7,6 +7,11 @@ import { TourImplementationResponse } from './tour-implementation-interfaces';
 import { TourSettlementResponse } from './tour-settlement-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateTourRequestInterface as CreateTourRequest,
+  UpdateTourRequestInterface as UpdateTourRequest,
+} from '@vinaup-platform/validation';
+
 export interface TourResponse {
   id: string;
   code: string | null;
@@ -28,26 +33,6 @@ export interface TourResponse {
   tourImplementation: TourImplementationResponse | null;
   tourSettlement: TourSettlementResponse | null;
 }
-
-export interface CreateTourRequest {
-  code?: string | null;
-  description: string;
-  startDate: string;
-  endDate: string;
-  note?: string | null;
-  organizationId: string;
-  organizationCustomerId?: string | null;
-  externalOrganizationName?: string | null;
-  externalCustomerName?: string | null;
-}
-
-export type UpdateTourRequest = Partial<CreateTourRequest> & {
-  status?: TourStatus;
-  adultTicketCount?: number;
-  childTicketCount?: number;
-  adultTicketPrice?: number;
-  childTicketPrice?: number;
-};
 
 export interface TourCancelLogtourCancelLogSnapshot {
   id?: string;

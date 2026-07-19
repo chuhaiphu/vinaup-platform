@@ -1,3 +1,4 @@
+import type { WageStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useFetch } from 'fetchwire';
 import { createContext, useContext } from 'react';
@@ -32,7 +33,7 @@ export function PersonalWageListProvider({
   children,
 }: {
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: WageStatus;
   filterMode: DatePickerMode;
   children: React.ReactNode;
 }) {

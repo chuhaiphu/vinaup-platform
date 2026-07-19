@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { WageStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -22,7 +23,7 @@ export function PersonalWageScreenContent() {
     month?: string;
     day?: string;
   }>();
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<WageStatus | ''>('');
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // ─── Derive filterMode from URL params ───
@@ -81,12 +82,12 @@ export function PersonalWageScreenContent() {
         <PersonalWageListProvider
           key={suspenseKey}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
           filterMode={filterMode}
         >
           <PersonalWageListSection
             selectedDate={selectedDate}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
             filterMode={filterMode}
           />
         </PersonalWageListProvider>

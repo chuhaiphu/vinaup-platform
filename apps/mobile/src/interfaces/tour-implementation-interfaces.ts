@@ -5,20 +5,16 @@ import { OrganizationMemberResponse } from './organization-member-interfaces';
 import { TourResponse } from './tour-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateUserAssignedRequestInterface as CreateUserAssignedRequest,
+  ManageMembersAssignedRequestInterface as ManageMembersAssignedRequest,
+  UpdateTourImplementationAssignmentRequestInterface as UpdateTourImplementationAssignmentRequest,
+  UpdateTourImplementationRequestInterface as UpdateTourImplementationRequest,
+  UpdateUserAssignedRequestInterface as UpdateUserAssignedRequest,
+} from '@vinaup-platform/validation';
+
 export interface TourImplementationMeta extends BaseMeta {}
 
-export interface UpdateTourImplementationRequest {
-  description?: string;
-  adultTicketCount?: number;
-  childTicketCount?: number;
-  infantTicketCount?: number;
-  adultTicketPrice?: number;
-  childTicketPrice?: number;
-  taxRate?: number;
-  advanceAmount?: number;
-  advanceType?: TourImplementationAdvanceType | null;
-  tourGuideAdvanceAmount?: number;
-}
 export interface TourImplementationResponse {
   id: string;
   adultTicketCount: number;
@@ -49,9 +45,6 @@ export interface CreateMemberAssignedRequest {
   organizationMemberId: string;
   role: string;
 }
-export interface ManageMembersAssignedRequest {
-  organizationMemberIds: string[];
-}
 export interface MemberAssignedTourImplementationResponse {
   id: string;
   tourImplementationId: string | null;
@@ -60,17 +53,6 @@ export interface MemberAssignedTourImplementationResponse {
   role: string;
 }
 
-export interface CreateUserAssignedRequest {
-  userId?: string | null;
-  role: string;
-  tourImplementationAssignmentId: string;
-  customUserName?: string | null;
-  customPhone?: string | null;
-  permissions?: string[];
-}
-export type UpdateUserAssignedRequest = Partial<CreateUserAssignedRequest> & {
-  currentOption?: number;
-};
 export interface UserAssignedTourImplementationResponse {
   id: string;
   userId: string | null;
@@ -83,11 +65,6 @@ export interface UserAssignedTourImplementationResponse {
   permissions: string[];
 }
 
-export interface UpdateTourImplementationAssignmentRequest {
-  carName?: string | null;
-  seatCount?: number | null;
-  position?: number;
-}
 export interface TourImplementationAssignmentResponse {
   id: string;
   tourImplementationId: string;

@@ -1,3 +1,4 @@
+import type { InvoiceStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useFetch } from 'fetchwire';
 import { createContext, useContext } from 'react';
@@ -41,7 +42,7 @@ export function OrganizationInvoiceListProvider({
 }: {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter: string;
+  statusFilter?: InvoiceStatus;
   invoiceTypeCode: string;
   filterMode: DatePickerMode;
   children: React.ReactNode;

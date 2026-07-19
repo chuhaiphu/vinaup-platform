@@ -8,6 +8,12 @@ import { OrganizationResponse } from './organization-interfaces';
 import { OrganizationMemberResponse } from './organization-member-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateCarAssignmentRequestInterface as CreateCarAssignmentRequest,
+  CreateCarRequestInterface as CreateCarRequest,
+  UpdateCarRequestInterface as UpdateCarRequest,
+} from '@vinaup-platform/validation';
+
 export interface CarMeta {
   canEdit: boolean;
   operationalStatus: CarOperationalStatus;
@@ -77,37 +83,4 @@ export interface CarMaintenanceLogResponse {
   id: string;
   carId: string;
   car?: CarResponse;
-}
-
-export interface CreateCarRequest {
-  name?: string | null;
-  manufacturer?: string | null;
-  model?: string | null;
-  seatCount?: number | null;
-  category?: string | null;
-  status?: CarStatus;
-  description?: string | null;
-  featureImageUrl?: string | null;
-  youtubeUrl?: string | null;
-  additionalImageUrls?: string[];
-  inServiceDate?: string | null;
-  bankMortgageAmount?: number | null;
-  fuelConsumption?: number | null;
-  fuelType?: string | null;
-  inspectionExpiryDate?: string | null;
-  roadFeeExpiryDate?: string | null;
-  insuranceExpiryDate?: string | null;
-  badgeExpiryDate?: string | null;
-  organizationId: string;
-}
-
-export type UpdateCarRequest = Partial<Omit<CreateCarRequest, 'organizationId'>>;
-
-export interface CreateCarAssignmentRequest {
-  carId: string;
-  // Full desired ACTIVE member set for the car (reconcile).
-  // An empty array means "unassign everyone" — the API cancels all current active assignments.
-  organizationMemberIds: string[];
-  startTime?: string;
-  note?: string | null;
 }

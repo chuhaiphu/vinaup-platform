@@ -7,6 +7,11 @@ import { OrganizationResponse } from './organization-interfaces';
 import { OrganizationRoleResponse } from './organization-role-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateOrganizationMemberRequestInterface as CreateOrganizationMemberRequest,
+  UpdateOrganizationMemberRequestInterface as UpdateOrganizationMemberRequest,
+} from '@vinaup-platform/validation';
+
 export interface OrganizationMemberResponse {
   id: string;
   organizationId: string;
@@ -26,22 +31,6 @@ export interface OrganizationMemberResponse {
   organization: OrganizationResponse;
   organizationRole: OrganizationRoleResponse;
 }
-
-export interface CreateOrganizationMemberRequest {
-  organizationId: string;
-  type: OrganizationMemberType;
-  name: string;
-  phone: string;
-  email?: string | null;
-  avatarUrl?: string | null;
-  address?: string | null;
-  status: OrganizationMemberStatus;
-  joinedAt: string;
-  organizationRoleId: string;
-  userId?: string | null;
-}
-
-export type UpdateOrganizationMemberRequest = Partial<CreateOrganizationMemberRequest>;
 
 export interface DeleteOrganizationMemberRequest {
   organizationId: string;

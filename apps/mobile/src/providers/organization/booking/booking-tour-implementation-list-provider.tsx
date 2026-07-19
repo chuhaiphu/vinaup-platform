@@ -1,3 +1,4 @@
+import type { BookingStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useFetch } from 'fetchwire';
 import { createContext, useContext } from 'react';
@@ -32,7 +33,7 @@ export function BookingTourImplementationListProvider({
 }: {
   tourImplementationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter?: string;
+  statusFilter?: BookingStatus;
   children: React.ReactNode;
 }) {
   const filter = {

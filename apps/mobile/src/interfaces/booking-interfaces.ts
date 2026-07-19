@@ -6,6 +6,11 @@ import { OrganizationResponse } from './organization-interfaces';
 import { TourImplementationResponse } from './tour-implementation-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateBookingRequestInterface as CreateBookingRequest,
+  UpdateBookingRequestInterface as UpdateBookingRequest,
+} from '@vinaup-platform/validation';
+
 export interface BookingResponse {
   id: string;
   code: string | null;
@@ -26,20 +31,6 @@ export interface BookingResponse {
   tourImplementationId: string | null;
   tourImplementation: TourImplementationResponse | null;
 }
-
-export interface CreateBookingRequest {
-  code?: string | null;
-  description: string;
-  content?: string | null;
-  startDate: string;
-  endDate: string;
-  note?: string | null;
-  organizationId: string;
-  organizationCustomerId?: string | null;
-  tourImplementationId?: string | null;
-}
-
-export type UpdateBookingRequest = Partial<CreateBookingRequest>;
 
 export interface BookingMeta extends BaseMeta {
   isSender: boolean;

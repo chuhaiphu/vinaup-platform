@@ -1,3 +1,4 @@
+import type { BookingStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 
@@ -9,7 +10,7 @@ import { useOrganizationBookingListContext } from '@/providers/organization/book
 export interface BookingListSectionProps {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
-  statusFilter?: string;
+  statusFilter?: BookingStatus;
   tourImplementationId?: string;
 }
 

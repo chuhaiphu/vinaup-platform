@@ -4,6 +4,13 @@ import { OrganizationCustomerResponse } from './organization-customer-interfaces
 import { OrganizationResponse } from './organization-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateProjectCategoryRequestInterface as CreateProjectCategoryRequest,
+  CreateProjectRequestInterface as CreateProjectRequest,
+  UpdateProjectCategoryRequestInterface as UpdateProjectCategoryRequest,
+  UpdateProjectRequestInterface as UpdateProjectRequest,
+} from '@vinaup-platform/validation';
+
 export interface ProjectCategoryResponse {
   id: string;
   name: string;
@@ -13,14 +20,6 @@ export interface ProjectCategoryResponse {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface CreateProjectCategoryRequest {
-  name: string;
-  description?: string | null;
-  organizationId?: string | null;
-}
-
-export type UpdateProjectCategoryRequest = Partial<CreateProjectCategoryRequest>;
 
 export interface ProjectResponse {
   id: string;
@@ -42,21 +41,3 @@ export interface ProjectResponse {
   categoryId: string | null;
   category: ProjectCategoryResponse | null;
 }
-
-export interface CreateProjectRequest {
-  code?: string | null;
-  type?: string | null;
-  description: string;
-  endDate: string;
-  startDate: string;
-  note?: string | null;
-  organizationId?: string | null;
-  organizationCustomerId?: string | null;
-  externalOrganizationName?: string | null;
-  externalCustomerName?: string | null;
-  categoryId?: string | null;
-}
-
-export type UpdateProjectRequest = Partial<CreateProjectRequest> & {
-  status?: ProjectStatus;
-};

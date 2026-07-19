@@ -1,4 +1,5 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import type { ProjectStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
@@ -21,7 +22,7 @@ export function PersonalProjectScreenContent() {
   const categoryId = params.categoryId || '';
   const { month, day } = params;
 
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | ''>('');
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // ─── Derive filterMode from URL params ───
@@ -80,13 +81,13 @@ export function PersonalProjectScreenContent() {
         <PersonalProjectListProvider
           key={suspenseKey}
           selectedDate={selectedDate}
-          statusFilter={statusFilter}
+          statusFilter={statusFilter || undefined}
           categoryId={categoryId}
           filterMode={filterMode}
         >
           <PersonalProjectListSection
             selectedDate={selectedDate}
-            statusFilter={statusFilter}
+            statusFilter={statusFilter || undefined}
             categoryId={categoryId}
             filterMode={filterMode}
           />

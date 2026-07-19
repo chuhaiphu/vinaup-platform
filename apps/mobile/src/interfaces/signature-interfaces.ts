@@ -2,15 +2,10 @@ import { DocumentType, SignatureRole } from '@/constants/signature-constants';
 
 import { UserResponse } from './user-interfaces';
 
-export interface ManageReceiverSignaturesRequest {
-  documentId: string;
-  documentType: DocumentType;
-  targetUserIds: string[];
-}
-
-export interface UpdateSignatureUrlRequest {
-  url: string;
-}
+export type {
+  ManageReceiverSignaturesRequestInterface as ManageReceiverSignaturesRequest,
+  UpdateSignatureUrlRequestInterface as UpdateSignatureUrlRequest,
+} from '@vinaup-platform/validation';
 
 export interface SignatureResponse {
   id: string;

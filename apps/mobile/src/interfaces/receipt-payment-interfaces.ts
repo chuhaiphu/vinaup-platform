@@ -13,6 +13,13 @@ import { TourSettlementResponse } from './tour-settlement-interfaces';
 import { TripResponse } from './trip-interfaces';
 import { UserResponse } from './user-interfaces';
 
+export type {
+  CreateReceiptPaymentCategoryRequestInterface as CreateReceiptPaymentCategoryRequest,
+  CreateReceiptPaymentRequestInterface as CreateReceiptPaymentRequest,
+  UpdateReceiptPaymentCategoryRequestInterface as UpdateReceiptPaymentCategoryRequest,
+  UpdateReceiptPaymentRequestInterface as UpdateReceiptPaymentRequest,
+} from '@vinaup-platform/validation';
+
 export interface ReceiptPaymentCategoryResponse {
   id: string;
   name: string;
@@ -23,14 +30,6 @@ export interface ReceiptPaymentCategoryResponse {
   createdAt: string;
   updatedAt: string;
 }
-
-export interface CreateReceiptPaymentCategoryRequest {
-  name: string;
-  description?: string;
-  organizationId?: string;
-}
-
-export type UpdateReceiptPaymentCategoryRequest = Partial<CreateReceiptPaymentCategoryRequest>;
 
 export interface ReceiptPaymentResponse {
   id: string;
@@ -74,32 +73,3 @@ export interface ReceiptPaymentResponse {
   wageId: string | null;
   trip: TripResponse | null;
 }
-
-export interface CreateReceiptPaymentRequest {
-  type: ReceiptPaymentType;
-  description: string;
-  unitPrice: number;
-  currency: string;
-  transactionType: ReceiptPaymentTransactionType;
-  transactionDate: string;
-  quantity: number;
-  frequency: number;
-  vatRate?: number;
-  depositAmount?: number;
-  depositType?: ReceiptPaymentDepositType | null;
-  note?: string | null;
-  invoiceId?: string | null;
-  projectId?: string | null;
-  bookingId?: string | null;
-  organizationId?: string | null;
-  tourCalculationId?: string | null;
-  tourImplementationId?: string | null;
-  tourSettlementId?: string | null;
-  groupCode?: string;
-  categoryId?: string | null;
-  carMaintenanceLogId?: string | null;
-  wageId?: string | null;
-  tripId?: string | null;
-}
-
-export type UpdateReceiptPaymentRequest = Partial<CreateReceiptPaymentRequest>;
