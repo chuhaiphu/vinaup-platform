@@ -1,9 +1,4 @@
-import { IsStringNotBlank } from 'src/_core/decorators/validation.decorator';
+import { updateAuthSecretSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-export class UpdateAuthSecretRequest {
-  @IsStringNotBlank()
-  secret!: string;
-
-  @IsStringNotBlank()
-  provider!: string;
-}
+export class UpdateAuthSecretRequest extends createZodDto(updateAuthSecretSchema) {}

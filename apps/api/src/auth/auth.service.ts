@@ -1,5 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { ConfigType } from "@nestjs/config";
+import type { LocalSignInRequestInterface } from '@vinaup-platform/validation';
 import { JwtService } from "@nestjs/jwt";
 import { compareSync } from "bcrypt";
 
@@ -11,8 +12,7 @@ import { generateSha256Hash } from "src/_common/utils/generator/string-generator
 import authConfig from "src/_core/configs/auth.config";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { AuthResponse } from './dtos/auth.response.dto';
-import { LocalSignInRequest } from './dtos/local-signin.request.dto';
+import type { AuthResponse } from './dtos/auth.response.dto';
 
 // Per-sign-in client metadata
 interface SignInContext {
@@ -29,7 +29,7 @@ export class AuthService {
     private readonly authConf: ConfigType<typeof authConfig>
   ) { }
 
-  async localSignIn(localSignInReq: LocalSignInRequest, context: SignInContext): Promise<AuthResponse> {
+  async localSignIn(localSignInReq: LocalSignInRequestInterface, context: SignInContext): Promise<AuthResponse> {
     const auth = await this.prismaService.auth.findUnique({
       where: {
         provider_providerId: {

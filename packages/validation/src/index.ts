@@ -9,6 +9,7 @@ export type { DocumentType } from './constants/signature.constant';
 export { SOCIAL_LINK_PLATFORM } from './constants/social-link.constant';
 export type { SocialLinkPlatform } from './constants/social-link.constant';
 
+export { localSignInSchema, updateAuthSecretSchema } from './zod-schemas/auth.schema';
 export { updateFuelPriceSchema } from './zod-schemas/fuel-price.schema';
 export {
   manageReceiverSignaturesSchema,
@@ -16,6 +17,10 @@ export {
 } from './zod-schemas/signature.schema';
 export { createSocialLinkSchema, updateSocialLinkSchema } from './zod-schemas/social-link.schema';
 export { createUserSchema, updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
+export type {
+  LocalSignInRequestInterface,
+  UpdateAuthSecretRequestInterface,
+} from './interfaces/auth.interface';
 export type { UpdateFuelPriceRequestInterface } from './interfaces/fuel-price.interface';
 export type {
   ManageReceiverSignaturesRequestInterface,
