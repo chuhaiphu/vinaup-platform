@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 z.config(z.locales.vi());
 
+export { VN_PHONE_REGEX } from './constants/phone.constant';
 export { DOCUMENT_TYPE } from './constants/signature.constant';
 export type { DocumentType } from './constants/signature.constant';
 export { SOCIAL_LINK_PLATFORM } from './constants/social-link.constant';
@@ -14,6 +15,7 @@ export {
   updateSignatureUrlSchema,
 } from './zod-schemas/signature.schema';
 export { createSocialLinkSchema, updateSocialLinkSchema } from './zod-schemas/social-link.schema';
+export { createUserSchema, updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
 export type { UpdateFuelPriceRequestInterface } from './interfaces/fuel-price.interface';
 export type {
   ManageReceiverSignaturesRequestInterface,
@@ -23,3 +25,8 @@ export type {
   CreateSocialLinkRequestInterface,
   UpdateSocialLinkRequestInterface,
 } from './interfaces/social-link.interface';
+export type {
+  CreateUserRequestInterface,
+  UpdateUserRequestInterface,
+  UserFilterRequestInterface,
+} from './interfaces/user.interface';

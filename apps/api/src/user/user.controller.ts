@@ -5,8 +5,8 @@ import { JwtAuthGuard } from "src/_core/guards/jwt-auth.guard";
 
 import { CreateUserRequest } from './dtos/create-user.request.dto';
 import { UpdateUserRequest } from './dtos/update-user.request.dto';
-import { UserFilterParam } from './dtos/user-filter.param.dto';
-import { UserResponse } from './dtos/user.response.dto';
+import { UserFilterRequest } from './dtos/user-filter.request.dto';
+import type { UserResponse } from './dtos/user.response.dto';
 import { UserService } from "./user.service";
 
 @Controller('user')
@@ -53,7 +53,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get('search')
   async searchUsers(
-    @Query() params: UserFilterParam
+    @Query() params: UserFilterRequest
   ): Promise<HttpResponse<UserResponse[]>> {
     const data = await this.userService.searchUsers(params);
     return {

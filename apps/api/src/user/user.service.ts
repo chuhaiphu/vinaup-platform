@@ -1,4 +1,9 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateUserRequestInterface,
+  UpdateUserRequestInterface,
+  UserFilterRequestInterface,
+} from '@vinaup-platform/validation';
 import { genSalt, hash } from 'bcrypt';
 
 import { AUTH_PROVIDER } from 'src/_common/constants/auth.constant';
@@ -7,10 +12,7 @@ import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateUserRequest } from './dtos/create-user.request.dto';
-import { UpdateUserRequest } from './dtos/update-user.request.dto';
-import { UserFilterParam } from './dtos/user-filter.param.dto';
-import { UserResponse } from './dtos/user.response.dto';
+import type { UserResponse } from './dtos/user.response.dto';
 
 
 const SYSTEM_RECEIPT_PAYMENT_CATEGORIES = [
@@ -36,7 +38,7 @@ export class UserService {
       organizationLinkedCount,
     };
   }
-  async signUp(createUserReq: CreateUserRequest): Promise<UserResponse> {
+  async signUp(createUserReq: CreateUserRequestInterface): Promise<UserResponse> {
     const { password, ...createUserData } = createUserReq;
     const isAuthExisted = await this.prismaService.auth.findFirst({
       where: { providerId: createUserReq.email },
@@ -86,7 +88,7 @@ export class UserService {
 
   async updateUser(
     userId: string,
-    updateUserRequest: UpdateUserRequest
+    updateUserRequest: UpdateUserRequestInterface
   ): Promise<UserResponse> {
     const existingUser = await this.prismaService.user.findUnique({
       where: { id: userId },
@@ -118,7 +120,7 @@ export class UserService {
     return { ...user, ...organizationCounts };
   }
 
-  async searchUsers(params: UserFilterParam): Promise<UserResponse[]> {
+  async searchUsers(params: UserFilterRequestInterface): Promise<UserResponse[]> {
     const conditions: Prisma.UserWhereInput[] = [];
     if (params.name) {
       conditions.push({ name: { equals: params.name, mode: 'insensitive' } });
