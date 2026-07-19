@@ -18,7 +18,7 @@ import type {
 } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
-import { UploadImageResponse } from './dtos/upload-image.response.dto';
+import type { UploadImageResponse } from './dtos/upload-image.response.dto';
 import { UploadService } from './upload.service';
 
 @Controller('upload')

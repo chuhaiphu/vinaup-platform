@@ -14,7 +14,7 @@ import {
 import { generateUniqueCode } from 'src/_common/utils/generator/string-generator/generate-unique-code';
 import uploadConfig from 'src/_core/configs/upload.config';
 
-import { UploadImageResponse } from './dtos/upload-image.response.dto';
+import type { UploadImageResponse } from './dtos/upload-image.response.dto';
 
 @Injectable()
 export class UploadService {
