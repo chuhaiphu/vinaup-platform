@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { ORGANIZATION_ROLE_CODE } from 'src/_common/constants/organization.constant';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { OrganizationRoleResponse } from '../dtos/organization-role.response.dto';
+import { organizationRoleQueryArgs, type OrganizationRoleResponse } from '../dtos/organization-role.response.dto';
 
 @Injectable()
 export class OrganizationRoleService {
@@ -17,13 +17,7 @@ export class OrganizationRoleService {
         organizationId,
         NOT: { code: ORGANIZATION_ROLE_CODE.OWNER },
       },
-      include: {
-        organizationRolePermissions: {
-          include: {
-            organizationPermission: true,
-          },
-        },
-      },
+      ...organizationRoleQueryArgs,
     });
     return organizationRoles;
   }

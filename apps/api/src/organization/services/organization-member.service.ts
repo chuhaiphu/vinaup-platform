@@ -1,20 +1,61 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateOrganizationMemberRequestInterface,
+  UpdateOrganizationMemberRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { OrganizationMemberAlreadyLinkedException, OrganizationMemberDeleteForbiddenException, OrganizationMemberNotFoundException } from 'src/_common/exceptions/organization.exception';
+import {
+  OrganizationMemberAlreadyLinkedException,
+  OrganizationMemberDeleteForbiddenException,
+  OrganizationMemberNotFoundException,
+  OrganizationNotFoundException,
+  OrganizationRoleNotFoundException,
+} from 'src/_common/exceptions/organization.exception';
+import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateOrganizationMemberRequest } from '../dtos/create-organization-member.request.dto';
-import { OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
-import { UpdateOrganizationMemberRequest } from '../dtos/update-organization-member.request.dto';
+import { organizationMemberQueryArgs, type OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
 
 @Injectable()
 export class OrganizationMemberService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  // Replace the old @IsOrganizationExist / @IsOrganizationRoleExist / @IsUserExist async
+  // validators — DB-backed existence rules live in the service (Coding Convention §7.3).
+  private async assertMemberRelationsExist(input: {
+    organizationId?: string;
+    organizationRoleId?: string;
+    userId?: string | null;
+  }): Promise<void> {
+    if (input.organizationId) {
+      const organization = await this.prismaService.organization.findUnique({
+        where: { id: input.organizationId },
+        select: { id: true },
+      });
+      if (!organization) throw new OrganizationNotFoundException();
+    }
+    if (input.organizationRoleId) {
+      const organizationRole = await this.prismaService.organizationRole.findUnique({
+        where: { id: input.organizationRoleId },
+        select: { id: true },
+      });
+      if (!organizationRole) throw new OrganizationRoleNotFoundException();
+    }
+    if (input.userId) {
+      const user = await this.prismaService.user.findUnique({
+        where: { id: input.userId },
+        select: { id: true },
+      });
+      if (!user) throw new UserNotFoundException();
+    }
+  }
+
   async createOrganizationMember(
-    createOrganizationMemberReq: CreateOrganizationMemberRequest,
+    createOrganizationMemberReq: CreateOrganizationMemberRequestInterface,
     currentUserId: string
   ): Promise<OrganizationMemberResponse> {
+    await this.assertMemberRelationsExist(createOrganizationMemberReq);
+
     if (createOrganizationMemberReq.userId) {
       const existingMember = await this.prismaService.organizationMember.findFirst({
         where: {
@@ -42,19 +83,14 @@ export class OrganizationMemberService {
           createdByUserId: currentUserId,
           joinedAt: createOrganizationMemberReq.joinedAt,
         },
-        include: {
-          createdBy: true,
-          user: true,
-          organization: true,
-          organizationRole: true,
-        },
+        ...organizationMemberQueryArgs,
       });
     return newOrganizationMember;
   }
 
   async updateOrganizationMember(
     id: string,
-    updateOrganizationMemberReq: UpdateOrganizationMemberRequest
+    updateOrganizationMemberReq: UpdateOrganizationMemberRequestInterface
   ): Promise<OrganizationMemberResponse> {
     const existingOrganizationMember =
       await this.prismaService.organizationMember.findUnique({
@@ -63,6 +99,8 @@ export class OrganizationMemberService {
     if (!existingOrganizationMember) {
       throw new OrganizationMemberNotFoundException();
     }
+
+    await this.assertMemberRelationsExist(updateOrganizationMemberReq);
 
     if (updateOrganizationMemberReq.userId) {
       const existingMember = await this.prismaService.organizationMember.findFirst({
@@ -98,12 +136,7 @@ export class OrganizationMemberService {
           // ISO string passes straight to Prisma; undefined leaves it unchanged.
           joinedAt: updateOrganizationMemberReq.joinedAt,
         },
-        include: {
-          createdBy: true,
-          user: true,
-          organization: true,
-          organizationRole: true,
-        },
+        ...organizationMemberQueryArgs,
       });
     return updatedOrganizationMember;
   }
@@ -140,12 +173,7 @@ export class OrganizationMemberService {
     const organizationMembers =
       await this.prismaService.organizationMember.findMany({
         where: { organizationId },
-        include: {
-          createdBy: true,
-          user: true,
-          organization: true,
-          organizationRole: true,
-        },
+        ...organizationMemberQueryArgs,
       });
     return organizationMembers;
   }
@@ -154,12 +182,7 @@ export class OrganizationMemberService {
     const organizationMember =
       await this.prismaService.organizationMember.findUnique({
         where: { id },
-        include: {
-          createdBy: true,
-          user: true,
-          organization: true,
-          organizationRole: true,
-        },
+        ...organizationMemberQueryArgs,
       });
 
     if (!organizationMember) {

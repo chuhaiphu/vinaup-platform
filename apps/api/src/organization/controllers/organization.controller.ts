@@ -18,8 +18,8 @@ import type {
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateOrganizationRequest } from '../dtos/create-organization.request.dto';
-import { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
-import { OrganizationResponse } from '../dtos/organization.response.dto';
+import type { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
+import type { OrganizationResponse } from '../dtos/organization.response.dto';
 import { UpdateOrganizationRequest } from '../dtos/update-organization.request.dto';
 import { OrganizationService } from '../services/organization.service';
 

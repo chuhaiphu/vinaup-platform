@@ -1,20 +1,40 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateOrganizationCustomerRequestInterface,
+  UpdateOrganizationCustomerRequestInterface,
+} from '@vinaup-platform/validation';
 
-import { OrganizationCustomerNotFoundException } from 'src/_common/exceptions/organization.exception';
+import {
+  OrganizationCustomerNotFoundException,
+  OrganizationNotFoundException,
+} from 'src/_common/exceptions/organization.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateOrganizationCustomerRequest } from '../dtos/create-organization-customer.request.dto';
-import { OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
-import { UpdateOrganizationCustomerRequest } from '../dtos/update-organization-customer.request.dto';
+import { organizationCustomerQueryArgs, type OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
 
 @Injectable()
 export class OrganizationCustomerService {
   constructor(private readonly prismaService: PrismaService) {}
 
+  // Replace the old @IsOrganizationExist async validator — a DB-backed existence
+  // rule lives in the service, not the schema (Coding Convention §7.3).
+  private async assertOrganizationExists(organizationId: string): Promise<void> {
+    const organization = await this.prismaService.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true },
+    });
+    if (!organization) throw new OrganizationNotFoundException();
+  }
+
   async createOrganizationCustomer(
-    createOrganizationCustomerReq: CreateOrganizationCustomerRequest,
+    createOrganizationCustomerReq: CreateOrganizationCustomerRequestInterface,
     currentUserId: string
   ): Promise<OrganizationCustomerResponse> {
+    await this.assertOrganizationExists(createOrganizationCustomerReq.organizationId);
+    if (createOrganizationCustomerReq.clientOrganizationId) {
+      await this.assertOrganizationExists(createOrganizationCustomerReq.clientOrganizationId);
+    }
+
     const newOrganizationCustomer =
       await this.prismaService.organizationCustomer.create({
         data: {
@@ -22,12 +42,7 @@ export class OrganizationCustomerService {
           createdByUserId: currentUserId,
           joinedAt: new Date(),
         },
-        include: {
-          createdBy: true,
-          clientUser: true,
-          clientOrganization: true,
-          organization: true,
-        },
+        ...organizationCustomerQueryArgs,
       });
     return newOrganizationCustomer;
   }
@@ -38,19 +53,14 @@ export class OrganizationCustomerService {
     const organizationCustomers =
       await this.prismaService.organizationCustomer.findMany({
         where: { organizationId },
-        include: {
-          createdBy: true,
-          clientUser: true,
-          clientOrganization: true,
-          organization: true,
-        },
+        ...organizationCustomerQueryArgs,
       });
     return organizationCustomers;
   }
 
   async updateOrganizationCustomer(
     id: string,
-    updateOrganizationCustomerReq: UpdateOrganizationCustomerRequest
+    updateOrganizationCustomerReq: UpdateOrganizationCustomerRequestInterface
   ): Promise<OrganizationCustomerResponse> {
     const existingOrganizationCustomer =
       await this.prismaService.organizationCustomer.findUnique({
@@ -59,6 +69,13 @@ export class OrganizationCustomerService {
 
     if (!existingOrganizationCustomer) {
       throw new OrganizationCustomerNotFoundException();
+    }
+
+    if (updateOrganizationCustomerReq.organizationId) {
+      await this.assertOrganizationExists(updateOrganizationCustomerReq.organizationId);
+    }
+    if (updateOrganizationCustomerReq.clientOrganizationId) {
+      await this.assertOrganizationExists(updateOrganizationCustomerReq.clientOrganizationId);
     }
 
     const updatedOrganizationCustomer =
@@ -75,12 +92,7 @@ export class OrganizationCustomerService {
           clientUserId: updateOrganizationCustomerReq.clientUserId,
           clientOrganizationId: updateOrganizationCustomerReq.clientOrganizationId,
         },
-        include: {
-          createdBy: true,
-          clientUser: true,
-          clientOrganization: true,
-          organization: true,
-        },
+        ...organizationCustomerQueryArgs,
       });
 
     return updatedOrganizationCustomer;

@@ -19,7 +19,7 @@ import type {
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateOrganizationMemberRequest } from '../dtos/create-organization-member.request.dto';
-import { OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
+import type { OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
 import { UpdateOrganizationMemberRequest } from '../dtos/update-organization-member.request.dto';
 import { OrganizationMemberService } from '../services/organization-member.service';
 

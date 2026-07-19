@@ -80,6 +80,7 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `ORGANIZATION_NOT_FOUND`           | 404  | `OrganizationNotFoundException`          | [`organization.service.ts`](../../src/organization/services/organization.service.ts), [`tour.service.ts`](../../src/tour/services/tour.service.ts) |
 | `ORGANIZATION_MEMBER_NOT_FOUND`    | 404  | `OrganizationMemberNotFoundException`    | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) |
 | `ORGANIZATION_CUSTOMER_NOT_FOUND`  | 404  | `OrganizationCustomerNotFoundException`  | [`organization-customer.service.ts`](../../src/organization/services/organization-customer.service.ts) |
+| `ORGANIZATION_ROLE_NOT_FOUND`      | 404  | `OrganizationRoleNotFoundException`      | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) — the `organizationRoleId` on create/update does not exist |
 | `ORGANIZATION_NOT_MEMBER`          | 403  | `OrganizationNotMemberException`         | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller does not belong to the organization |
 | `ORGANIZATION_MEMBER_LOCKED`       | 403  | `OrganizationMemberLockedException`      | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller is locked in the organization |
 | `ORGANIZATION_PERMISSION_DENIED`   | 403  | `OrganizationPermissionDeniedException`  | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller lacks permission on the resource |

@@ -17,7 +17,7 @@ import type {
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateOrganizationCustomerRequest } from '../dtos/create-organization-customer.request.dto';
-import { OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
+import type { OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
 import { UpdateOrganizationCustomerRequest } from '../dtos/update-organization-customer.request.dto';
 import { OrganizationCustomerService } from '../services/organization-customer.service';
 

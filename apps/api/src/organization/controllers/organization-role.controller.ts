@@ -3,7 +3,7 @@ import { Controller, Get, HttpStatus, Param, UseGuards } from '@nestjs/common';
 import type { HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
-import { OrganizationRoleResponse } from '../dtos/organization-role.response.dto';
+import type { OrganizationRoleResponse } from '../dtos/organization-role.response.dto';
 import { OrganizationRoleService } from '../services/organization-role.service';
 
 @Controller('organization-role')

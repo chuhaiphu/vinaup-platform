@@ -1,13 +1,15 @@
 import { Injectable } from '@nestjs/common';
+import type {
+  CreateOrganizationRequestInterface,
+  UpdateOrganizationRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { ORGANIZATION_ROLE_CODE } from 'src/_common/constants/organization.constant';
 import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CreateOrganizationRequest } from '../dtos/create-organization.request.dto';
-import { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
-import { OrganizationResponse } from '../dtos/organization.response.dto';
-import { UpdateOrganizationRequest } from '../dtos/update-organization.request.dto';
+import type { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
+import { organizationQueryArgs, type OrganizationResponse } from '../dtos/organization.response.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -28,10 +30,7 @@ export class OrganizationService {
         ],
       },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organizationIndustry: true,
-      },
+      ...organizationQueryArgs,
     });
 
     const organizationsWithCounts = await Promise.all(
@@ -47,10 +46,7 @@ export class OrganizationService {
   async findOrganizationById(id: string): Promise<OrganizationResponse> {
     const existingOrganization = await this.prismaService.organization.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organizationIndustry: true,
-      },
+      ...organizationQueryArgs,
     });
 
     if (!existingOrganization) {
@@ -68,15 +64,12 @@ export class OrganizationService {
   async findAllOrganizations(): Promise<OrganizationResponse[]> {
     return this.prismaService.organization.findMany({
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organizationIndustry: true,
-      },
+      ...organizationQueryArgs,
     });
   }
 
   async createOrganization(
-    createOrganizationReq: CreateOrganizationRequest,
+    createOrganizationReq: CreateOrganizationRequestInterface,
     currentUserId: string
   ): Promise<OrganizationResponse> {
     const currentUser = await this.prismaService.user.findUnique({
@@ -88,10 +81,7 @@ export class OrganizationService {
         ...createOrganizationReq,
         createdByUserId: currentUserId,
       },
-      include: {
-        createdBy: true,
-        organizationIndustry: true,
-      },
+      ...organizationQueryArgs,
     });
 
     await this.createDefaultRolesForOrganization(newOrganization.id);
@@ -139,7 +129,7 @@ export class OrganizationService {
 
   async updateOrganization(
     id: string,
-    updateOrganizationReq: UpdateOrganizationRequest
+    updateOrganizationReq: UpdateOrganizationRequestInterface
   ): Promise<OrganizationResponse> {
     const existingOrganization = await this.prismaService.organization.findUnique({
       where: { id },
@@ -152,10 +142,7 @@ export class OrganizationService {
     const updatedOrganization = await this.prismaService.organization.update({
       where: { id },
       data: updateOrganizationReq,
-      include: {
-        createdBy: true,
-        organizationIndustry: true,
-      },
+      ...organizationQueryArgs,
     });
     const counts = await this.getOrganizationMemberCounts(id);
     return { ...updatedOrganization, ...counts };

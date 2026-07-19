@@ -1,14 +1,13 @@
-import { OrganizationPermission } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class OrganizationRoleResponse {
-  id!: string;
-  code!: string;
-  description!: string;
-  organizationId!: string;
-  organizationRolePermissions!: {
-    id: string;
-    organizationRoleId: string;
-    organizationPermissionId: string;
-    organizationPermission: OrganizationPermission;
-  }[];
-}
+export const organizationRoleQueryArgs = {
+  include: {
+    organizationRolePermissions: {
+      include: {
+        organizationPermission: true,
+      },
+    },
+  },
+} satisfies Prisma.OrganizationRoleDefaultArgs;
+
+export type OrganizationRoleResponse = Prisma.OrganizationRoleGetPayload<typeof organizationRoleQueryArgs>;

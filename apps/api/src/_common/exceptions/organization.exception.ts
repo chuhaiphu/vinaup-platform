@@ -17,6 +17,12 @@ export class OrganizationMemberNotFoundException extends NotFoundException {
   }
 }
 
+export class OrganizationRoleNotFoundException extends NotFoundException {
+  constructor() {
+    super({ error: 'ORGANIZATION_ROLE_NOT_FOUND', message: 'Organization role not found', statusCode: HttpStatus.NOT_FOUND });
+  }
+}
+
 export class OrganizationCustomerNotFoundException extends NotFoundException {
   constructor() {
     super({ error: 'ORGANIZATION_CUSTOMER_NOT_FOUND', message: 'Organization customer not found', statusCode: HttpStatus.NOT_FOUND });
