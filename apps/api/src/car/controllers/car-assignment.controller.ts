@@ -3,8 +3,8 @@ import { Body, Controller, Get, HttpStatus, Param, Post, UseGuards } from '@nest
 import type { HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
-import { CarAssignmentEventResponse } from '../dtos/car-assignment-event.response.dto';
-import { CarAssignmentResponse } from '../dtos/car-assignment.response.dto';
+import type { CarAssignmentEventResponse } from '../dtos/car-assignment-event.response.dto';
+import type { CarAssignmentResponse } from '../dtos/car-assignment.response.dto';
 import { CreateCarAssignmentRequest } from '../dtos/create-car-assignment.request.dto';
 import { CarAssignmentService } from '../services/car-assignment.service';
 

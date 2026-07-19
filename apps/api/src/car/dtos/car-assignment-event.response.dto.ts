@@ -1,12 +1,4 @@
-export class CarAssignmentEventResponse {
-  id!: string;
-  carId!: string;
-  operationId!: string;
-  action!: string;
-  organizationMemberId!: string | null;
-  memberName!: string;
-  memberAvatarUrl!: string | null;
-  note!: string | null;
-  performedAt!: Date;
-  createdAt!: Date;
-}
+import type { CarAssignmentEvent } from 'src/prisma/generated/client';
+
+// Full-row response (no projection → no query-args const).
+export type CarAssignmentEventResponse = CarAssignmentEvent;

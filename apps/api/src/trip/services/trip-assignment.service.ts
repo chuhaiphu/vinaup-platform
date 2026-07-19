@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import {
+  CAR_STATUS,
   TRIP_STATUS,
   type CreateTripAssignmentRequestInterface,
   type UpdateTripAssignmentRequestInterface,
 } from '@vinaup-platform/validation';
 
-import { CAR_STATUS } from 'src/_common/constants/car.constant';
 import { CarLockedException } from 'src/_common/exceptions/car.exception';
 import {
   TripAssignmentCarAlreadyInTripException,

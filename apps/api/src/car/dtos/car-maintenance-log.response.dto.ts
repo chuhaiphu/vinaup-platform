@@ -1,7 +1,7 @@
-import { Car } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class CarMaintenanceLogResponse {
-  id!: string;
-  carId!: string;
-  car?: Car;
-}
+export const carMaintenanceLogQueryArgs = {
+  include: { car: true },
+} satisfies Prisma.CarMaintenanceLogDefaultArgs;
+
+export type CarMaintenanceLogResponse = Prisma.CarMaintenanceLogGetPayload<typeof carMaintenanceLogQueryArgs>;

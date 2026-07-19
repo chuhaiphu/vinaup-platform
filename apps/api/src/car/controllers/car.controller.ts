@@ -15,8 +15,8 @@ import {
 import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
-import { CarFilterParam } from '../dtos/car-filter.param.dto';
-import { CarWithMeta } from '../dtos/car.response.dto';
+import { CarFilterRequest } from '../dtos/car-filter.request.dto';
+import type { CarWithMeta } from '../dtos/car.response.dto';
 import { CreateCarRequest } from '../dtos/create-car.request.dto';
 import { UpdateCarRequest } from '../dtos/update-car.request.dto';
 import { CarService } from '../services/car.service';
@@ -29,7 +29,7 @@ export class CarController {
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
-    @Query() filter: CarFilterParam,
+    @Query() filter: CarFilterRequest,
   ): Promise<HttpResponse<CarWithMeta[]>> {
     const data = await this.carService.findCarsByOrganizationId(organizationId, filter);
     return { statusCode: HttpStatus.OK, message: 'Cars retrieved successfully', data };

@@ -1,13 +1,13 @@
-import { Car, OrganizationMember } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class CarAssignmentResponse {
-  id!: string;
-  carId!: string;
-  car!: Car;
-  organizationMemberId!: string;
-  organizationMember!: OrganizationMember;
-  startTime!: Date;
-  note!: string | null;
-  createdAt!: Date;
-  updatedAt!: Date;
-}
+// ─── A state row always ships its car + member (with user + organization) ───
+export const carAssignmentQueryArgs = {
+  include: {
+    car: true,
+    organizationMember: {
+      include: { user: true, organization: true },
+    },
+  },
+} satisfies Prisma.CarAssignmentDefaultArgs;
+
+export type CarAssignmentResponse = Prisma.CarAssignmentGetPayload<typeof carAssignmentQueryArgs>;

@@ -1,21 +1,24 @@
 import { Injectable } from '@nestjs/common';
-import { TRIP_STATUS } from '@vinaup-platform/validation';
+import {
+  TRIP_STATUS,
+  type CarFilterRequestInterface,
+  type CreateCarRequestInterface,
+  type UpdateCarRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { CAR_OPERATIONAL_STATUS } from 'src/_common/constants/car.constant';
 import { CarNotFoundException } from 'src/_common/exceptions/car.exception';
+import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CarFilterParam } from '../dtos/car-filter.param.dto';
-import { CarResponse, CarWithMeta } from '../dtos/car.response.dto';
-import { CreateCarRequest } from '../dtos/create-car.request.dto';
-import { UpdateCarRequest } from '../dtos/update-car.request.dto';
+import { carQueryArgs, type CarResponse, type CarWithMeta } from '../dtos/car.response.dto';
 
 @Injectable()
 export class CarService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async findCarsByOrganizationId(organizationId: string, filter?: CarFilterParam): Promise<CarWithMeta[]> {
+  async findCarsByOrganizationId(organizationId: string, filter?: CarFilterRequestInterface): Promise<CarWithMeta[]> {
     const dateFilterClause = (() => {
       if (!filter?.startDate || !filter?.endDate) return {};
       // ─── Filter by trip usage in the period, not by car.createdAt ─────
@@ -41,18 +44,7 @@ export class CarService {
     const cars = await this.prismaService.car.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        carAssignments: {
-          include: {
-            organizationMember: {
-              include: { user: true },
-            },
-          },
-        },
-        carMaintenanceLog: true,
-      },
+      ...carQueryArgs,
     });
 
     const assignedCarIdSet = await this.findAssignedCarIdSet(cars.map((car) => car.id));
@@ -62,18 +54,7 @@ export class CarService {
   async findCarById(id: string): Promise<CarWithMeta> {
     const car = await this.prismaService.car.findUnique({
       where: { id },
-      include: {
-        createdBy: true,
-        organization: true,
-        carAssignments: {
-          include: {
-            organizationMember: {
-              include: { user: true },
-            },
-          },
-        },
-        carMaintenanceLog: true,
-      },
+      ...carQueryArgs,
     });
 
     if (!car) {
@@ -84,7 +65,19 @@ export class CarService {
     return this.attachMeta(car, assignedCarIdSet);
   }
 
-  async createCar(createCarReq: CreateCarRequest, currentUserId: string): Promise<CarWithMeta> {
+  // Replaces the old @IsOrganizationExist async validator — a DB-backed existence
+  // rule lives in the service, not the schema (Coding Convention §7.3).
+  private async assertOrganizationExists(organizationId: string): Promise<void> {
+    const organization = await this.prismaService.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true },
+    });
+    if (!organization) throw new OrganizationNotFoundException();
+  }
+
+  async createCar(createCarReq: CreateCarRequestInterface, currentUserId: string): Promise<CarWithMeta> {
+    await this.assertOrganizationExists(createCarReq.organizationId);
+
     // ─── Create car + its maintenance log in a single transaction ───────
     // CarMaintenanceLog is the container for all maintenance receipt payments.
     // It is always created together with the car (1-1 relationship).
@@ -97,19 +90,14 @@ export class CarService {
           create: {},
         },
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        carAssignments: true,
-        carMaintenanceLog: true,
-      },
+      ...carQueryArgs,
     });
 
     // A brand-new car has no trip assignments yet, so it is always RESTING — skip the query.
     return this.attachMeta(car, new Set());
   }
 
-  async updateCar(id: string, updateCarReq: UpdateCarRequest): Promise<CarWithMeta> {
+  async updateCar(id: string, updateCarReq: UpdateCarRequestInterface): Promise<CarWithMeta> {
     const existingCar = await this.prismaService.car.findUnique({
       where: { id },
     });
@@ -123,12 +111,7 @@ export class CarService {
       data: {
         ...updateCarReq,
       },
-      include: {
-        createdBy: true,
-        organization: true,
-        carAssignments: true,
-        carMaintenanceLog: true,
-      },
+      ...carQueryArgs,
     });
 
     const assignedCarIdSet = await this.findAssignedCarIdSet([car.id]);
@@ -166,17 +149,7 @@ export class CarService {
         ],
       },
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        carAssignments: {
-          include: {
-            organizationMember: {
-              include: { user: true },
-            },
-          },
-        },
-      },
+      ...carQueryArgs,
     });
 
     const assignedCarIdSet = await this.findAssignedCarIdSet(cars.map((car) => car.id));

@@ -1,26 +1,18 @@
 import { randomUUID } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
+import type { CreateCarAssignmentRequestInterface } from '@vinaup-platform/validation';
 
 import { CAR_ASSIGNMENT_EVENT_ACTION } from 'src/_common/constants/car.constant';
 import { CarAssignmentMemberNotFoundException, CarNotFoundException } from 'src/_common/exceptions/car.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { CarAssignmentEventResponse } from '../dtos/car-assignment-event.response.dto';
-import { CarAssignmentResponse } from '../dtos/car-assignment.response.dto';
-import { CreateCarAssignmentRequest } from '../dtos/create-car-assignment.request.dto';
+import type { CarAssignmentEventResponse } from '../dtos/car-assignment-event.response.dto';
+import { carAssignmentQueryArgs, type CarAssignmentResponse } from '../dtos/car-assignment.response.dto';
 
 @Injectable()
 export class CarAssignmentService {
   constructor(private readonly prismaService: PrismaService) {}
-
-  // ─── Shared include: a state row always ships its car + member (with user) ───
-  private readonly assignmentInclude = {
-    car: true,
-    organizationMember: {
-      include: { user: true, organization: true },
-    },
-  } as const;
 
   async findCarAssignmentsByCarId(carId: string): Promise<CarAssignmentResponse[]> {
     return this.findActiveAssignmentsByCarId(carId);
@@ -32,7 +24,7 @@ export class CarAssignmentService {
     return this.prismaService.carAssignment.findMany({
       where: { organizationMemberId },
       orderBy: { startTime: 'desc' },
-      include: this.assignmentInclude,
+      ...carAssignmentQueryArgs,
     });
   }
 
@@ -45,7 +37,7 @@ export class CarAssignmentService {
   }
 
   async createCarAssignment(
-    createCarAssignmentReq: CreateCarAssignmentRequest,
+    createCarAssignmentReq: CreateCarAssignmentRequestInterface,
   ): Promise<CarAssignmentResponse[]> {
     // ─── Step 1: Verify car exists and get its organizationId ────────────
     const car = await this.prismaService.car.findUnique({
@@ -148,7 +140,7 @@ export class CarAssignmentService {
     return this.prismaService.carAssignment.findMany({
       where: { carId },
       orderBy: { startTime: 'desc' },
-      include: this.assignmentInclude,
+      ...carAssignmentQueryArgs,
     });
   }
 }

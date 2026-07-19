@@ -5,6 +5,8 @@ z.config(z.locales.vi());
 
 export { BOOKING_STATUS } from './constants/booking.constant';
 export type { BookingStatus } from './constants/booking.constant';
+export { CAR_STATUS } from './constants/car.constant';
+export type { CarStatus } from './constants/car.constant';
 export { INVOICE_STATUS } from './constants/invoice.constant';
 export type { InvoiceStatus } from './constants/invoice.constant';
 export { VN_PHONE_REGEX } from './constants/phone.constant';
@@ -25,6 +27,12 @@ export {
   createBookingSchema,
   updateBookingSchema,
 } from './zod-schemas/booking.schema';
+export {
+  carFilterSchema,
+  createCarAssignmentSchema,
+  createCarSchema,
+  updateCarSchema,
+} from './zod-schemas/car.schema';
 export { updateFuelPriceSchema } from './zod-schemas/fuel-price.schema';
 export {
   createInvoiceSchema,
@@ -62,6 +70,12 @@ export type {
   CreateBookingRequestInterface,
   UpdateBookingRequestInterface,
 } from './interfaces/booking.interface';
+export type {
+  CarFilterRequestInterface,
+  CreateCarAssignmentRequestInterface,
+  CreateCarRequestInterface,
+  UpdateCarRequestInterface,
+} from './interfaces/car.interface';
 export type { UpdateFuelPriceRequestInterface } from './interfaces/fuel-price.interface';
 export type {
   CreateInvoiceRequestInterface,
