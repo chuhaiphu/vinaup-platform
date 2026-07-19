@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
+import {
+  DOCUMENT_TYPE,
+  type DocumentType,
+  type ManageReceiverSignaturesRequestInterface,
+  type UpdateSignatureUrlRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { BOOKING_STATUS } from 'src/_common/constants/booking.constant';
-import { DOCUMENT_TYPE, type DocumentType, SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
+import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
 import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
 import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
@@ -22,9 +28,7 @@ import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { Prisma, Signature } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { ManageReceiverSignaturesRequest } from './dtos/manage-receiver-signatures.request.dto';
-import { SignatureResponse } from './dtos/signature.response.dto';
-import { UpdateSignatureUrlRequest } from './dtos/update-signature-url.request.dto';
+import { signatureQueryArgs, type SignatureResponse } from './dtos/signature.response.dto';
 
 @Injectable()
 export class SignatureService {
@@ -52,10 +56,7 @@ export class SignatureService {
   async findSignatureById(id: string): Promise<SignatureResponse> {
     const signature = await this.prismaService.signature.findUnique({
       where: { id },
-      include: {
-        targetUser: true,
-        signedByUser: true,
-      },
+      ...signatureQueryArgs,
     });
 
     if (!signature) {
@@ -69,10 +70,7 @@ export class SignatureService {
   ): Promise<SignatureResponse[]> {
     const signatures = await this.prismaService.signature.findMany({
       where: { documentId },
-      include: {
-        targetUser: true,
-        signedByUser: true,
-      },
+      ...signatureQueryArgs,
     });
     return signatures;
   }
@@ -101,7 +99,7 @@ export class SignatureService {
   }
 
   async manageReceiverSignatures(
-    manageReceiverSignaturesReq: ManageReceiverSignaturesRequest
+    manageReceiverSignaturesReq: ManageReceiverSignaturesRequestInterface
   ): Promise<SignatureResponse[]> {
     return this.prismaService.$transaction(async (transaction) => {
       await this.assertDocumentExists(
@@ -189,10 +187,7 @@ export class SignatureService {
           documentId: manageReceiverSignaturesReq.documentId,
           documentType: manageReceiverSignaturesReq.documentType,
         },
-        include: {
-          targetUser: true,
-          signedByUser: true,
-        },
+        ...signatureQueryArgs,
       });
     });
   }
@@ -256,7 +251,7 @@ export class SignatureService {
 
   async updateSignatureUrl(
     id: string,
-    updateSignatureUrlRequest: UpdateSignatureUrlRequest,
+    updateSignatureUrlRequest: UpdateSignatureUrlRequestInterface,
     currentUserId: string
   ): Promise<SignatureResponse> {
     const existingSignature = await this.findSignatureByIdOrThrow(id);
@@ -276,10 +271,7 @@ export class SignatureService {
       data: {
         url: updateSignatureUrlRequest.url,
       },
-      include: {
-        targetUser: true,
-        signedByUser: true,
-      },
+      ...signatureQueryArgs,
     });
 
     return updatedSignature;
@@ -329,10 +321,7 @@ export class SignatureService {
         signedAt: new Date(),
         isSigned: true,
       },
-      include: {
-        targetUser: true,
-        signedByUser: true,
-      },
+      ...signatureQueryArgs,
     });
 
     await this.syncBookingStatusAfterSign(existingSignature.documentId, existingSignature.documentType, existingSignature.signatureRole);
@@ -427,10 +416,7 @@ export class SignatureService {
 
         const updatedSignature = await transaction.signature.findUnique({
           where: { id: existingSignature.id },
-          include: {
-            targetUser: true,
-            signedByUser: true,
-          },
+          ...signatureQueryArgs,
         });
 
         if (!updatedSignature) {
@@ -459,10 +445,7 @@ export class SignatureService {
 
         const signatureSnapshot = await transaction.signature.findMany({
           where: { documentId: existingSignature.documentId },
-          include: {
-            targetUser: true,
-            signedByUser: true,
-          },
+          ...signatureQueryArgs,
         });
 
         snapshotData = JSON.parse(
@@ -496,10 +479,7 @@ export class SignatureService {
 
         const signatureSnapshot = await transaction.signature.findMany({
           where: { documentId: existingSignature.documentId },
-          include: {
-            targetUser: true,
-            signedByUser: true,
-          },
+          ...signatureQueryArgs,
         });
 
         snapshotData = JSON.parse(
@@ -528,10 +508,7 @@ export class SignatureService {
 
       const updatedSignature = await transaction.signature.findUnique({
         where: { id: existingSignature.id },
-        include: {
-          targetUser: true,
-          signedByUser: true,
-        },
+        ...signatureQueryArgs,
       });
 
       if (!updatedSignature) {

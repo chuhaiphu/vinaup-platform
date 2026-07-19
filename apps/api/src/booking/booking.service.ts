@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
 
 import { BOOKING_STATUS } from 'src/_common/constants/booking.constant';
-import { DOCUMENT_TYPE, SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
+import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
 import { BookingCompletedImmutableException, BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';

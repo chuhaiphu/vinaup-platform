@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
+import { DOCUMENT_TYPE } from '@vinaup-platform/validation';
 
-import { DOCUMENT_TYPE, SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
+import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
 import { TourCalculationCancelLogNotFoundException, TourCalculationNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { Prisma } from 'src/prisma/generated/client';

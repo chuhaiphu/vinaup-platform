@@ -1,23 +1,10 @@
-import { User } from 'src/prisma/generated/client';
+import { Prisma } from 'src/prisma/generated/client';
 
-export class SignatureResponse {
-  id!: string;
-  url?: string | null;
-  signatureRole!: string;
-  documentId!: string;
-  documentType!: string;
-  isSigned!: boolean;
+export const signatureQueryArgs = {
+  include: {
+    targetUser: true,
+    signedByUser: true,
+  },
+} satisfies Prisma.SignatureDefaultArgs;
 
-  // Target user to sign
-  targetUserId?: string | null;
-  targetUser?: User | null;
-  targetName?: string | null;
-
-  // Actual signer information after signing
-  signedByUserId?: string | null;
-  signedByUser?: User | null;
-  signedByName?: string | null;
-  signedAt?: Date | null;
-
-  updatedAt!: Date;
-}
+export type SignatureResponse = Prisma.SignatureGetPayload<typeof signatureQueryArgs>;

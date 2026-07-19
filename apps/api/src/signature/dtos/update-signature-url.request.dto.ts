@@ -1,6 +1,4 @@
-import { IsStringNotBlank } from 'src/_core/decorators/validation.decorator';
+import { updateSignatureUrlSchema } from '@vinaup-platform/validation';
+import { createZodDto } from 'nestjs-zod';
 
-export class UpdateSignatureUrlRequest {
-  @IsStringNotBlank()
-  url!: string;
-}
+export class UpdateSignatureUrlRequest extends createZodDto(updateSignatureUrlSchema) {}
