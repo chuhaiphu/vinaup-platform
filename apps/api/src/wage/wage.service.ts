@@ -1,14 +1,16 @@
 import { Injectable } from "@nestjs/common";
+import type {
+  CreateWageRequestInterface,
+  UpdateWageRequestInterface,
+  WageFilterRequestInterface,
+} from '@vinaup-platform/validation';
 
 import { BusyDateRange } from "src/_common/dtos/response/busy-days.response.dto";
 import { WageNotFoundException } from "src/_common/exceptions/wage.exception";
 import { generateDateOverlapClause } from "src/_common/utils/generator/generate-date-overlap-clause";
 import { PrismaService } from "src/prisma/prisma.service";
 
-import { CreateWageRequest } from "./dtos/create-wage.request.dto";
-import { UpdateWageRequest } from "./dtos/update-wage.request.dto";
-import { WageFilterParam } from "./dtos/wage-filter.param.dto";
-import { WageResponse } from "./dtos/wage.response.dto";
+import { wageQueryArgs, type WageResponse } from "./dtos/wage.response.dto";
 
 @Injectable()
 export class WageService {
@@ -16,7 +18,7 @@ export class WageService {
 
   async findWagesByCurrentUser(
     currentUserId: string,
-    filter: WageFilterParam,
+    filter: WageFilterRequestInterface,
   ): Promise<WageResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
@@ -27,7 +29,7 @@ export class WageService {
         ...(filter?.status && { status: filter.status }),
       },
       orderBy: { createdAt: "desc" },
-      include: { createdBy: true },
+      ...wageQueryArgs,
     });
   }
 
@@ -50,7 +52,7 @@ export class WageService {
   async findWageById(id: string): Promise<WageResponse> {
     const wage = await this.prismaService.wage.findUnique({
       where: { id },
-      include: { createdBy: true },
+      ...wageQueryArgs,
     });
 
     if (!wage) throw new WageNotFoundException();
@@ -59,7 +61,7 @@ export class WageService {
   }
 
   async createWage(
-    createWageReq: CreateWageRequest,
+    createWageReq: CreateWageRequestInterface,
     currentUserId: string,
   ): Promise<WageResponse> {
     return this.prismaService.wage.create({
@@ -68,13 +70,13 @@ export class WageService {
         createdByUserId: currentUserId,
         status: "PROCESSING",
       },
-      include: { createdBy: true },
+      ...wageQueryArgs,
     });
   }
 
   async updateWage(
     id: string,
-    updateWageReq: UpdateWageRequest,
+    updateWageReq: UpdateWageRequestInterface,
   ): Promise<WageResponse> {
     const existing = await this.prismaService.wage.findUnique({
       where: { id },
@@ -85,7 +87,7 @@ export class WageService {
     return this.prismaService.wage.update({
       where: { id },
       data: updateWageReq,
-      include: { createdBy: true },
+      ...wageQueryArgs,
     });
   }
 

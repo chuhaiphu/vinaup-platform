@@ -18,7 +18,7 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateWageRequest } from './dtos/create-wage.request.dto';
 import { UpdateWageRequest } from './dtos/update-wage.request.dto';
-import { WageFilterParam } from './dtos/wage-filter.param.dto';
+import { WageFilterRequest } from './dtos/wage-filter.request.dto';
 import { WageResponse } from './dtos/wage.response.dto';
 import { WageService } from './wage.service';
 
@@ -30,7 +30,7 @@ export class WageController {
   @Get()
   async findByCurrentUser(
     @Request() req: AuthenticatedRequest,
-    @Query() filter: WageFilterParam,
+    @Query() filter: WageFilterRequest,
   ): Promise<HttpResponse<WageResponse[]>> {
     const data = await this.wageService.findWagesByCurrentUser(req.user.userId, filter);
     return {
