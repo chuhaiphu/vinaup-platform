@@ -1,0 +1,79 @@
+name: Deploy to VPS with Docker Compose
+on:
+  push:
+    tags:
+      - '*.*.*-alpha'  # Matches semantic versioning with -alpha suffix
+
+env:
+  DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+  DOCKER_CONTAINER_NAME: vinaup-api
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Extract version from tag
+      id: version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        tags: |
+          ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.VERSION }}
+          ${{ env.DOCKER_IMAGE }}:latest
+        build-args: |
+          VERSION=${{ steps.version.outputs.VERSION }}
+          DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.VPS_HOST }}:5432/${{ secrets.POSTGRES_DB }}?schema=public
+          
+    - name: Deploy to VPS using Docker Compose (Secure - No .env file)
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        port: 2222
+        script: |
+          cd /opt/apps/vinaup.com
+
+          # Ensure the bind-mount host directory exists.
+          mkdir -p /opt/apps/vinaup.com/media
+
+          # Set environment variables directly in shell
+          export DOCKER_IMAGE="${{ env.DOCKER_IMAGE }}"
+          export VERSION="${{ steps.version.outputs.VERSION }}"
+          export POSTGRES_DB="${{ secrets.POSTGRES_DB }}"
+          export POSTGRES_USER="${{ secrets.POSTGRES_USER }}"
+          export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
+          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          export DOCKER_CONTAINER_NAME="${{ env.DOCKER_CONTAINER_NAME }}"
+
+          # Pull the latest images
+          docker compose pull
+          
+          # Stop existing services
+          docker compose down
+          
+          # Start services with environment variables
+          docker compose up -d
+          
+          # Clean up old images (keep latest 3 versions)
+          docker images ${{ env.DOCKER_IMAGE }} --format "table {{.Tag}}\t{{.ID}}" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
+          
+          # Show running containers
+          docker compose ps

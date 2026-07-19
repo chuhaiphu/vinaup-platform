@@ -1,0 +1,74 @@
+{
+  "expo": {
+    "name": "Vinaup",
+    "slug": "vinaup-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/images/vinaup-app-icon-ios.png",
+    "scheme": "vinaup-mobile",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vinaup.mobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/images/vinaup-app-icon-android.png",
+        "backgroundColor": "#005c62"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.vinaup.mobile"
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./src/assets/images/logo-vinaup.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./src/assets/images/splash-screen-vinaup.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-asset",
+        {
+          "assets": ["./src/assets/images/"]
+        }
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-font",
+      "expo-image",
+      "expo-web-browser",
+      "expo-sharing",
+      "expo-image-picker",
+      "expo-secure-store",
+      "expo-status-bar",
+      "@react-native-vector-icons/ionicons",
+      "@react-native-vector-icons/feather",
+      "@react-native-vector-icons/fontawesome",
+      "@react-native-vector-icons/fontawesome5",
+      "@react-native-vector-icons/fontawesome6",
+      "@react-native-vector-icons/entypo",
+      "@react-native-vector-icons/octicons",
+      "@react-native-vector-icons/material-design-icons",
+      "@react-native-vector-icons/material-icons",
+      "@react-native-vector-icons/fontisto"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5cf39b9f-3233-4922-bc1c-16e5e17afb0c"
+      }
+    },
+    "owner": "phudoan"
+  }
+}

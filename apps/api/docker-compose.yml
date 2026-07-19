@@ -1,0 +1,45 @@
+services:
+  app:
+    image: ${DOCKER_IMAGE}:${VERSION}
+    container_name: ${DOCKER_CONTAINER_NAME}
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - JWT_SECRET=${JWT_SECRET}
+      - VERSION=${VERSION}
+    volumes:
+      - media_data:/app/public/media
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - vinaup-api
+      - nginx-proxy-manager
+
+  db:
+    image: postgres:15
+    container_name: vinaup_postgres
+    restart: always
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - vinaup-api
+
+volumes:
+  postgres_data:
+  media_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: /opt/apps/vinaup.com/media
+      o: bind
+
+networks:
+  vinaup-api:
+    name: vinaup-api
+    driver: bridge
+  nginx-proxy-manager:
+    external: true

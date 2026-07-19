@@ -1,0 +1,710 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "./generated"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                           String                 @id @default(uuid())
+  email                        String                 @unique
+  name                         String
+  description                  String?
+  phone                        String?
+  province                     String?
+  avatarUrl                    String?
+  verifiedByUserId             String?
+  verifiedBy                   User?                  @relation("VerifiedByUser", fields: [verifiedByUserId], references: [id])
+  verifiedUsers                User[]                 @relation("VerifiedByUser")
+  createdByUserId              String?
+  createdBy                    User?                  @relation("CreatedByUser", fields: [createdByUserId], references: [id])
+  createdUsers                 User[]                 @relation("CreatedByUser")
+  createdAt                    DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt                    DateTime               @updatedAt @db.Timestamptz(3)
+  auths                        Auth[]
+  sessions                     Session[]
+  createdReceiptsPayments      ReceiptPayment[]
+  createdProjects              Project[]
+  createdOrganizations         Organization[]
+  createdSocialLinks           SocialLink[]           @relation("CreatedByUserSocialLink")
+  createdOrganizationMembers   OrganizationMember[]   @relation("CreatedByUserOrganizationMember")
+  createdOrganizationCustomers OrganizationCustomer[] @relation("CreatedByUserOrganizationCustomer")
+  socialLinks                  SocialLink[]           @relation("UserSocialLink")
+
+  organizationMembers              OrganizationMember[]            @relation("UserOrganizationMember")
+  organizationCustomers            OrganizationCustomer[]          @relation("ClientUserOrganizationCustomer")
+  invoices                         Invoice[]
+  tours                            Tour[]
+  tourCalculations                 TourCalculation[]
+  tourImplementations              TourImplementation[]
+  tourSettlements                  TourSettlement[]
+  userAssignedTourImplementations  UserAssignedTourImplementation[]
+  bookings                         Booking[]
+  trips                            Trip[]
+  cars                             Car[]
+  signedSignatures                 Signature[]                     @relation("SignedByUserSignatures")
+  targetSignatures                 Signature[]                     @relation("TargetUserSignatures")
+  createdTourCalculationCancelLogs TourCalculationCancelLog[]
+  createdTourSettlementCancelLogs  TourSettlementCancelLog[]
+  projectCategories                ProjectCategory[]               @relation("UserProjectCategories")
+  receiptPaymentCategories         ReceiptPaymentCategory[]        @relation("UserReceiptPaymentCategories")
+  wages                            Wage[]
+}
+
+model Auth {
+  id           String   @id @default(uuid())
+  provider     String
+  providerId   String?
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  // one user can only have one auth account per provider
+  @@unique([userId, provider])
+  // one auth account can only be linked to one user
+  @@unique([provider, providerId])
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  tokenHash String // hash only — never the raw token
+  expiresAt DateTime  @db.Timestamptz(3) // 7d
+  revokedAt DateTime? @db.Timestamptz(3) // soft revoke — logout / "sign out all devices"
+  ipAddress String
+  userAgent String
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+
+  @@index([userId])
+}
+
+model Organization {
+  id                         String                   @id @default(uuid())
+  description                String?
+  name                       String
+  email                      String?
+  phone                      String
+  avatarUrl                  String?
+  website                    String?
+  address                    String?
+  province                   String
+  organizationIndustryId     String
+  organizationIndustry       OrganizationIndustry     @relation(fields: [organizationIndustryId], references: [id])
+  createdAt                  DateTime                 @default(now()) @db.Timestamptz(3)
+  updatedAt                  DateTime                 @updatedAt @db.Timestamptz(3)
+  createdByUserId            String?
+  createdBy                  User?                    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  receiptPayments            ReceiptPayment[]
+  projects                   Project[]
+  projectCategories          ProjectCategory[]        @relation("OrganizationProjectCategories")
+  receiptPaymentCategories   ReceiptPaymentCategory[] @relation("OrganizationReceiptPaymentCategories")
+  organizationSocialLinks    SocialLink[]
+  organizationMembers        OrganizationMember[]
+  hostOrganizationCustomer   OrganizationCustomer[]   @relation("HostOrganizationCustomer")
+  clientOrganizationCustomer OrganizationCustomer[]   @relation("ClientOrganizationCustomer")
+  invoices                   Invoice[]
+  tours                      Tour[]
+  organizationRoles          OrganizationRole[]
+  bookings                   Booking[]                @relation("OfOrganization")
+  trips                      Trip[]
+  cars                       Car[]
+}
+
+model OrganizationIndustry {
+  id            String         @id @default(uuid())
+  code          String         @unique
+  description   String
+  organizations Organization[]
+}
+
+model OrganizationMember {
+  id                                String                             @id @default(uuid())
+  organizationId                    String
+  type                              String
+  name                              String
+  email                             String?
+  phone                             String
+  address                           String?
+  avatarUrl                         String?
+  status                            String
+  joinedAt                          DateTime                           @db.Timestamptz(3)
+  createdByUserId                   String?
+  createdBy                         User?                              @relation("CreatedByUserOrganizationMember", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  userId                            String?
+  user                              User?                              @relation("UserOrganizationMember", fields: [userId], references: [id], onDelete: Cascade)
+  organization                      Organization                       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationRole                  OrganizationRole                   @relation(fields: [organizationRoleId], references: [id])
+  organizationRoleId                String
+  memberAssignedTourImplementations MemberAssignedTourImplementation[]
+  carAssignments                    CarAssignment[]
+  carAssignmentEvents               CarAssignmentEvent[]
+  tripAssignmentMembers             TripAssignmentMember[]
+
+  // one user can only belong to the same organization once
+  @@unique([userId, organizationId])
+}
+
+model OrganizationCustomer {
+  id                   String        @id @default(uuid())
+  organizationId       String
+  name                 String
+  phone                String
+  email                String?
+  status               String
+  joinedAt             DateTime      @db.Timestamptz(3)
+  createdByUserId      String?
+  createdBy            User?         @relation("CreatedByUserOrganizationCustomer", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  clientUserId         String?
+  clientUser           User?         @relation("ClientUserOrganizationCustomer", fields: [clientUserId], references: [id], onDelete: Cascade)
+  clientOrganizationId String?
+  clientOrganization   Organization? @relation("ClientOrganizationCustomer", fields: [clientOrganizationId], references: [id], onDelete: Cascade)
+  organization         Organization  @relation("HostOrganizationCustomer", fields: [organizationId], references: [id], onDelete: Cascade)
+  projects             Project[]
+  invoices             Invoice[]
+  tours                Tour[]
+  bookings             Booking[]
+  trips                Trip[]
+  isSystemDefault      Boolean       @default(false)
+
+  // one user can only belong to the same organization once
+  @@unique([clientUserId, organizationId])
+}
+
+model OrganizationRole {
+  id                          String                       @id @default(uuid())
+  code                        String
+  description                 String
+  organizationId              String
+  organization                Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationRolePermissions OrganizationRolePermission[]
+  organizationMembers         OrganizationMember[]
+
+  @@unique([organizationId, code])
+}
+
+model OrganizationPermission {
+  id                          String                       @id @default(uuid())
+  resource                    String // Model name: Project, Invoice, ReceiptPayment...
+  action                      String // READ, CREATE, UPDATE, DELETE  
+  organizationRolePermissions OrganizationRolePermission[]
+
+  @@unique([resource, action])
+}
+
+model OrganizationRolePermission {
+  id                       String                 @id @default(uuid())
+  organizationRoleId       String
+  organizationPermissionId String
+  organizationRole         OrganizationRole       @relation(fields: [organizationRoleId], references: [id], onDelete: Cascade)
+  organizationPermission   OrganizationPermission @relation(fields: [organizationPermissionId], references: [id], onDelete: Cascade)
+}
+
+model ReceiptPayment {
+  id                                String                             @id @default(uuid())
+  type                              String
+  description                       String
+  unitPrice                         Float
+  currency                          String
+  transactionType                   String
+  transactionDate                   DateTime                           @db.Timestamptz(3)
+  quantity                          Int
+  frequency                         Int
+  vatRate                           Float                              @default(0)
+  depositAmount                     Int                                @default(0)
+  depositType                       String?
+  note                              String?
+  createdAt                         DateTime                           @default(now()) @db.Timestamptz(3)
+  updatedAt                         DateTime                           @updatedAt @db.Timestamptz(3)
+  createdByUserId                   String?
+  projectId                         String?
+  project                           Project?                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organizationId                    String?
+  organization                      Organization?                      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdBy                         User?                              @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  invoice                           Invoice?                           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId                         String?
+  tourCalculation                   TourCalculation?                   @relation(fields: [tourCalculationId], references: [id], onDelete: Cascade)
+  tourCalculationId                 String?
+  tourSettlement                    TourSettlement?                    @relation(fields: [tourSettlementId], references: [id], onDelete: Cascade)
+  tourSettlementId                  String?
+  tourImplementationReceiptPayments TourImplementationReceiptPayment[]
+  booking                           Booking?                           @relation(fields: [bookingId], references: [id])
+  bookingId                         String?
+  categoryId                        String?
+  category                          ReceiptPaymentCategory?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  wageId                            String?
+  wage                              Wage?                              @relation(fields: [wageId], references: [id], onDelete: Cascade)
+  carMaintenanceLogId               String?
+  carMaintenanceLog                 CarMaintenanceLog?                 @relation(fields: [carMaintenanceLogId], references: [id], onDelete: SetNull)
+  tripId                            String?
+  trip                              Trip?                              @relation(fields: [tripId], references: [id], onDelete: SetNull)
+}
+
+model Project {
+  id                       String                @id @default(uuid())
+  type                     String?
+  code                     String?
+  description              String
+  startDate                DateTime              @default(now()) @db.Timestamptz(3)
+  endDate                  DateTime              @db.Timestamptz(3)
+  status                   String
+  note                     String?
+  createdAt                DateTime              @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime              @updatedAt @db.Timestamptz(3)
+  createdByUserId          String?
+  createdBy                User?                 @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  organizationId           String?
+  organization             Organization?         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationCustomerId   String?
+  organizationCustomer     OrganizationCustomer? @relation(fields: [organizationCustomerId], references: [id], onDelete: SetNull)
+  externalOrganizationName String?
+  externalCustomerName     String?
+  categoryId               String?
+  category                 ProjectCategory?      @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  receiptPayments          ReceiptPayment[]
+}
+
+model ProjectCategory {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+
+  userId String?
+  user   User?   @relation("UserProjectCategories", fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String?
+  organization   Organization? @relation("OrganizationProjectCategories", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  projects Project[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, name])
+  @@unique([organizationId, name])
+}
+
+model ReceiptPaymentCategory {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  isSystem    Boolean @default(false)
+
+  userId String?
+  user   User?   @relation("UserReceiptPaymentCategories", fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String?
+  organization   Organization? @relation("OrganizationReceiptPaymentCategories", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  receiptPayments ReceiptPayment[]
+
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  @@unique([userId, name])
+  @@unique([organizationId, name])
+}
+
+model Invoice {
+  id                       String                @id @default(uuid())
+  code                     String?
+  description              String
+  startDate                DateTime              @default(now()) @db.Timestamptz(3)
+  endDate                  DateTime              @db.Timestamptz(3)
+  status                   String
+  note                     String?
+  discountAmount           Float                 @default(0)
+  surchargeAmount          Float                 @default(0)
+  vatRate                  Float                 @default(0)
+  createdAt                DateTime              @default(now()) @db.Timestamptz(3)
+  createdByUserId          String?
+  createdBy                User?                 @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  organizationId           String?
+  organization             Organization?         @relation(fields: [organizationId], references: [id])
+  organizationCustomerId   String?
+  organizationCustomer     OrganizationCustomer? @relation(fields: [organizationCustomerId], references: [id], onDelete: SetNull)
+  externalOrganizationName String?
+  externalCustomerName     String?
+  receiptPayments          ReceiptPayment[]
+  invoiceType              InvoiceType           @relation(fields: [invoiceTypeId], references: [id])
+  invoiceTypeId            String
+}
+
+model InvoiceType {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  description String
+  invoices    Invoice[]
+}
+
+model SocialLink {
+  id              String        @id @default(uuid())
+  description     String?
+  platform        String
+  url             String
+  createdByUserId String?
+  createdBy       User?         @relation("CreatedByUserSocialLink", fields: [createdByUserId], references: [id])
+  userId          String?
+  organizationId  String?
+  user            User?         @relation("UserSocialLink", fields: [userId], references: [id])
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+}
+
+model Tour {
+  id                       String                @id @default(uuid())
+  code                     String?
+  description              String
+  startDate                DateTime              @default(now()) @db.Timestamptz(3)
+  endDate                  DateTime              @db.Timestamptz(3)
+  status                   String
+  note                     String?
+  createdAt                DateTime              @default(now()) @db.Timestamptz(3)
+  createdByUserId          String?
+  createdBy                User?                 @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  organizationId           String
+  organization             Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationCustomerId   String?
+  organizationCustomer     OrganizationCustomer? @relation(fields: [organizationCustomerId], references: [id], onDelete: SetNull)
+  externalOrganizationName String?
+  externalCustomerName     String?
+  tourCalculation          TourCalculation?
+  tourImplementation       TourImplementation?
+  tourSettlement           TourSettlement?
+}
+
+model TourCalculation {
+  id               String                     @id @default(uuid())
+  adultTicketCount Int                        @default(0)
+  childTicketCount Int                        @default(0)
+  adultTicketPrice Float                      @default(0)
+  childTicketPrice Float                      @default(0)
+  taxRate          Float                      @default(0)
+  createdByUserId  String?
+  createdBy        User?                      @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  receiptPayments  ReceiptPayment[]
+  tourId           String                     @unique
+  cancelLogs       TourCalculationCancelLog[]
+  tour             Tour                       @relation(fields: [tourId], references: [id], onDelete: Cascade)
+}
+
+model TourCalculationCancelLog {
+  id                String          @id @default(uuid())
+  tourCalculationId String
+  tourCalculation   TourCalculation @relation(fields: [tourCalculationId], references: [id], onDelete: Cascade)
+  canceledByUserId  String?
+  canceledByUser    User?           @relation(fields: [canceledByUserId], references: [id], onDelete: SetNull)
+  snapshotData      Json
+  createdAt         DateTime        @default(now()) @db.Timestamptz(3)
+}
+
+model TourImplementation {
+  id                                String                             @id @default(uuid())
+  adultTicketCount                  Int                                @default(0)
+  childTicketCount                  Int                                @default(0)
+  infantTicketCount                 Int                                @default(0)
+  adultTicketPrice                  Float                              @default(0)
+  childTicketPrice                  Float                              @default(0)
+  taxRate                           Float                              @default(0)
+  advanceAmount                     Int                                @default(0)
+  advanceType                       String?
+  tourGuideAdvanceAmount            Int                                @default(0)
+  description                       String
+  membersAssigned                   MemberAssignedTourImplementation[]
+  tourImplementationAssignments     TourImplementationAssignment[]
+  createdByUserId                   String?
+  createdBy                         User?                              @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  tourId                            String                             @unique
+  tour                              Tour                               @relation(fields: [tourId], references: [id], onDelete: Cascade)
+  tourImplementationReceiptPayments TourImplementationReceiptPayment[]
+  bookings                          Booking[]
+}
+
+model TourImplementationAssignment {
+  id                   String                          @id @default(uuid())
+  tourImplementationId String
+  tourImplementation   TourImplementation              @relation(fields: [tourImplementationId], references: [id], onDelete: Cascade)
+  usersAssigned        UserAssignedTourImplementation[]
+  carName              String?
+  seatCount            Int?
+  position             Int
+  createdAt            DateTime                        @default(now()) @db.Timestamptz(3)
+}
+
+model TourImplementationReceiptPayment {
+  id                   String             @id @default(uuid())
+  tourImplementationId String
+  receiptPaymentId     String
+  groupCode            String
+  tourImplementation   TourImplementation @relation(fields: [tourImplementationId], references: [id], onDelete: Cascade)
+  receiptPayment       ReceiptPayment     @relation(fields: [receiptPaymentId], references: [id], onDelete: Cascade)
+
+  @@unique([tourImplementationId, receiptPaymentId])
+}
+
+model MemberAssignedTourImplementation {
+  id                   String              @id @default(uuid())
+  tourImplementation   TourImplementation? @relation(fields: [tourImplementationId], references: [id], onDelete: Cascade)
+  tourImplementationId String?
+  organizationMemberId String?
+  organizationMember   OrganizationMember? @relation(fields: [organizationMemberId], references: [id], onDelete: SetNull)
+  role                 String
+}
+
+model UserAssignedTourImplementation {
+  id                             String                        @id @default(uuid())
+  userId                         String?
+  user                           User?                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role                           String
+  tourImplementationAssignment   TourImplementationAssignment? @relation(fields: [tourImplementationAssignmentId], references: [id], onDelete: Cascade)
+  tourImplementationAssignmentId String?
+  customUserName                 String?
+  customPhone                    String?
+  currentOption                  Int                           @default(0)
+  permissions                    String[]                      @default([])
+}
+
+model TourSettlement {
+  id               String                    @id @default(uuid())
+  adultTicketCount Int                       @default(0)
+  childTicketCount Int                       @default(0)
+  adultTicketPrice Float                     @default(0)
+  childTicketPrice Float                     @default(0)
+  taxRate          Float                     @default(0)
+  createdByUserId  String?
+  createdBy        User?                     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  receiptPayments  ReceiptPayment[]
+  cancelLogs       TourSettlementCancelLog[]
+  tourId           String                    @unique
+  tour             Tour                      @relation(fields: [tourId], references: [id], onDelete: Cascade)
+}
+
+model TourSettlementCancelLog {
+  id               String         @id @default(uuid())
+  tourSettlementId String
+  tourSettlement   TourSettlement @relation(fields: [tourSettlementId], references: [id], onDelete: Cascade)
+  canceledByUserId String?
+  canceledByUser   User?          @relation(fields: [canceledByUserId], references: [id], onDelete: SetNull)
+  snapshotData     Json
+  createdAt        DateTime       @default(now()) @db.Timestamptz(3)
+}
+
+model Signature {
+  id  String  @id @default(uuid())
+  url String?
+
+  // SENDER, RECEIVER
+  signatureRole String
+  documentId    String
+  documentType  String
+
+  // Target user to sign (can be null if it's a signer in the organization)
+  targetUserId String?
+  targetUser   User?   @relation("TargetUserSignatures", fields: [targetUserId], references: [id], onDelete: SetNull)
+  targetName   String?
+
+  // Actual signer information after signing
+  signedByUserId String?
+  signedByUser   User?     @relation("SignedByUserSignatures", fields: [signedByUserId], references: [id], onDelete: SetNull)
+  signedByName   String?
+  signedAt       DateTime? @db.Timestamptz(3)
+
+  isSigned  Boolean  @default(false)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  code            String?
+  description     String
+  content         String?
+  startDate       DateTime @default(now()) @db.Timestamptz(3)
+  endDate         DateTime @db.Timestamptz(3)
+  status          String // DRAFT, SENDER_SIGNED, COMPLETED
+  note            String?
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  createdByUserId String?
+  createdBy       User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation("OfOrganization", fields: [organizationId], references: [id], onDelete: Cascade)
+
+  organizationCustomerId String?
+  organizationCustomer   OrganizationCustomer? @relation(fields: [organizationCustomerId], references: [id], onDelete: SetNull)
+  receiptPayments        ReceiptPayment[]
+  tourImplementationId   String?
+  tourImplementation     TourImplementation?   @relation(fields: [tourImplementationId], references: [id])
+}
+
+model Trip {
+  id              String   @id @default(uuid())
+  code            String?
+  description     String
+  content         String?
+  startDate       DateTime @default(now()) @db.Timestamptz(3)
+  endDate         DateTime @db.Timestamptz(3)
+  status          String   @default("DRAFT") // DRAFT, ONGOING, COMPLETED, CANCELLED
+  rentalPrice     Float    @default(0)
+  taxRate         Float    @default(0)
+  commissionRate  Float    @default(0)
+  note            String?
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  createdByUserId String?
+  createdBy       User?    @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  organizationCustomerId   String?
+  organizationCustomer     OrganizationCustomer? @relation(fields: [organizationCustomerId], references: [id], onDelete: SetNull)
+  externalOrganizationName String?
+  externalCustomerName     String?
+  receiptPayments          ReceiptPayment[]
+  tripAssignments          TripAssignment[]
+}
+
+model TripAssignment {
+  id        String                 @id @default(uuid())
+  tripId    String
+  trip      Trip                   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  // Nullable: a turn exists before a car is chosen. onDelete: SetNull so deleting a
+  // car only unsets it here — the turn (and its members) survive for reassignment.
+  carId     String?
+  car       Car?                   @relation(fields: [carId], references: [id], onDelete: SetNull)
+  note      String?
+  createdAt DateTime               @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime               @updatedAt @db.Timestamptz(3)
+  members   TripAssignmentMember[]
+
+  // A car appears at most once per trip; NULLs are distinct, so many empty turns are fine.
+  @@unique([tripId, carId])
+  @@index([tripId])
+  @@index([carId])
+}
+
+// ─── TripAssignmentMember = the members on one turn (explicit m-n join) ───────
+model TripAssignmentMember {
+  id                   String             @id @default(uuid())
+  tripAssignmentId     String
+  tripAssignment       TripAssignment     @relation(fields: [tripAssignmentId], references: [id], onDelete: Cascade)
+  organizationMemberId String
+  organizationMember   OrganizationMember @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+
+  // a member is listed at most once on the same turn
+  @@unique([tripAssignmentId, organizationMemberId])
+  @@index([organizationMemberId])
+}
+
+model Car {
+  id                   String               @id @default(uuid())
+  name                 String?
+  description          String?
+  createdAt            DateTime             @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime             @updatedAt @db.Timestamptz(3)
+  createdByUserId      String?
+  status               String               @default("READY")
+  featureImageUrl      String?
+  youtubeUrl           String?
+  additionalImageUrls  String[]
+  manufacturer         String?
+  model                String?
+  seatCount            Int?
+  category             String?
+  inServiceDate        DateTime?            @db.Timestamptz(3)
+  bankMortgageAmount   Float?
+  fuelConsumption      Float?
+  fuelType             String?
+  inspectionExpiryDate DateTime?            @db.Timestamptz(3)
+  roadFeeExpiryDate    DateTime?            @db.Timestamptz(3)
+  insuranceExpiryDate  DateTime?            @db.Timestamptz(3)
+  badgeExpiryDate      DateTime?            @db.Timestamptz(3)
+  createdBy            User?                @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  organizationId       String
+  organization         Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  carAssignments       CarAssignment[]
+  carAssignmentEvents  CarAssignmentEvent[]
+  carMaintenanceLog    CarMaintenanceLog?
+  tripAssignments      TripAssignment[]
+}
+
+// ─── CarAssignment = CURRENT STATE only ──────────────────────────────────────
+// One row per (car, member) pairing that is in effect RIGHT NOW.
+model CarAssignment {
+  id                   String             @id @default(uuid())
+  carId                String
+  car                  Car                @relation(fields: [carId], references: [id], onDelete: Cascade)
+  organizationMemberId String
+  organizationMember   OrganizationMember @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+  startTime            DateTime           @default(now()) @db.Timestamptz(3)
+  note                 String?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+
+  @@unique([carId, organizationMemberId])
+}
+
+// ─── CarAssignmentEvent = APPEND-ONLY HISTORY ────────────────────────────────
+// One row per atomic change (a member ASSIGNED or UNASSIGNED). 
+// Rows are never updated or deleted. 
+// `operationId` groups every event produced by a single reconcile call ("one pairing operation").
+// Member name/avatar are SNAPSHOT so the history survives the member being deleted or renamed.
+model CarAssignmentEvent {
+  id                   String              @id @default(uuid())
+  carId                String
+  car                  Car                 @relation(fields: [carId], references: [id], onDelete: Cascade)
+  operationId          String
+  action               String
+  organizationMemberId String?
+  organizationMember   OrganizationMember? @relation(fields: [organizationMemberId], references: [id], onDelete: SetNull)
+  memberName           String
+  memberAvatarUrl      String?
+  note                 String?
+  performedAt          DateTime            @default(now()) @db.Timestamptz(3)
+  createdAt            DateTime            @default(now()) @db.Timestamptz(3)
+
+  @@index([carId, performedAt])
+  @@index([operationId])
+}
+
+model CarMaintenanceLog {
+  id              String           @id @default(uuid())
+  carId           String           @unique
+  car             Car              @relation(fields: [carId], references: [id], onDelete: Cascade)
+  receiptPayments ReceiptPayment[]
+}
+
+model Wage {
+  id                       String           @id @default(uuid())
+  code                     String?
+  description              String
+  startDate                DateTime         @default(now()) @db.Timestamptz(3)
+  endDate                  DateTime         @db.Timestamptz(3)
+  status                   String
+  note                     String?
+  externalOrganizationName String?
+  externalCustomerName     String?
+  createdAt                DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime         @updatedAt @db.Timestamptz(3)
+  createdByUserId          String?
+  createdBy                User?            @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  receiptPayments          ReceiptPayment[]
+}
+
+model FuelPrice {
+  id          String   @id @default("SINGLETON")
+  e10Ron95    Float
+  e5Ron92     Float
+  diesel      Float
+  electricity Float
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+}
