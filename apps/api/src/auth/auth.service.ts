@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import type { ConfigType } from "@nestjs/config";
-import type { LocalSignInRequestInterface } from '@vinaup-platform/validation';
 import { JwtService } from "@nestjs/jwt";
+import type { LocalSignInRequestInterface } from '@vinaup-platform/validation';
 import { compareSync } from "bcrypt";
 
 import { AUTH_PROVIDER } from "src/_common/constants/auth.constant";
