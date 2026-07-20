@@ -10,9 +10,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateSocialLinkRequest } from './dtos/create-social-link.request.dto';
 import { SocialLinkResponse } from './dtos/social-link.response.dto';
@@ -64,7 +67,8 @@ export class SocialLinkController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.SOCIAL_LINK)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,

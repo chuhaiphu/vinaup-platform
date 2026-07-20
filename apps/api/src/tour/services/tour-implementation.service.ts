@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TOUR_IMPLEMENTATION_MEMBER_ROLE } from '@vinaup-platform/permission';
 import {
   type ManageMembersAssignedRequestInterface,
   type UpdateTourImplementationRequestInterface,
@@ -10,6 +11,7 @@ import {
 } from 'src/_common/exceptions/tour.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+import { TourImplementationAccessService } from './tour-implementation-access.service';
 import { TourImplementationAssignmentService } from './tour-implementation-assignment.service';
 import {
   MemberAssignedTourImplementationResponse,
@@ -24,10 +26,11 @@ import {
 export class TourImplementationService {
   constructor(
     private readonly prismaService: PrismaService,
-    // The aggregate embeds assignments with conflict meta, so it delegates the conflict engine
-    // and the assigned authz to the assignment service — one owner, no duplication, no cycle
-    // (this service depends on the assignment service, never the reverse).
+    // The aggregate embeds assignments with conflict meta, so it delegates the conflict engine to
+    // the assignment service and the access predicate (canEdit) to the tour-implementation-access service
+    // — one owner each, no duplication, no cycle (this service depends on both, never the reverse).
     private readonly tourImplementationAssignmentService: TourImplementationAssignmentService,
+    private readonly tourImplementationAccessService: TourImplementationAccessService,
   ) {}
 
   async findTourImplementationByTourId(
@@ -60,7 +63,7 @@ export class TourImplementationService {
     if (!tourImplementation) {
       throw new TourImplementationNotFoundException();
     }
-    const canEdit = await this.tourImplementationAssignmentService.isMemberAssigned(
+    const canEdit = await this.tourImplementationAccessService.isMemberAssigned(
       tourImplementation.id,
       currentUserId,
     );
@@ -83,13 +86,7 @@ export class TourImplementationService {
   async updateTourImplementation(
     tourImplementationId: string,
     updateTourImplementationReq: UpdateTourImplementationRequestInterface,
-    currentUserId: string,
   ): Promise<TourImplementationResponse> {
-    await this.tourImplementationAssignmentService.assertTourImplementationAssigned(
-      tourImplementationId,
-      currentUserId,
-    );
-
     const updatedTourImplementation = await this.prismaService.tourImplementation.update({
       where: { id: tourImplementationId },
       data: updateTourImplementationReq,
@@ -111,7 +108,7 @@ export class TourImplementationService {
       },
     });
 
-    // The assigned check above already passed, so this caller may edit the records.
+    // TourImplementationAccessGuard already asserted access, so this caller may edit the records.
     return {
       ...updatedTourImplementation,
       tourImplementationAssignments:
@@ -134,7 +131,7 @@ export class TourImplementationService {
         organizationMember: true,
       },
     });
-    const canEdit = await this.tourImplementationAssignmentService.isMemberAssigned(
+    const canEdit = await this.tourImplementationAccessService.isMemberAssigned(
       tourImplementationId,
       currentUserId,
     );
@@ -144,13 +141,7 @@ export class TourImplementationService {
   async manageMembersAssigned(
     tourImplementationId: string,
     payload: ManageMembersAssignedRequestInterface,
-    currentUserId: string,
   ): Promise<MemberAssignedTourImplementationResponse[]> {
-    await this.tourImplementationAssignmentService.assertTourImplementationAssigned(
-      tourImplementationId,
-      currentUserId,
-    );
-
     const existing = await this.prismaService.memberAssignedTourImplementation.findMany({
       where: { tourImplementationId },
     });
@@ -167,7 +158,9 @@ export class TourImplementationService {
     const toCreateIds = payload.organizationMemberIds.filter((id) => !existingMemberIdSet.has(id));
 
     if (toDelete.length > 0) {
-      const isContainingProtectedMember = toDelete.some((m) => m.role === 'CREATOR');
+      const isContainingProtectedMember = toDelete.some(
+        (m) => m.role === TOUR_IMPLEMENTATION_MEMBER_ROLE.CREATOR,
+      );
       if (isContainingProtectedMember) {
         throw new TourImplementationCannotRemoveCreatorException();
       }
@@ -181,7 +174,7 @@ export class TourImplementationService {
         data: toCreateIds.map((organizationMemberId) => ({
           tourImplementationId,
           organizationMemberId,
-          role: 'DIRECTOR',
+          role: TOUR_IMPLEMENTATION_MEMBER_ROLE.DIRECTOR,
         })),
       });
     }

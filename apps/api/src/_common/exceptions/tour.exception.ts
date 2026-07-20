@@ -41,9 +41,9 @@ export class TourImplementationAssignedUserNotFoundException extends NotFoundExc
   }
 }
 
-export class TourImplementationNotAssignedException extends ForbiddenException {
+export class TourImplementationAccessDeniedException extends ForbiddenException {
   constructor() {
-    super({ error: 'TOUR_IMPLEMENTATION_NOT_ASSIGNED', message: 'You are not an assigned member of this tour implementation', statusCode: HttpStatus.FORBIDDEN });
+    super({ error: 'TOUR_IMPLEMENTATION_ACCESS_DENIED', message: 'You do not have access to this tour implementation', statusCode: HttpStatus.FORBIDDEN });
   }
 }
 

@@ -23,6 +23,7 @@
     "@nestjs/platform-express": "^11.1.12",
     "@prisma/adapter-pg": "^7.2.0",
     "@prisma/client": "^7.2.0",
+    "@vinaup-platform/permission": "*",
     "@vinaup-platform/validation": "*",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",

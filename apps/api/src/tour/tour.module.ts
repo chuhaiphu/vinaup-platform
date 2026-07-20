@@ -9,6 +9,7 @@ import { TourImplementationController } from './controllers/tour-implementation.
 import { TourSettlementController } from './controllers/tour-settlement.controller';
 import { TourController } from './controllers/tour.controller';
 import { TourCalculationService } from './services/tour-calculation.service';
+import { TourImplementationAccessService } from './services/tour-implementation-access.service';
 import { TourImplementationAssignmentService } from './services/tour-implementation-assignment.service';
 import { TourImplementationService } from './services/tour-implementation.service';
 import { TourSettlementService } from './services/tour-settlement.service';
@@ -34,7 +35,10 @@ import { TourService } from './services/tour.service';
     TourCalculationService,
     TourImplementationService,
     TourImplementationAssignmentService,
+    TourImplementationAccessService,
     TourSettlementService,
   ],
+  // Exported so the receipt-payment service can share the same tour-implementation-access assertion (Flow 3).
+  exports: [TourImplementationAccessService],
 })
 export class TourModule {}

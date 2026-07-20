@@ -1,16 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import {
+  RECEIPT_PAYMENT_GROUP_CODE,
+  TOUR_ASSIGNMENT_PERMISSION,
+} from '@vinaup-platform/permission';
 import type {
   CreateReceiptPaymentRequestInterface,
   ReceiptPaymentFilterRequestInterface,
   UpdateReceiptPaymentRequestInterface,
 } from '@vinaup-platform/validation';
 
+import { ORGANIZATION_MEMBER_STATUS } from 'src/_common/constants/organization.constant';
+import { TOUR_IMPLEMENTATION_ACCESS_LEVEL } from 'src/_common/constants/tour.constant';
 import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { CarMaintenanceLogNotFoundException } from 'src/_common/exceptions/car.exception';
 import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
-import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
+import {
+  OrganizationMemberLockedException,
+  OrganizationNotFoundException,
+  OrganizationNotMemberException,
+  OrganizationPermissionDeniedException,
+} from 'src/_common/exceptions/organization.exception';
 import { ProjectNotFoundException } from 'src/_common/exceptions/project.exception';
-import { ReceiptPaymentNotFoundException, ReceiptPaymentNotTourParticipantException } from 'src/_common/exceptions/receipt-payment.exception';
+import { ReceiptPaymentNotFoundException, ReceiptPaymentTourImplementationAccessDeniedException } from 'src/_common/exceptions/receipt-payment.exception';
 import {
   TourCalculationNotFoundException,
   TourImplementationNotFoundException,
@@ -19,12 +30,31 @@ import {
 import { TripNotFoundException } from 'src/_common/exceptions/trip.exception';
 import { WageNotFoundException } from 'src/_common/exceptions/wage.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { TourImplementationAccessService } from 'src/tour/services/tour-implementation-access.service';
 
 import { receiptPaymentQueryArgs, type ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
 
+// The parent-reference fields of a receipt payment — the axis Flow 3 selects a plane from.
+interface ReceiptPaymentParentInput {
+  organizationId?: string | null;
+  bookingId?: string | null;
+  invoiceId?: string | null;
+  projectId?: string | null;
+  tripId?: string | null;
+  tourCalculationId?: string | null;
+  tourSettlementId?: string | null;
+  tourImplementationId?: string | null;
+  carMaintenanceLogId?: string | null;
+  wageId?: string | null;
+}
+
 @Injectable()
 export class ReceiptPaymentService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly tourImplementationAccessService: TourImplementationAccessService,
+  ) { }
+
   private async assertReceiptPaymentRelationsExist(input: {
     projectId?: string | null;
     invoiceId?: string | null;
@@ -56,11 +86,173 @@ export class ReceiptPaymentService {
     }
   }
 
+  // ─── Flow 3: a receipt-payment mutation's plane is chosen here, from its parent ─────
+  // A receipt payment attaches to at most one parent; that parent decides who may write it
+  // (RBAC-ReBAC-FLOW Flow 3). Priority order fixes the governing parent if more than one is set.
+  private async assertCanMutateReceiptPayment(
+    input: ReceiptPaymentParentInput,
+    currentUserId: string,
+  ): Promise<void> {
+    // Tour implementation is the one relationship-scoped parent — defer to the tour-implementation-access engine
+    // (an assigned crew member/user, or the tour's organization owner).
+    if (input.tourImplementationId) {
+      await this.tourImplementationAccessService.assertTourImplementationAccess(
+        input.tourImplementationId,
+        currentUserId,
+        { requiredAccessLevel: TOUR_IMPLEMENTATION_ACCESS_LEVEL.ASSIGNEE },
+      );
+      return;
+    }
+
+    const scope = await this.resolveReceiptPaymentParentScope(input);
+
+    // No parent → a standalone personal receipt payment: its creator (the caller) owns it.
+    if (!scope) {
+      return;
+    }
+
+    // Org-scoped parent → an ACTIVE member of that organization may write it.
+    if (scope.organizationId) {
+      await this.assertActiveOrganizationMember(scope.organizationId, currentUserId);
+      return;
+    }
+
+    // Personal parent (no organization) → only its creator may attach a receipt payment to it.
+    if (scope.createdByUserId === currentUserId) {
+      return;
+    }
+    throw new OrganizationPermissionDeniedException();
+  }
+
+  // Authorize a mutation on an EXISTING receipt payment against the parent it is already attached to.
+  private async assertCanMutateExistingReceiptPayment(
+    receiptPaymentId: string,
+    currentUserId: string,
+  ): Promise<void> {
+    const existing = await this.prismaService.receiptPayment.findUnique({
+      where: { id: receiptPaymentId },
+      select: {
+        organizationId: true,
+        bookingId: true,
+        invoiceId: true,
+        projectId: true,
+        tripId: true,
+        tourCalculationId: true,
+        tourSettlementId: true,
+        carMaintenanceLogId: true,
+        wageId: true,
+        tourImplementationReceiptPayments: { select: { tourImplementationId: true }, take: 1 },
+      },
+    });
+    if (!existing) {
+      throw new ReceiptPaymentNotFoundException();
+    }
+    await this.assertCanMutateReceiptPayment(
+      {
+        organizationId: existing.organizationId,
+        bookingId: existing.bookingId,
+        invoiceId: existing.invoiceId,
+        projectId: existing.projectId,
+        tripId: existing.tripId,
+        tourCalculationId: existing.tourCalculationId,
+        tourSettlementId: existing.tourSettlementId,
+        carMaintenanceLogId: existing.carMaintenanceLogId,
+        wageId: existing.wageId,
+        tourImplementationId:
+          existing.tourImplementationReceiptPayments[0]?.tourImplementationId ?? null,
+      },
+      currentUserId,
+    );
+  }
+
+  // Which organization (or personal creator) owns the receipt payment's parent. Existence was
+  // already asserted by the caller, so a missing row here is defensive (findUniqueOrThrow).
+  private async resolveReceiptPaymentParentScope(
+    input: ReceiptPaymentParentInput,
+  ): Promise<{ organizationId: string | null; createdByUserId: string | null } | null> {
+    if (input.organizationId) {
+      return { organizationId: input.organizationId, createdByUserId: null };
+    }
+    if (input.bookingId) {
+      return this.prismaService.booking.findUniqueOrThrow({
+        where: { id: input.bookingId },
+        select: { organizationId: true, createdByUserId: true },
+      });
+    }
+    if (input.invoiceId) {
+      return this.prismaService.invoice.findUniqueOrThrow({
+        where: { id: input.invoiceId },
+        select: { organizationId: true, createdByUserId: true },
+      });
+    }
+    if (input.projectId) {
+      return this.prismaService.project.findUniqueOrThrow({
+        where: { id: input.projectId },
+        select: { organizationId: true, createdByUserId: true },
+      });
+    }
+    if (input.tripId) {
+      return this.prismaService.trip.findUniqueOrThrow({
+        where: { id: input.tripId },
+        select: { organizationId: true, createdByUserId: true },
+      });
+    }
+    if (input.tourCalculationId) {
+      const { tour } = await this.prismaService.tourCalculation.findUniqueOrThrow({
+        where: { id: input.tourCalculationId },
+        select: { tour: { select: { organizationId: true, createdByUserId: true } } },
+      });
+      return tour;
+    }
+    if (input.tourSettlementId) {
+      const { tour } = await this.prismaService.tourSettlement.findUniqueOrThrow({
+        where: { id: input.tourSettlementId },
+        select: { tour: { select: { organizationId: true, createdByUserId: true } } },
+      });
+      return tour;
+    }
+    if (input.carMaintenanceLogId) {
+      const { car } = await this.prismaService.carMaintenanceLog.findUniqueOrThrow({
+        where: { id: input.carMaintenanceLogId },
+        select: { car: { select: { organizationId: true, createdByUserId: true } } },
+      });
+      return car;
+    }
+    if (input.wageId) {
+      // A wage has no organization — it is a personal record scoped to its creator.
+      const wage = await this.prismaService.wage.findUniqueOrThrow({
+        where: { id: input.wageId },
+        select: { createdByUserId: true },
+      });
+      return { organizationId: null, createdByUserId: wage.createdByUserId };
+    }
+    return null;
+  }
+
+  // The data-scope membership invariant, mirrored from OrganizationPermissionGuard: the caller must
+  // be an ACTIVE member (not LOCKED) of the organization that owns the parent.
+  private async assertActiveOrganizationMember(
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const member = await this.prismaService.organizationMember.findFirst({
+      where: { userId, organizationId },
+      select: { status: true },
+    });
+    if (!member) {
+      throw new OrganizationNotMemberException();
+    }
+    if (member.status === ORGANIZATION_MEMBER_STATUS.LOCKED) {
+      throw new OrganizationMemberLockedException();
+    }
+  }
+
   async createReceiptPayment(
     createReceiptPaymentReq: CreateReceiptPaymentRequestInterface,
     currentUserId: string
   ): Promise<ReceiptPaymentResponse> {
     await this.assertReceiptPaymentRelationsExist(createReceiptPaymentReq);
+    await this.assertCanMutateReceiptPayment(createReceiptPaymentReq, currentUserId);
 
     const { tourImplementationId, groupCode, ...restCreateReceiptPaymentReq } =
       createReceiptPaymentReq;
@@ -101,16 +293,12 @@ export class ReceiptPaymentService {
 
   async updateReceiptPayment(
     id: string,
-    updateReceiptPaymentReq: UpdateReceiptPaymentRequestInterface
+    updateReceiptPaymentReq: UpdateReceiptPaymentRequestInterface,
+    currentUserId: string
   ): Promise<ReceiptPaymentResponse> {
-    const existingReceiptPayment =
-      await this.prismaService.receiptPayment.findUnique({
-        where: { id },
-      });
-
-    if (!existingReceiptPayment) {
-      throw new ReceiptPaymentNotFoundException();
-    }
+    // Authorize against the parent this receipt payment is currently attached to (Flow 3); this
+    // also throws ReceiptPaymentNotFoundException when the record does not exist.
+    await this.assertCanMutateExistingReceiptPayment(id, currentUserId);
 
     await this.assertReceiptPaymentRelationsExist(updateReceiptPaymentReq);
 
@@ -145,15 +333,10 @@ export class ReceiptPaymentService {
     return updatedReceiptPayment;
   }
 
-  async deleteReceiptPaymentById(id: string): Promise<void> {
-    const existingReceiptPayment =
-      await this.prismaService.receiptPayment.findUnique({
-        where: { id },
-      });
-
-    if (!existingReceiptPayment) {
-      throw new ReceiptPaymentNotFoundException();
-    }
+  async deleteReceiptPaymentById(id: string, currentUserId: string): Promise<void> {
+    // Authorize against the parent this receipt payment is attached to (Flow 3); this also throws
+    // ReceiptPaymentNotFoundException when the record does not exist.
+    await this.assertCanMutateExistingReceiptPayment(id, currentUserId);
 
     await this.prismaService.receiptPayment.delete({
       where: { id },
@@ -293,7 +476,7 @@ export class ReceiptPaymentService {
       });
 
     if (!memberAssigned && !assignedUser) {
-      throw new ReceiptPaymentNotTourParticipantException();
+      throw new ReceiptPaymentTourImplementationAccessDeniedException();
     }
 
     // Receipt payments will be queried base on group codes
@@ -303,11 +486,14 @@ export class ReceiptPaymentService {
     // memberAssigned always gets all groups
     // assignedUser only gets FOR_TOUR_GUIDE if they have the explicit permission
     if (memberAssigned) {
-      allowedGroupCodes = ['FOR_DIRECTOR', 'FOR_TOUR_GUIDE'];
+      allowedGroupCodes = [
+        RECEIPT_PAYMENT_GROUP_CODE.FOR_DIRECTOR,
+        RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE,
+      ];
     } else {
       // assignedUser only
-      if (assignedUser!.permissions.includes('RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ'))
-        allowedGroupCodes = ['FOR_TOUR_GUIDE']
+      if (assignedUser!.permissions.includes(TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ))
+        allowedGroupCodes = [RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE]
       else allowedGroupCodes = []
     }
 

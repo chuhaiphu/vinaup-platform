@@ -11,12 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
+import { TOUR_TARGET_RESOURCE } from 'src/_common/constants/tour.constant';
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckTourImplementationAccess } from 'src/_core/decorators/tour-implementation-access.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationTourImplementationMutationGuard } from 'src/_core/guards/organization-tour-implementation-mutation.guard';
+import { TourImplementationAccessGuard } from 'src/_core/guards/tour-implementation-access.guard';
 
 import { CreateUserAssignedRequest } from '../dtos/create-user-assigned.request.dto';
 import type { TourImplementationAssignmentWithMeta } from '../dtos/tour-implementation-assignment.response.dto';
@@ -33,7 +35,8 @@ export class TourImplementationAssignmentController {
 
   // Static segments must come before dynamic /:id to avoid routing conflicts
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'body', idKey: 'tourImplementationAssignmentId', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION_ASSIGNMENT })
   @Post('/users-assigned')
   async addUserAssigned(
     @Body() body: CreateUserAssignedRequest
@@ -48,7 +51,8 @@ export class TourImplementationAssignmentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'userAssignedId', targetResource: TOUR_TARGET_RESOURCE.USER_ASSIGNED_TOUR_IMPLEMENTATION })
   @Put('/users-assigned/:userAssignedId')
   async updateUserAssigned(
     @Param('userAssignedId') userAssignedId: string,
@@ -67,7 +71,8 @@ export class TourImplementationAssignmentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'userAssignedId', targetResource: TOUR_TARGET_RESOURCE.USER_ASSIGNED_TOUR_IMPLEMENTATION })
   @Delete('/users-assigned/:userAssignedId')
   async removeUserAssigned(
     @Request() req: AuthenticatedRequest,
@@ -104,17 +109,14 @@ export class TourImplementationAssignmentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourImplementationMutationGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION })
   @Post('/tour-implementation/:id')
   async createAssignment(
-    @Request() req: AuthenticatedRequest,
     @Param('id') id: string
   ): Promise<HttpResponse<TourImplementationAssignmentWithMeta>> {
     const data =
-      await this.tourImplementationAssignmentService.createTourImplementationAssignment(
-        id,
-        req.user.userId
-      );
+      await this.tourImplementationAssignmentService.createTourImplementationAssignment(id);
 
     return {
       statusCode: HttpStatus.CREATED,
@@ -123,18 +125,17 @@ export class TourImplementationAssignmentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION_ASSIGNMENT })
   @Put('/:id')
   async updateAssignment(
-    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: UpdateTourImplementationAssignmentRequest
   ): Promise<HttpResponse<TourImplementationAssignmentWithMeta>> {
     const data =
       await this.tourImplementationAssignmentService.updateTourImplementationAssignment(
         id,
-        body,
-        req.user.userId
+        body
       );
 
     return {
@@ -144,7 +145,8 @@ export class TourImplementationAssignmentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION_ASSIGNMENT })
   @Delete('/:id')
   async deleteAssignment(
     @Param('id') id: string

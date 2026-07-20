@@ -50,7 +50,8 @@ Two consequences anchor every decision below:
 
 ### In this codebase
 
-Every protected route runs two guards **in this exact order**:
+A protected route runs `JwtAuthGuard` first, then **exactly one** authorization guard — never two
+(the one-guard rule, [RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) §6):
 
 ```
 Request
@@ -60,14 +61,21 @@ Request
   │   (authentication)
   │   sets req.user = { userId }
   ▼
-[2] OrganizationXxxMutationGuard
-  │   (authorization)
-  │   reads req.user.userId set in step 1
+[2] the route's ONE authorization guard
+  │   (authorization) — reads req.user.userId set in step 1
+  │   • OrganizationPermissionGuard    → org RBAC plane  (@CheckAbility cell)
+  │   • TourImplementationAccessGuard  → tour ReBAC plane (@CheckTourImplementationAccess)
   ▼
 Route Handler
 ```
 
-If any guard fails, the remaining guards and the handler are skipped.
+If any guard fails, the remaining guards and the handler are skipped. The one exception to "exactly
+one authorization guard" is a receipt-payment mutation, which carries **only** `JwtAuthGuard` and
+selects its plane inside the service ([RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md) Flow 3).
+
+This document covers the guard **mechanics** — the lifecycle, `JwtAuthGuard`, and how an
+authorization guard composes. The authorization **rules** each guard enforces live in
+[RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) and [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
 
 ---
 
@@ -142,85 +150,77 @@ On success, `req.user` is set to `{ userId }` and execution moves to guard 2.
 
 ---
 
-#### Guard 2 — Authorization: `OrganizationBookingMutationGuard`
+#### Guard 2 — Authorization: one metadata-driven guard, not one guard per resource
 
-**Goal:** confirm the already-identified caller has permission to mutate this specific record.
+**Goal:** confirm the already-identified caller may act on this specific route.
 
-**Where `canActivate` lives — and how guards compose.** `OrganizationBookingMutationGuard implements CanActivate`, so it
-_declares its own_ `canActivate(context)` — the method NestJS calls for this guard. The method pulls the request out with `context.switchToHttp().getRequest()`, runs
-its checks, and returns `true` to continue or throws to stop the chain.
+**One guard serves every resource.** There is no `OrganizationBookingMutationGuard`,
+`OrganizationTourMutationGuard`, … one per entity. Two guards cover the whole surface, each reading a
+decorator the route stamps on itself:
 
-This guard reads `req.user.userId` (set by guard 1), then applies the rule in four sequential checks:
+| Guard | Route declares | Enforces |
+| --- | --- | --- |
+| `OrganizationPermissionGuard` | `@CheckAbility(action, resource)` | org RBAC — membership + the role's matrix cell |
+| `TourImplementationAccessGuard` | `@CheckTourImplementationAccess({ … })` | tour ReBAC — assigned to the implementation, or its org owner |
 
-```
-1. recordId present in params?          → no  → ForbiddenException
-2. Record exists in DB?                 → no  → BadRequestException
-3. Caller is a member, not LOCKED?      → no  → ForbiddenException
-4. Caller is OWNER  or  record creator? → no  → ForbiddenException  → yes → return true
-```
+**Where `canActivate` lives — and how guards compose.** Each `implements CanActivate`, so it
+_declares its own_ `canActivate(context)` — the method NestJS calls. It pulls the request out with
+`context.switchToHttp().getRequest()`, reads `req.user.userId` (set by guard 1) **and the route's
+metadata** (via `Reflector`), runs its checks, and returns `true` to continue or throws to stop the
+chain. The metadata is what lets one class serve every resource: the route says _what_ it needs, the
+guard knows _how_ to decide.
 
 ```ts
-// src/_core/guards/organization-booking-mutation.guard.ts
+// src/_core/guards/organization-permission.guard.ts (shape only — full logic in RBAC-ReBAC-PATTERN §6)
 @Injectable()
-export class OrganizationBookingMutationGuard implements CanActivate {
-  constructor(private prismaService: PrismaService) {}
+export class OrganizationPermissionGuard implements CanActivate {
+  constructor(private reflector: Reflector, private prismaService: PrismaService) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const userId = request.user.userId;
-    const recordId = (request.params as Record<string, string>)?.id;
-    if (!recordId) throw new ForbiddenException('Resource not specified');
-
-    const record = await this.prismaService.booking.findUnique({
-      where: { id: recordId }, select: { organizationId: true, createdByUserId: true },
-    });
-    if (!record) throw new BadRequestException('Booking not found');
-
-    const member = await this.prismaService.organizationMember.findFirst({
-      where: { userId, organizationId: record.organizationId },
-      select: { status: true, organizationRole: { select: { code: true } } },
-    });
-    if (!member) throw new ForbiddenException('You do not belong to this organization');
-    if (member.status === ORGANIZATION_MEMBER_STATUS.LOCKED) throw new ForbiddenException('You are locked in this organization');
-    if (member.organizationRole.code === ORGANIZATION_ROLE_CODE.OWNER) return true;
-    if (record.createdByUserId && record.createdByUserId === userId) return true;
-
-    throw new ForbiddenException("You don't have permission to modify this booking");
+    const cell = this.reflector.get<CheckAbilityMetadata>(CHECK_ABILITY_KEY, context.getHandler());
+    if (!cell) return true; // not permission-guarded → pass through
+    const { userId } = context.switchToHttp().getRequest<AuthenticatedRequest>().user;
+    // resolve the record's organization → membership invariants → ownership → ability.can(cell)
+    // …
   }
 }
 ```
 
+The step-by-step logic each guard runs — the RBAC five steps, the tour-implementation-access resolution, the
+receipt-payment service selection — is documented once, authoritatively, in
+[RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md); it is not duplicated here.
+
 ---
 
-#### Chaining both guards on a route
+#### Chaining the guards on a route
 
 ```ts
-// src/booking/booking.controller.ts
-@UseGuards(JwtAuthGuard, OrganizationBookingMutationGuard)
+// org RBAC plane
+@UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+@CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.BOOKING)
 @Put('/:id')
 async update(/* … */) { /* … */ }
+
+// tour ReBAC plane
+@UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+@CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION })
+@Put('/:id')
+async updateTourImplementation(/* … */) { /* … */ }
 ```
-
-### The authorization rule (consistent across resources)
-
-1. The record must exist.
-2. The caller must be a member of the record's organization, and not `LOCKED`.
-3. An organization **`OWNER`** may always mutate.
-4. Otherwise, only the **creator** of the record may mutate it.
 
 ---
 
 ## Why
 
-Evaluating access before the handler keeps security decisions out of business logic, services run only for permitted requests and contain no auth `if`s. Separating the authentication guard from the authorization guards means "who are you?" and "may you do this?" each have one home, and the authorization rule can be reasoned about per resource in a single, small class.
+Evaluating access before the handler keeps security decisions out of business logic, services run only for permitted requests and contain no auth `if`s. Separating the authentication guard from the authorization guards means "who are you?" and "may you do this?" each have one home. And driving authorization from route metadata — not one guard class per resource — means a new resource adopts the model by stamping a decorator, not by writing a guard.
 
 ---
 
 ## How
 
 1. **Authenticate every protected route** with `@UseGuards(JwtAuthGuard)`; read the caller as `req.user.userId`.
-2. **Guard every mutation** with the resource's authorization guard, chained after `JwtAuthGuard`.
-3. **Keep the rule consistent** — exists → member & not locked → owner-or-creator — and reference constants (`ORGANIZATION_MEMBER_STATUS`, the role-code constant) rather than bare strings.
-4. **Throw the right exception** — `ForbiddenException` for a denial, `BadRequestException` when the target record is missing (see [EXCEPTION-FILTER-PATTERN.md](EXCEPTION-FILTER-PATTERN.md)).
+2. **Add exactly one authorization guard** after `JwtAuthGuard`, and stamp its decorator: `OrganizationPermissionGuard` + `@CheckAbility` (org RBAC) **or** `TourImplementationAccessGuard` + `@CheckTourImplementationAccess` (tour ReBAC). Never both ([RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) §6).
+3. **Do not put the rule in the guard's caller** — the guard owns the decision; the service assumes it already passed. The rules themselves live in [RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) / [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
+4. **Throw the right exception** — a denial is a `ForbiddenException` subclass with a stable code (see [ERROR-CODE-REFERENCE](../reference/ERROR-CODE-REFERENCE.md) and [EXCEPTION-FILTER-PATTERN.md](EXCEPTION-FILTER-PATTERN.md)).
 5. **Name guards & order the chain by convention**. → [Coding Convention §1.1](../CODING-CONVENTION.md), [§8](../CODING-CONVENTION.md)
 
 ---

@@ -18,8 +18,8 @@ export class ReceiptPaymentCategorySystemReadonlyException extends ForbiddenExce
   }
 }
 
-export class ReceiptPaymentNotTourParticipantException extends ForbiddenException {
+export class ReceiptPaymentTourImplementationAccessDeniedException extends ForbiddenException {
   constructor() {
-    super({ error: 'RECEIPT_PAYMENT_NOT_TOUR_PARTICIPANT', message: 'You are not an assigned member or assigned user of this tour implementation', statusCode: HttpStatus.FORBIDDEN });
+    super({ error: 'RECEIPT_PAYMENT_TOUR_IMPLEMENTATION_ACCESS_DENIED', message: 'You are not an assigned member or assigned user of this tour implementation', statusCode: HttpStatus.FORBIDDEN });
   }
 }

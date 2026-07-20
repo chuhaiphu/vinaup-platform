@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { DEFAULT_ROLE_PERMISSIONS } from '@vinaup-platform/permission';
 import type {
   CreateOrganizationRequestInterface,
   UpdateOrganizationRequestInterface,
 } from '@vinaup-platform/validation';
 
-import { ORGANIZATION_ROLE_CODE } from 'src/_common/constants/organization.constant';
+import {
+  ORGANIZATION_ROLE_CODE,
+  ORGANIZATION_ROLE_DESCRIPTION,
+} from 'src/_common/constants/organization.constant';
 import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -174,26 +178,29 @@ export class OrganizationService {
   }
 
   private async createDefaultRolesForOrganization(organizationId: string) {
-    const allPermissions =
-      await this.prismaService.organizationPermission.findMany();
+    const allPermissions = await this.prismaService.organizationPermission.findMany();
 
-    const ownerPermissions = allPermissions;
-    const memberPermissions = allPermissions.filter((p) => p.action === 'READ');
+    // Each fresh organization starts from the factory-default matrix (@vinaup-platform/permission):
+    // OWNER locked to MANAGE ALL, MEMBER read-only. The owner edits these cells afterwards.
+    for (const [code, cells] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+      const permissionIds = cells.map((cell) => {
+        const permission = allPermissions.find(
+          (p) => p.resource === cell.resource && p.action === cell.action,
+        );
+        if (!permission) {
+          throw new Error(`Missing OrganizationPermission for ${cell.action} ${cell.resource}`);
+        }
+        return permission.id;
+      });
 
-    const roles = [
-      { code: ORGANIZATION_ROLE_CODE.OWNER, description: 'Chủ sở hữu', permissions: ownerPermissions },
-      { code: 'MEMBER', description: 'Thành viên', permissions: memberPermissions },
-    ];
-
-    for (const roleData of roles) {
       await this.prismaService.organizationRole.create({
         data: {
           organizationId,
-          code: roleData.code,
-          description: roleData.description,
+          code,
+          description: ORGANIZATION_ROLE_DESCRIPTION[code] ?? code,
           organizationRolePermissions: {
-            create: roleData.permissions.map((permission) => ({
-              organizationPermissionId: permission.id,
+            create: permissionIds.map((organizationPermissionId) => ({
+              organizationPermissionId,
             })),
           },
         },

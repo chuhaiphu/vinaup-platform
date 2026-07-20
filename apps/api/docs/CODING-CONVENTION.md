@@ -271,7 +271,7 @@ Two follow-ons:
 - **Service returns plain domain objects** — never `HttpResponse`, `Request`, or HTTP status codes. It owns business rules + Prisma queries.
 - **Inject dependencies; never `new` a service or `PrismaService`.**
 - **Read config through a typed `registerAs` namespace** (`@Inject(appConfig.KEY)`), never `process.env.X` inline. → [Factory Pattern](pattern/FACTORY-PATTERN.md)
-- **Guard order on a protected mutation:** `@UseGuards(JwtAuthGuard, OrganizationXxxMutationGuard)` — authentication first, then authorization. → [Guard Pattern](pattern/GUARD-PATTERN.md)
+- **Guard order on a protected mutation:** `@UseGuards(JwtAuthGuard, <AuthorizationGuard>)` — authentication first, then exactly one authorization guard (`OrganizationPermissionGuard` or `TourImplementationAccessGuard`). → [Guard Pattern](pattern/GUARD-PATTERN.md)
 
 ### 8.1 Response envelope
 Every response is the shared envelope; never redefine it. The envelope and `BaseMeta` live in `_common/interfaces`; each domain declares its own `XxxWithMeta = XxxResponse & { meta: XxxMeta }` next to its response DTO. → [DTO Pattern](pattern/DTO-PATTERN.md)

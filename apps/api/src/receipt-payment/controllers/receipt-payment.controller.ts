@@ -11,12 +11,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateReceiptPaymentRequest } from '../dtos/create-receipt-payment.request.dto';
 import { FindReceiptPaymentsByInvoiceIdsRequest } from '../dtos/find-receipt-payments-by-invoice-ids.request.dto';
@@ -219,7 +222,8 @@ export class ReceiptPaymentController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.RECEIPT_PAYMENT)
   @Get('/organization/:organizationId')
   async findAllByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -240,12 +244,14 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Put('/:id')
   async update(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() updateReceiptPaymentReq: UpdateReceiptPaymentRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse>> {
     const data = await this.receiptPaymentService.updateReceiptPayment(
       id,
-      updateReceiptPaymentReq
+      updateReceiptPaymentReq,
+      req.user.userId
     );
     return {
       statusCode: HttpStatus.OK,
@@ -256,8 +262,11 @@ export class ReceiptPaymentController {
 
   @UseGuards(JwtAuthGuard)
   @Delete('/:id')
-  async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
-    await this.receiptPaymentService.deleteReceiptPaymentById(id);
+  async delete(
+    @Request() req: AuthenticatedRequest,
+    @Param('id') id: string
+  ): Promise<HttpResponse<null>> {
+    await this.receiptPaymentService.deleteReceiptPaymentById(id, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payment deleted successfully',

@@ -7,10 +7,12 @@ import {
   Put,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type { HttpResponse } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationTourCalculationMutationGuard } from 'src/_core/guards/organization-tour-calculation-mutation.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import type { TourCalculationCancelLogResponse } from '../dtos/tour-calculation-cancel-log.response.dto';
 import type { TourCalculationResponse, TourCalculationWithMeta } from '../dtos/tour-calculation.response.dto';
@@ -67,7 +69,8 @@ export class TourCalculationController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourCalculationMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TOUR_CALCULATION)
   @Put('/:id')
   async update(
     @Param('id') id: string,

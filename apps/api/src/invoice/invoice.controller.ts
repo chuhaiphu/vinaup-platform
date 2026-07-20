@@ -11,13 +11,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationInvoiceMutationGuard } from 'src/_core/guards/organization-invoice-mutation.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateInvoiceRequest } from './dtos/create-invoice.request.dto';
 import { InvoiceFilterRequest } from './dtos/invoice-filter.request.dto';
@@ -30,7 +32,8 @@ import { InvoiceService } from './invoice.service';
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.INVOICE)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -86,7 +89,8 @@ export class InvoiceController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationInvoiceMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.INVOICE)
   @Put('/:id')
   async update(
     @Param('id') id: string,
@@ -100,7 +104,8 @@ export class InvoiceController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationInvoiceMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE)
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
     await this.invoiceService.deleteInvoiceById(id);

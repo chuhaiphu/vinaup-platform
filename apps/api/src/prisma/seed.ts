@@ -1,8 +1,17 @@
 import { PrismaPg } from '@prisma/adapter-pg';
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  PERMISSION_ACTION,
+  PERMISSION_RESOURCE,
+} from '@vinaup-platform/permission';
 import { hash, genSalt } from 'bcrypt';
 
+
 import { AUTH_PROVIDER } from 'src/_common/constants/auth.constant';
-import { ORGANIZATION_ROLE_CODE } from 'src/_common/constants/organization.constant';
+import {
+  ORGANIZATION_ROLE_CODE,
+  ORGANIZATION_ROLE_DESCRIPTION,
+} from 'src/_common/constants/organization.constant';
 
 import { PrismaClient } from './generated/client';
 
@@ -75,30 +84,34 @@ async function seedInvoiceTypes() {
 async function seedOrganizationPermissions() {
   console.log('Seeding organization permissions...');
 
-  const resources = [
-    'project',
-    'invoice',
-    'receiptPayment',
-    'tour',
-    'organizationMember',
+  // The grantable catalog: CRUD on every granular resource, plus the single MANAGE/ALL wildcard
+  // OWNER is locked to. Resources/actions come from @vinaup-platform/permission (UPPER_SNAKE).
+  const crudActions = [
+    PERMISSION_ACTION.CREATE,
+    PERMISSION_ACTION.READ,
+    PERMISSION_ACTION.UPDATE,
+    PERMISSION_ACTION.DELETE,
   ];
-  const actions = ['READ', 'CREATE', 'UPDATE', 'DELETE'];
+  const granularResources = Object.values(PERMISSION_RESOURCE).filter(
+    (resource) => resource !== PERMISSION_RESOURCE.ALL,
+  );
 
-  const permissions = [];
-  for (const resource of resources) {
-    for (const action of actions) {
-      const permission = await prisma.organizationPermission.upsert({
-        where: {
-          resource_action: { resource, action },
-        },
-        update: {},
-        create: { resource, action },
-      });
-      permissions.push(permission);
-    }
+  const cells: { resource: string; action: string }[] = [
+    { resource: PERMISSION_RESOURCE.ALL, action: PERMISSION_ACTION.MANAGE },
+    ...granularResources.flatMap((resource) =>
+      crudActions.map((action) => ({ resource, action })),
+    ),
+  ];
+
+  for (const cell of cells) {
+    await prisma.organizationPermission.upsert({
+      where: { resource_action: { resource: cell.resource, action: cell.action } },
+      update: {},
+      create: cell,
+    });
   }
 
-  console.log(`✅ Created/updated ${permissions.length} organization permissions`);
+  console.log(`✅ Created/updated ${cells.length} organization permissions`);
 }
 
 async function seedUsersAndOrganization() {
@@ -171,28 +184,31 @@ async function seedUsersAndOrganization() {
       },
     });
 
-    // Create 2 roles: OWNER (full CRUD) and MEMBER (READ only)
-    const ownerPermissions = allPermissions;
-    const memberPermissions = allPermissions.filter((p) => p.action === 'READ');
-
-    const rolesData = [
-      { code: ORGANIZATION_ROLE_CODE.OWNER, description: 'Chủ sở hữu', permissions: ownerPermissions },
-      { code: 'MEMBER', description: 'Thành viên', permissions: memberPermissions },
-    ];
-
+    // Seed the factory-default roles from the matrix (@vinaup-platform/permission):
+    // OWNER locked to MANAGE ALL, MEMBER read-only.
     const roleMap = new Map<string, string>();
-    for (const roleData of rolesData) {
+    for (const [code, cells] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+      const permissionIds = cells.map((cell) => {
+        const permission = allPermissions.find(
+          (p) => p.resource === cell.resource && p.action === cell.action,
+        );
+        if (!permission) {
+          throw new Error(`Missing OrganizationPermission for ${cell.action} ${cell.resource}`);
+        }
+        return permission.id;
+      });
+
       const role = await prisma.organizationRole.create({
         data: {
           organizationId: organization.id,
-          code: roleData.code,
-          description: roleData.description,
+          code,
+          description: ORGANIZATION_ROLE_DESCRIPTION[code] ?? code,
           organizationRolePermissions: {
-            create: roleData.permissions.map((p) => ({ organizationPermissionId: p.id })),
+            create: permissionIds.map((organizationPermissionId) => ({ organizationPermissionId })),
           },
         },
       });
-      roleMap.set(roleData.code, role.id);
+      roleMap.set(code, role.id);
     }
 
     // Add owner as member
@@ -229,7 +245,7 @@ async function seedUsersAndOrganization() {
             status: 'ACTIVE',
             joinedAt: new Date(),
             createdByUserId: ownerUser.id,
-            organizationRoleId: roleMap.get('MEMBER')!,
+            organizationRoleId: roleMap.get(ORGANIZATION_ROLE_CODE.MEMBER)!,
           },
         });
       }

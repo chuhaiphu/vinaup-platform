@@ -11,12 +11,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateOrganizationMemberRequest } from '../dtos/create-organization-member.request.dto';
 import type { OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
@@ -29,7 +32,8 @@ export class OrganizationMemberController {
     private readonly organizationMemberService: OrganizationMemberService
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.ORGANIZATION_MEMBER)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,

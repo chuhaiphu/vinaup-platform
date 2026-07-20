@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { TOUR_IMPLEMENTATION_USER_ROLE } from '@vinaup-platform/permission';
 import {
   TOUR_STATUS,
   type CreateUserAssignedRequestInterface,
@@ -11,12 +12,12 @@ import {
   TourImplementationCannotRemoveSelfException,
   TourImplementationAssignedUserNotFoundException,
   TourImplementationNotFoundException,
-  TourImplementationNotAssignedException,
 } from 'src/_common/exceptions/tour.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { TourImplementationAssignment, UserAssignedTourImplementation } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+import { TourImplementationAccessService } from './tour-implementation-access.service';
 import {
   ConflictingTour,
   TourImplementationAssignmentMeta,
@@ -34,35 +35,10 @@ interface OverlappingTourImplementationAssignment {
 
 @Injectable()
 export class TourImplementationAssignmentService {
-  constructor(private readonly prismaService: PrismaService) {}
-
-  // Public (not private) because the tour-implementation aggregate reuses this same assigned
-  // authz primitive; it lives in this leaf service so both can share it without a circular import.
-  async isMemberAssigned(tourImplementationId: string, currentUserId: string): Promise<boolean> {
-    const count = await this.prismaService.memberAssignedTourImplementation.count({
-      where: {
-        tourImplementationId,
-        organizationMember: { userId: currentUserId },
-      },
-    });
-    return count > 0;
-  }
-
-  async assertTourImplementationAssigned(
-    tourImplementationId: string,
-    currentUserId: string,
-  ): Promise<void> {
-    const tourImplementation = await this.prismaService.tourImplementation.findUnique({
-      where: { id: tourImplementationId },
-      select: { id: true },
-    });
-    if (!tourImplementation) {
-      throw new TourImplementationNotFoundException();
-    }
-    if (!(await this.isMemberAssigned(tourImplementationId, currentUserId))) {
-      throw new TourImplementationNotAssignedException();
-    }
-  }
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly tourImplementationAccessService: TourImplementationAccessService,
+  ) {}
 
   private async findAssignmentByIdOrThrow(assignmentId: string): Promise<TourImplementationAssignment> {
     const assignment = await this.prismaService.tourImplementationAssignment.findUnique({
@@ -76,10 +52,7 @@ export class TourImplementationAssignmentService {
 
   async createTourImplementationAssignment(
     tourImplementationId: string,
-    currentUserId: string,
   ): Promise<TourImplementationAssignmentWithMeta> {
-    await this.assertTourImplementationAssigned(tourImplementationId, currentUserId);
-
     const count = await this.prismaService.tourImplementationAssignment.count({
       where: { tourImplementationId },
     });
@@ -93,13 +66,13 @@ export class TourImplementationAssignmentService {
           createMany: {
             data: [
               {
-                role: 'TOUR_GUIDE',
+                role: TOUR_IMPLEMENTATION_USER_ROLE.TOUR_GUIDE,
                 userId: null,
                 customUserName: '',
                 permissions: [],
               },
               {
-                role: 'DRIVER',
+                role: TOUR_IMPLEMENTATION_USER_ROLE.DRIVER,
                 userId: null,
                 customUserName: '',
                 permissions: [],
@@ -143,7 +116,10 @@ export class TourImplementationAssignmentService {
     });
     if (!tourImplementationAssignments.length) return [];
 
-    const canEdit = await this.isMemberAssigned(tourImplementationId, currentUserId);
+    const canEdit = await this.tourImplementationAccessService.isMemberAssigned(
+      tourImplementationId,
+      currentUserId,
+    );
 
     return this.attachConflictMetaToTourImplementationAssignments(
       tourImplementationId,
@@ -156,7 +132,6 @@ export class TourImplementationAssignmentService {
   async updateTourImplementationAssignment(
     assignmentId: string,
     payload: UpdateTourImplementationAssignmentRequestInterface,
-    currentUserId: string,
   ): Promise<TourImplementationAssignmentWithMeta> {
     const existingAssignment = await this.prismaService.tourImplementationAssignment.findUnique({
       where: { id: assignmentId },
@@ -164,10 +139,6 @@ export class TourImplementationAssignmentService {
     });
     if (!existingAssignment) {
       throw new TourImplementationAssignmentNotFoundException();
-    }
-
-    if (!(await this.isMemberAssigned(existingAssignment.tourImplementationId, currentUserId))) {
-      throw new TourImplementationNotAssignedException();
     }
 
     if (payload.position !== undefined && payload.position !== existingAssignment.position) {
@@ -232,7 +203,7 @@ export class TourImplementationAssignmentService {
         existingAssignment.tourImplementation.tour,
       );
 
-    // The member-assigned check above already passed, so this caller may edit the record.
+    // TourImplementationAccessGuard already asserted access, so this caller may edit the record.
     return {
       ...updatedAssignment,
       meta: this.attachMeta(updatedAssignment, overlappingTourImplementationAssignments, true),

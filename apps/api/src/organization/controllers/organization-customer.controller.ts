@@ -9,12 +9,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateOrganizationCustomerRequest } from '../dtos/create-organization-customer.request.dto';
 import type { OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
@@ -27,7 +30,8 @@ export class OrganizationCustomerController {
     private readonly organizationCustomerService: OrganizationCustomerService
   ) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.ORGANIZATION_CUSTOMER)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,
@@ -44,7 +48,8 @@ export class OrganizationCustomerController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.ORGANIZATION_CUSTOMER)
   @Get('/by-organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string

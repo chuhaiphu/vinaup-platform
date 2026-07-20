@@ -10,9 +10,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateProjectCategoryRequest } from '../dtos/create-project-category.request.dto';
 import type { ProjectCategoryResponse } from '../dtos/project-category.response.dto';
@@ -36,7 +39,8 @@ export class ProjectCategoryController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.PROJECT_CATEGORY)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,

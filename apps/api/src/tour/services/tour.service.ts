@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import {
+  RECEIPT_PAYMENT_GROUP_CODE,
+  TOUR_IMPLEMENTATION_MEMBER_ROLE,
+} from '@vinaup-platform/permission';
+import {
   TOUR_STATUS,
   type TourFilterRequestInterface,
   type CreateTourRequestInterface,
@@ -76,7 +80,7 @@ export class TourService {
     if (creatorMember) {
       membersAssignedData.push({
         organizationMemberId: creatorMember.id,
-        role: 'CREATOR',
+        role: TOUR_IMPLEMENTATION_MEMBER_ROLE.CREATOR,
       });
     }
 
@@ -251,7 +255,7 @@ export class TourService {
       return;
     }
 
-    const groupCode = 'FOR_DIRECTOR';
+    const groupCode = RECEIPT_PAYMENT_GROUP_CODE.FOR_DIRECTOR;
 
     for (const receiptPayment of receiptPayments) {
       const newReceiptPayment = await this.prismaService.receiptPayment.create({

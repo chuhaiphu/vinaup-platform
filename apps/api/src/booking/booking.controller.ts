@@ -11,13 +11,15 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationBookingMutationGuard } from 'src/_core/guards/organization-booking-mutation.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { BookingService } from './booking.service';
 import { BookingFilterRequest } from './dtos/booking-filter.request.dto';
@@ -33,7 +35,8 @@ import { UpdateBookingRequest } from './dtos/update-booking.request.dto';
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.BOOKING)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -51,7 +54,8 @@ export class BookingController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.BOOKING)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,
@@ -87,7 +91,8 @@ export class BookingController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.BOOKING)
   @Get('/by-organization-customer/organization/:organizationId')
   async findByOrganizationCustomerOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -121,7 +126,8 @@ export class BookingController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationBookingMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.BOOKING)
   @Put('/:id')
   async update(
     @Param('id') id: string,
@@ -136,7 +142,8 @@ export class BookingController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationBookingMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.BOOKING)
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
     await this.bookingService.deleteBookingById(id);

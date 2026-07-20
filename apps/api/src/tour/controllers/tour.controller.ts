@@ -11,13 +11,18 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
+import { TOUR_TARGET_RESOURCE } from 'src/_common/constants/tour.constant';
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
+import { CheckTourImplementationAccess } from 'src/_core/decorators/tour-implementation-access.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationTourMutationGuard } from 'src/_core/guards/organization-tour-mutation.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
+import { TourImplementationAccessGuard } from 'src/_core/guards/tour-implementation-access.guard';
 
 import { CreateTourRequest } from '../dtos/create-tour.request.dto';
 import { TourFilterRequest } from '../dtos/tour-filter.request.dto';
@@ -29,7 +34,8 @@ import { TourService } from '../services/tour.service';
 export class TourController {
   constructor(private readonly tourService: TourService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.TOUR)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -47,7 +53,8 @@ export class TourController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.TOUR)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,
@@ -62,7 +69,8 @@ export class TourController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.TOUR)
   @Get('/:id')
   async findById(@Param('id') id: string): Promise<HttpResponse<TourResponse>> {
     const data = await this.tourService.findTourById(id);
@@ -74,7 +82,8 @@ export class TourController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TOUR)
   @Put('/:id')
   async update(
     @Param('id') id: string,
@@ -89,7 +98,8 @@ export class TourController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TOUR)
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
     await this.tourService.deleteTourById(id);
@@ -101,7 +111,8 @@ export class TourController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'tourId', targetResource: TOUR_TARGET_RESOURCE.TOUR })
   @Post('/:tourId/import-receipt-payments')
   async importReceiptPayments(
     @Request() req: AuthenticatedRequest,

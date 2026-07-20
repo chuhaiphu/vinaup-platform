@@ -11,9 +11,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CarFilterRequest } from '../dtos/car-filter.request.dto';
 import type { CarWithMeta } from '../dtos/car.response.dto';
@@ -25,7 +28,8 @@ import { CarService } from '../services/car.service';
 export class CarController {
   constructor(private readonly carService: CarService) {}
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.CAR)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -35,7 +39,8 @@ export class CarController {
     return { statusCode: HttpStatus.OK, message: 'Cars retrieved successfully', data };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.CAR)
   @Get('/organization/:organizationId/expiring')
   async findExpiringByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -53,7 +58,8 @@ export class CarController {
     return { statusCode: HttpStatus.OK, message: 'Car retrieved successfully', data };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.CAR)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,

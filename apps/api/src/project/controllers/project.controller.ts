@@ -11,14 +11,16 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import { BusyDateRange } from 'src/_common/dtos/response/busy-days.response.dto';
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationProjectMutationGuard } from 'src/_core/guards/organization-project-mutation.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 
 import { CreateProjectRequest } from '../dtos/create-project.request.dto';
 import { ProjectFilterRequest } from '../dtos/project-filter.request.dto';
@@ -48,7 +50,8 @@ export class ProjectController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.PROJECT)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,
@@ -108,7 +111,8 @@ export class ProjectController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationProjectMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.PROJECT)
   @Put('/:id')
   async update(
     @Param('id') id: string,
@@ -122,7 +126,8 @@ export class ProjectController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationProjectMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT)
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
     await this.projectService.deleteProjectById(id);

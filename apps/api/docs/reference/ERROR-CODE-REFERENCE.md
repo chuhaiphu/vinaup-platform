@@ -73,7 +73,7 @@ Only `TOKEN_INVALID` routes through the cookie-clearing `AuthExceptionFilter`; e
 
 ### Organization · `organization.exception.ts`
 
-The membership/permission family below is **reused by every** `organization-*-mutation.guard.ts` — the guards branch on one shared set of codes so the client localizes an "access denied" identically everywhere.
+The membership/permission family below is the shared vocabulary of the org RBAC plane — raised by `OrganizationPermissionGuard`, and by the receipt-payment service when it selects the org plane (Flow 3). One set of codes, so the client localizes an "access denied" identically everywhere.
 
 | `error` code                       | HTTP | Exception class                          | Thrown by                                                                                     |
 | ---------------------------------- | ---- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
@@ -81,9 +81,9 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `ORGANIZATION_MEMBER_NOT_FOUND`    | 404  | `OrganizationMemberNotFoundException`    | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) |
 | `ORGANIZATION_CUSTOMER_NOT_FOUND`  | 404  | `OrganizationCustomerNotFoundException`  | [`organization-customer.service.ts`](../../src/organization/services/organization-customer.service.ts) |
 | `ORGANIZATION_ROLE_NOT_FOUND`      | 404  | `OrganizationRoleNotFoundException`      | [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) — the `organizationRoleId` on create/update does not exist |
-| `ORGANIZATION_NOT_MEMBER`          | 403  | `OrganizationNotMemberException`         | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller does not belong to the organization |
-| `ORGANIZATION_MEMBER_LOCKED`       | 403  | `OrganizationMemberLockedException`      | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller is locked in the organization |
-| `ORGANIZATION_PERMISSION_DENIED`   | 403  | `OrganizationPermissionDeniedException`  | all [`organization-*-mutation.guard.ts`](../../src/_core/guards/) — caller lacks permission on the resource |
+| `ORGANIZATION_NOT_MEMBER`          | 403  | `OrganizationNotMemberException`         | [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) — caller does not belong to the organization |
+| `ORGANIZATION_MEMBER_LOCKED`       | 403  | `OrganizationMemberLockedException`      | [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) — caller is locked in the organization |
+| `ORGANIZATION_PERMISSION_DENIED`   | 403  | `OrganizationPermissionDeniedException`  | [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) — caller lacks permission on the resource, or is not the creator of a personal record |
 | `ORGANIZATION_MEMBER_ALREADY_LINKED`| 409 | `OrganizationMemberAlreadyLinkedException`| [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) |
 | `ORGANIZATION_MEMBER_DELETE_FORBIDDEN`| 403 | `OrganizationMemberDeleteForbiddenException`| [`organization-member.service.ts`](../../src/organization/services/organization-member.service.ts) — the member belongs to a different organization than the request |
 
@@ -117,14 +117,14 @@ The membership/permission family below is **reused by every** `organization-*-mu
 
 | `error` code                    | HTTP | Exception class                     | Thrown by                                                                                     |
 | ------------------------------- | ---- | ----------------------------------- | --------------------------------------------------------------------------------------------- |
-| `BOOKING_NOT_FOUND`             | 404  | `BookingNotFoundException`          | [`booking.service.ts`](../../src/booking/booking.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-booking-mutation.guard.ts`](../../src/_core/guards/organization-booking-mutation.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
+| `BOOKING_NOT_FOUND`             | 404  | `BookingNotFoundException`          | [`booking.service.ts`](../../src/booking/booking.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `BOOKING_COMPLETED_IMMUTABLE`   | 400  | `BookingCompletedImmutableException`| [`booking.service.ts`](../../src/booking/booking.service.ts) — cannot delete a completed booking |
 
 ### Invoice · `invoice.exception.ts`
 
 | `error` code       | HTTP | Exception class            | Thrown by                                                                                     |
 | ------------------ | ---- | -------------------------- | --------------------------------------------------------------------------------------------- |
-| `INVOICE_NOT_FOUND`| 404  | `InvoiceNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-invoice-mutation.guard.ts`](../../src/_core/guards/organization-invoice-mutation.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
+| `INVOICE_NOT_FOUND`| 404  | `InvoiceNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `INVOICE_TYPE_NOT_FOUND`| 404 | `InvoiceTypeNotFoundException` | [`invoice.service.ts`](../../src/invoice/invoice.service.ts) — the `invoiceTypeId` on create/update does not exist |
 
 ### Wage · `wage.exception.ts`
@@ -140,17 +140,17 @@ The membership/permission family below is **reused by every** `organization-*-mu
 | `RECEIPT_PAYMENT_NOT_FOUND`              | 404  | `ReceiptPaymentNotFoundException`          | [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `RECEIPT_PAYMENT_CATEGORY_NOT_FOUND`     | 404  | `ReceiptPaymentCategoryNotFoundException`  | [`receipt-payment-category.service.ts`](../../src/receipt-payment/services/receipt-payment-category.service.ts), [`organization-receipt-payment-category-mutation.guard.ts`](../../src/_core/guards/organization-receipt-payment-category-mutation.guard.ts) |
 | `RECEIPT_PAYMENT_CATEGORY_SYSTEM_READONLY`| 403 | `ReceiptPaymentCategorySystemReadonlyException`| both files above — a system-owned category cannot be modified or deleted                 |
-| `RECEIPT_PAYMENT_NOT_TOUR_PARTICIPANT`   | 403  | `ReceiptPaymentNotTourParticipantException`| [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) — caller is neither an assigned member of nor an assigned user to the tour implementation |
+| `RECEIPT_PAYMENT_TOUR_IMPLEMENTATION_ACCESS_DENIED`     | 403  | `ReceiptPaymentTourImplementationAccessDeniedException`  | [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) — caller is neither an assigned member of nor an assigned user to the tour implementation |
 
 ### Tour · `tour.exception.ts`
 
 | `error` code                            | HTTP | Exception class                          | Thrown by                                                                                     |
 | --------------------------------------- | ---- | ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `TOUR_NOT_FOUND`                        | 404  | `TourNotFoundException`                  | [`tour.service.ts`](../../src/tour/services/tour.service.ts), [`organization-tour-mutation.guard.ts`](../../src/_core/guards/organization-tour-mutation.guard.ts) |
+| `TOUR_NOT_FOUND`                        | 404  | `TourNotFoundException`                  | [`tour.service.ts`](../../src/tour/services/tour.service.ts), [`organization-permission.guard.ts`](../../src/_core/guards/organization-permission.guard.ts) — resolving a tour-scoped record |
 | `TOUR_CALCULATION_NOT_FOUND`            | 404  | `TourCalculationNotFoundException`       | [`tour-calculation.service.ts`](../../src/tour/services/tour-calculation.service.ts), [`signature.service.ts`](../../src/signature/signature.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts) |
 | `TOUR_CALCULATION_CANCEL_LOG_NOT_FOUND` | 404  | `TourCalculationCancelLogNotFoundException`| [`tour-calculation.service.ts`](../../src/tour/services/tour-calculation.service.ts)         |
 | `TOUR_IMPLEMENTATION_NOT_FOUND`         | 404  | `TourImplementationNotFoundException`    | [`tour-implementation.service.ts`](../../src/tour/services/tour-implementation.service.ts), [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts), [`receipt-payment.service.ts`](../../src/receipt-payment/services/receipt-payment.service.ts), [`booking.service.ts`](../../src/booking/booking.service.ts) |
-| `TOUR_IMPLEMENTATION_NOT_ASSIGNED`      | 403  | `TourImplementationNotAssignedException` | [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts)   |
+| `TOUR_IMPLEMENTATION_ACCESS_DENIED`                    | 403  | `TourImplementationAccessDeniedException`              | [`tour-implementation-access.service.ts`](../../src/tour/services/tour-implementation-access.service.ts) — via `TourImplementationAccessGuard` (crew routes) or the receipt-payment service (Flow 3); caller is neither assigned to the tour implementation nor its org owner |
 | `TOUR_IMPLEMENTATION_CANNOT_REMOVE_SELF`| 403  | `TourImplementationCannotRemoveSelfException`| [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts) |
 | `TOUR_IMPLEMENTATION_CANNOT_REMOVE_CREATOR`| 400 | `TourImplementationCannotRemoveCreatorException`| [`tour-implementation.service.ts`](../../src/tour/services/tour-implementation.service.ts) |
 | `TOUR_IMPLEMENTATION_ASSIGNED_USER_NOT_FOUND`| 404 | `TourImplementationAssignedUserNotFoundException`| [`tour-implementation-assignment.service.ts`](../../src/tour/services/tour-implementation-assignment.service.ts) |

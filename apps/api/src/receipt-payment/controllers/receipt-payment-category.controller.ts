@@ -10,9 +10,12 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
 import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/interface';
+import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
+import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
 import { OrganizationReceiptPaymentCategoryMutationGuard } from 'src/_core/guards/organization-receipt-payment-category-mutation.guard';
 
 import { CreateReceiptPaymentCategoryRequest } from '../dtos/create-receipt-payment-category.request.dto';
@@ -37,7 +40,8 @@ export class ReceiptPaymentCategoryController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.RECEIPT_PAYMENT_CATEGORY)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
     @Param('organizationId') organizationId: string,

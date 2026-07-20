@@ -10,12 +10,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 
+import { TOUR_TARGET_RESOURCE } from 'src/_common/constants/tour.constant';
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
+import { CheckTourImplementationAccess } from 'src/_core/decorators/tour-implementation-access.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { OrganizationTourImplementationMutationGuard } from 'src/_core/guards/organization-tour-implementation-mutation.guard';
+import { TourImplementationAccessGuard } from 'src/_core/guards/tour-implementation-access.guard';
 
 import { ManageMembersAssignedRequest } from '../dtos/manage-members-assigned.request.dto';
 import type { MemberAssignedTourImplementationResponse, MemberAssignedTourImplementationWithMeta } from '../dtos/member-assigned-tour-implementation.response.dto';
@@ -69,17 +71,16 @@ export class TourImplementationController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourImplementationMutationGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION })
   @Post('/:id/members-assigned')
   async manageMembersAssigned(
-    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: ManageMembersAssignedRequest
   ): Promise<HttpResponse<MemberAssignedTourImplementationResponse[]>> {
     const data = await this.tourImplementationService.manageMembersAssigned(
       id,
-      body,
-      req.user.userId
+      body
     );
 
     return {
@@ -89,17 +90,16 @@ export class TourImplementationController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationTourImplementationMutationGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({ source: 'param', idKey: 'id', targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION })
   @Put('/:id')
   async update(
-    @Request() req: AuthenticatedRequest,
     @Param('id') id: string,
     @Body() body: UpdateTourImplementationRequest
   ): Promise<HttpResponse<TourImplementationResponse>> {
     const data = await this.tourImplementationService.updateTourImplementation(
       id,
-      body,
-      req.user.userId
+      body
     );
 
     return {
