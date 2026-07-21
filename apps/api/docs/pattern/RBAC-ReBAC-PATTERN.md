@@ -381,10 +381,21 @@ authorization guard — never both:
 | an organization's documents | `JwtAuthGuard, OrganizationPermissionGuard`   |
 | a tour's execution          | `JwtAuthGuard, TourImplementationAccessGuard`               |
 
-**The one exception — `ReceiptPayment` mutations.** A receipt payment attaches to different parents
-(a tour implementation, a booking, an invoice, a project, or nothing), and a guard — running before
-the handler — sees only the id in the URL, so it cannot yet know the parent. Such a route carries
-only `JwtAuthGuard`; the plane is selected **inside the service**, once the parent is known (§7.4).
+**The exception — routes enforced in the service.** A few routes cannot have their authorization
+fixed by a route-level guard, because the deciding fact is known only once the handler's service
+reads the record. Two routes are in this class, for two different reasons:
+
+- **`ReceiptPayment` reads and mutations — the plane itself depends on the parent.** A receipt payment attaches
+  to different parents (a tour implementation, a booking, an invoice, a project, or nothing), and a
+  guard — running before the handler — sees only the id in the URL, so it cannot yet know the parent.
+  The service resolves the parent, then selects the plane (§7.4). Read and write use the same
+  plane-selection — who may see a receipt payment is exactly who may write it — so both go through the
+  service, not a guard.
+- **`Signature` mutations (`sign` / `cancel` / `update-url`) — no organization scope, and the rule
+  differs per operation.** A signature carries no `organizationId` and no role matrix; authority comes
+  from a direct edge — the caller must be the signature's `targetUserId`, or (when there is no target)
+  its original signer — and that edge check differs per operation. It is neither RBAC nor the tour
+  plane, so each handler enforces it directly on the record it already loads.
 
 The rest of this section details the **RBAC** guard; the tour-implementation-access guard is §7.
 
@@ -579,10 +590,10 @@ Two shapes, chosen by whether the route's target maps cleanly to a tour implemen
 - **`TourImplementationAccessGuard`** — for routes whose id resolves to a tour implementation (managing the
   crew, editing an assignment). Like the RBAC guard it resolves the `tourImplementationId` from the
   route (directly, or through the assignment/record it names), then calls `assertTourImplementationAccess`.
-- **Service-selected — `ReceiptPayment` mutations.** Because a receipt payment's plane follows its
+- **Service-selected — `ReceiptPayment` reads and mutations.** Because a receipt payment's plane follows its
   parent (§6), its route carries only `JwtAuthGuard`; the service inspects the parent and calls
   `assertTourImplementationAccess` for a tour-execution parent, the organization check for an org document,
-  or the ownership check for a personal one. This is the one place a plane is chosen at runtime.
+  or the ownership check for a personal one. Reads run the same plane-selection as writes. This is the one place a plane is chosen at runtime.
 
 ### 7.5 The boundary — one plane per route
 

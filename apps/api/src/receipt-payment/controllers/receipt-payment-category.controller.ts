@@ -16,7 +16,6 @@ import type { AuthenticatedRequest, HttpResponse } from 'src/_common/interfaces/
 import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
-import { OrganizationReceiptPaymentCategoryMutationGuard } from 'src/_core/guards/organization-receipt-payment-category-mutation.guard';
 
 import { CreateReceiptPaymentCategoryRequest } from '../dtos/create-receipt-payment-category.request.dto';
 import type { ReceiptPaymentCategoryResponse } from '../dtos/receipt-payment-category.response.dto';
@@ -79,7 +78,8 @@ export class ReceiptPaymentCategoryController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationReceiptPaymentCategoryMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.RECEIPT_PAYMENT_CATEGORY)
   @Put('/:id')
   async update(
     @Param('id') id: string,
@@ -93,7 +93,8 @@ export class ReceiptPaymentCategoryController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, OrganizationReceiptPaymentCategoryMutationGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.RECEIPT_PAYMENT_CATEGORY)
   @Delete('/:id')
   async delete(@Param('id') id: string): Promise<HttpResponse<null>> {
     await this.receiptPaymentCategoryService.deleteCategoryById(id);

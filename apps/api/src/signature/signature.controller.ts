@@ -15,7 +15,6 @@ import type {
   HttpResponse,
 } from 'src/_common/interfaces/interface';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
-import { SignatureMutationGuard } from 'src/_core/guards/signature-mutation.guard';
 
 import { ManageReceiverSignaturesRequest } from './dtos/manage-receiver-signatures.request.dto';
 import { SignatureResponse } from './dtos/signature.response.dto';
@@ -26,7 +25,7 @@ import { SignatureService } from './signature.service';
 export class SignatureController {
   constructor(private readonly signatureService: SignatureService) {}
 
-  @UseGuards(JwtAuthGuard, SignatureMutationGuard)
+  @UseGuards(JwtAuthGuard)
   @Patch('/:id/url')
   async updateUrl(
     @Param('id') id: string,
@@ -60,7 +59,7 @@ export class SignatureController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, SignatureMutationGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('/:id/sign')
   async sign(
     @Param('id') id: string,
@@ -74,7 +73,7 @@ export class SignatureController {
     };
   }
 
-  @UseGuards(JwtAuthGuard, SignatureMutationGuard)
+  @UseGuards(JwtAuthGuard)
   @Post('/:id/cancel')
   async cancel(
     @Param('id') id: string,

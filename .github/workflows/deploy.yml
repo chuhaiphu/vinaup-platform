@@ -1,8 +1,8 @@
-name: Deploy to VPS with Docker Compose
+name: Deploy API to VPS with Docker Compose
 on:
   push:
     tags:
-      - '*.*.*-alpha'  # Matches semantic versioning with -alpha suffix
+      - 'api/v*.*.*'  # Namespaced tag so future apps (e.g. web/v*.*.*) can't collide
 
 env:
   DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
@@ -11,14 +11,18 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    
+    environment: vinaup-api
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Extract version from tag
       id: version
-      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      run: |
+        # Strip 'api/' prefix to get the version, e.g. api/v1.2.0 -> v1.2.0
+        TAG_NAME=${{ github.ref_name }}
+        echo "VERSION=${TAG_NAME#*/}" >> $GITHUB_OUTPUT
       
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3

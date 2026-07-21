@@ -55,11 +55,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Post('/projects')
   async findAllByProjectIds(
+    @Request() req: AuthenticatedRequest,
     @Body()
     findReceiptPaymentsByProjectIdsReq: FindReceiptPaymentsByProjectIdsRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data = await this.receiptPaymentService.findReceiptPaymentsByProjectIds(
-      findReceiptPaymentsByProjectIdsReq.projectIds
+      findReceiptPaymentsByProjectIdsReq.projectIds,
+      req.user.userId
     );
     return {
       statusCode: HttpStatus.OK,
@@ -71,11 +73,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Post('/wages')
   async findAllByWageIds(
+    @Request() req: AuthenticatedRequest,
     @Body()
     findReceiptPaymentsByWageIdsReq: FindReceiptPaymentsByWageIdsRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data = await this.receiptPaymentService.findReceiptPaymentsByWageIds(
-      findReceiptPaymentsByWageIdsReq.wageIds
+      findReceiptPaymentsByWageIdsReq.wageIds,
+      req.user.userId
     );
     return {
       statusCode: HttpStatus.OK,
@@ -87,11 +91,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Post('/invoices')
   async findAllByInvoiceIds(
+    @Request() req: AuthenticatedRequest,
     @Body()
     findReceiptPaymentsByInvoiceIdsReq: FindReceiptPaymentsByInvoiceIdsRequest
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data = await this.receiptPaymentService.findReceiptPaymentsByInvoiceIds(
-      findReceiptPaymentsByInvoiceIdsReq.invoiceIds
+      findReceiptPaymentsByInvoiceIdsReq.invoiceIds,
+      req.user.userId
     );
     return {
       statusCode: HttpStatus.OK,
@@ -120,10 +126,11 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/booking/:bookingId')
   async findAllByBookingId(
+    @Request() req: AuthenticatedRequest,
     @Param('bookingId') bookingId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
-      await this.receiptPaymentService.findReceiptPaymentsByBookingId(bookingId);
+      await this.receiptPaymentService.findReceiptPaymentsByBookingId(bookingId, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payments retrieved successfully',
@@ -134,10 +141,11 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/project/:projectId')
   async findAllByProjectId(
+    @Request() req: AuthenticatedRequest,
     @Param('projectId') projectId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
-      await this.receiptPaymentService.findReceiptPaymentsByProjectId(projectId);
+      await this.receiptPaymentService.findReceiptPaymentsByProjectId(projectId, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payments retrieved successfully',
@@ -148,10 +156,11 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/invoice/:invoiceId')
   async findAllByInvoiceId(
+    @Request() req: AuthenticatedRequest,
     @Param('invoiceId') invoiceId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
-      await this.receiptPaymentService.findReceiptPaymentsByInvoiceId(invoiceId);
+      await this.receiptPaymentService.findReceiptPaymentsByInvoiceId(invoiceId, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payments retrieved successfully',
@@ -162,11 +171,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/tour-calculation/:tourCalculationId')
   async findAllByTourCalculationId(
+    @Request() req: AuthenticatedRequest,
     @Param('tourCalculationId') tourCalculationId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
       await this.receiptPaymentService.findReceiptPaymentsByTourCalculationId(
-        tourCalculationId
+        tourCalculationId,
+        req.user.userId
       );
     return {
       statusCode: HttpStatus.OK,
@@ -196,11 +207,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/tour-settlement/:tourSettlementId')
   async findAllByTourSettlementId(
+    @Request() req: AuthenticatedRequest,
     @Param('tourSettlementId') tourSettlementId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
       await this.receiptPaymentService.findReceiptPaymentsByTourSettlementId(
-        tourSettlementId
+        tourSettlementId,
+        req.user.userId
       );
     return {
       statusCode: HttpStatus.OK,
@@ -212,9 +225,10 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/wage/:wageId')
   async findAllByWageId(
+    @Request() req: AuthenticatedRequest,
     @Param('wageId') wageId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
-    const data = await this.receiptPaymentService.findReceiptPaymentsByWageId(wageId);
+    const data = await this.receiptPaymentService.findReceiptPaymentsByWageId(wageId, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payments retrieved successfully',
@@ -277,11 +291,13 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/car-maintenance-log/:carMaintenanceLogId')
   async findAllByCarMaintenanceLogId(
+    @Request() req: AuthenticatedRequest,
     @Param('carMaintenanceLogId') carMaintenanceLogId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
       await this.receiptPaymentService.findReceiptPaymentsByCarMaintenanceLogId(
-        carMaintenanceLogId
+        carMaintenanceLogId,
+        req.user.userId
       );
     return {
       statusCode: HttpStatus.OK,
@@ -293,10 +309,11 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/trip/:tripId')
   async findAllByTripId(
+    @Request() req: AuthenticatedRequest,
     @Param('tripId') tripId: string
   ): Promise<HttpResponse<ReceiptPaymentResponse[]>> {
     const data =
-      await this.receiptPaymentService.findReceiptPaymentsByTripId(tripId);
+      await this.receiptPaymentService.findReceiptPaymentsByTripId(tripId, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payments retrieved successfully',
@@ -307,9 +324,10 @@ export class ReceiptPaymentController {
   @UseGuards(JwtAuthGuard)
   @Get('/:id')
   async findById(
+    @Request() req: AuthenticatedRequest,
     @Param('id') id: string
   ): Promise<HttpResponse<ReceiptPaymentResponse>> {
-    const data = await this.receiptPaymentService.findReceiptPaymentById(id);
+    const data = await this.receiptPaymentService.findReceiptPaymentById(id, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
       message: 'Receipt payment retrieved successfully',

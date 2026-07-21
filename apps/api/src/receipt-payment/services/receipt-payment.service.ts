@@ -1,8 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import {
-  RECEIPT_PAYMENT_GROUP_CODE,
-  TOUR_ASSIGNMENT_PERMISSION,
-} from '@vinaup-platform/permission';
+import { RECEIPT_PAYMENT_GROUP_CODE, TOUR_ASSIGNMENT_PERMISSION } from '@vinaup-platform/permission';
 import type {
   CreateReceiptPaymentRequestInterface,
   ReceiptPaymentFilterRequestInterface,
@@ -21,7 +18,10 @@ import {
   OrganizationPermissionDeniedException,
 } from 'src/_common/exceptions/organization.exception';
 import { ProjectNotFoundException } from 'src/_common/exceptions/project.exception';
-import { ReceiptPaymentNotFoundException, ReceiptPaymentTourImplementationAccessDeniedException } from 'src/_common/exceptions/receipt-payment.exception';
+import {
+  ReceiptPaymentNotFoundException,
+  ReceiptPaymentTourImplementationAccessDeniedException,
+} from 'src/_common/exceptions/receipt-payment.exception';
 import {
   TourCalculationNotFoundException,
   TourImplementationNotFoundException,
@@ -53,7 +53,7 @@ export class ReceiptPaymentService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tourImplementationAccessService: TourImplementationAccessService,
-  ) { }
+  ) {}
 
   private async assertReceiptPaymentRelationsExist(input: {
     projectId?: string | null;
@@ -67,18 +67,91 @@ export class ReceiptPaymentService {
     carMaintenanceLogId?: string | null;
     tripId?: string | null;
   }): Promise<void> {
-    const relationChecks: [string | null | undefined, () => Promise<{ id: string } | null>, () => Error][] = [
-      [input.projectId, () => this.prismaService.project.findUnique({ where: { id: input.projectId! }, select: { id: true } }), () => new ProjectNotFoundException()],
-      [input.invoiceId, () => this.prismaService.invoice.findUnique({ where: { id: input.invoiceId! }, select: { id: true } }), () => new InvoiceNotFoundException()],
-      [input.organizationId, () => this.prismaService.organization.findUnique({ where: { id: input.organizationId! }, select: { id: true } }), () => new OrganizationNotFoundException()],
-      [input.tourCalculationId, () => this.prismaService.tourCalculation.findUnique({ where: { id: input.tourCalculationId! }, select: { id: true } }), () => new TourCalculationNotFoundException()],
-      [input.tourImplementationId, () => this.prismaService.tourImplementation.findUnique({ where: { id: input.tourImplementationId! }, select: { id: true } }), () => new TourImplementationNotFoundException()],
-      [input.tourSettlementId, () => this.prismaService.tourSettlement.findUnique({ where: { id: input.tourSettlementId! }, select: { id: true } }), () => new TourSettlementNotFoundException()],
-      [input.bookingId, () => this.prismaService.booking.findUnique({ where: { id: input.bookingId! }, select: { id: true } }), () => new BookingNotFoundException()],
-      [input.wageId, () => this.prismaService.wage.findUnique({ where: { id: input.wageId! }, select: { id: true } }), () => new WageNotFoundException()],
-      [input.carMaintenanceLogId, () => this.prismaService.carMaintenanceLog.findUnique({ where: { id: input.carMaintenanceLogId! }, select: { id: true } }), () => new CarMaintenanceLogNotFoundException()],
-      [input.tripId, () => this.prismaService.trip.findUnique({ where: { id: input.tripId! }, select: { id: true } }), () => new TripNotFoundException()],
-    ];
+    const relationChecks: [string | null | undefined, () => Promise<{ id: string } | null>, () => Error][] =
+      [
+        [
+          input.projectId,
+          () =>
+            this.prismaService.project.findUnique({
+              where: { id: input.projectId! },
+              select: { id: true },
+            }),
+          () => new ProjectNotFoundException(),
+        ],
+        [
+          input.invoiceId,
+          () =>
+            this.prismaService.invoice.findUnique({
+              where: { id: input.invoiceId! },
+              select: { id: true },
+            }),
+          () => new InvoiceNotFoundException(),
+        ],
+        [
+          input.organizationId,
+          () =>
+            this.prismaService.organization.findUnique({
+              where: { id: input.organizationId! },
+              select: { id: true },
+            }),
+          () => new OrganizationNotFoundException(),
+        ],
+        [
+          input.tourCalculationId,
+          () =>
+            this.prismaService.tourCalculation.findUnique({
+              where: { id: input.tourCalculationId! },
+              select: { id: true },
+            }),
+          () => new TourCalculationNotFoundException(),
+        ],
+        [
+          input.tourImplementationId,
+          () =>
+            this.prismaService.tourImplementation.findUnique({
+              where: { id: input.tourImplementationId! },
+              select: { id: true },
+            }),
+          () => new TourImplementationNotFoundException(),
+        ],
+        [
+          input.tourSettlementId,
+          () =>
+            this.prismaService.tourSettlement.findUnique({
+              where: { id: input.tourSettlementId! },
+              select: { id: true },
+            }),
+          () => new TourSettlementNotFoundException(),
+        ],
+        [
+          input.bookingId,
+          () =>
+            this.prismaService.booking.findUnique({
+              where: { id: input.bookingId! },
+              select: { id: true },
+            }),
+          () => new BookingNotFoundException(),
+        ],
+        [
+          input.wageId,
+          () => this.prismaService.wage.findUnique({ where: { id: input.wageId! }, select: { id: true } }),
+          () => new WageNotFoundException(),
+        ],
+        [
+          input.carMaintenanceLogId,
+          () =>
+            this.prismaService.carMaintenanceLog.findUnique({
+              where: { id: input.carMaintenanceLogId! },
+              select: { id: true },
+            }),
+          () => new CarMaintenanceLogNotFoundException(),
+        ],
+        [
+          input.tripId,
+          () => this.prismaService.trip.findUnique({ where: { id: input.tripId! }, select: { id: true } }),
+          () => new TripNotFoundException(),
+        ],
+      ];
     for (const [id, find, buildError] of relationChecks) {
       if (!id) continue;
       const found = await find();
@@ -86,12 +159,11 @@ export class ReceiptPaymentService {
     }
   }
 
-  // ─── Flow 3: a receipt-payment mutation's plane is chosen here, from its parent ─────
-  // A receipt payment attaches to at most one parent; that parent decides who may write it
-  // (RBAC-ReBAC-FLOW Flow 3). Priority order fixes the governing parent if more than one is set.
-  private async assertCanMutateReceiptPayment(
+  // Authorize access (read or mutation) to a receipt payment via the parent it is attached to.
+  private async assertReceiptPaymentAccessByParent(
     input: ReceiptPaymentParentInput,
     currentUserId: string,
+    receiptPaymentCreatedByUserId: string | null,
   ): Promise<void> {
     // Tour implementation is the one relationship-scoped parent — defer to the tour-implementation-access engine
     // (an assigned crew member/user, or the tour's organization owner).
@@ -106,26 +178,31 @@ export class ReceiptPaymentService {
 
     const scope = await this.resolveReceiptPaymentParentScope(input);
 
-    // No parent → a standalone personal receipt payment: its creator (the caller) owns it.
+    // No parent → a standalone personal receipt payment: only its own creator may access it.
+    // On create the caller IS that creator; on read/update/delete this stops any other authenticated
+    // user from touching a parentless record they do not own (a null creator fails closed).
     if (!scope) {
-      return;
+      if (receiptPaymentCreatedByUserId === currentUserId) {
+        return;
+      }
+      throw new OrganizationPermissionDeniedException();
     }
 
-    // Org-scoped parent → an ACTIVE member of that organization may write it.
+    // Org-scoped parent → an ACTIVE member of that organization may access it.
     if (scope.organizationId) {
       await this.assertActiveOrganizationMember(scope.organizationId, currentUserId);
       return;
     }
 
-    // Personal parent (no organization) → only its creator may attach a receipt payment to it.
+    // Personal parent (no organization) → only its creator may access its receipt payments.
     if (scope.createdByUserId === currentUserId) {
       return;
     }
     throw new OrganizationPermissionDeniedException();
   }
 
-  // Authorize a mutation on an EXISTING receipt payment against the parent it is already attached to.
-  private async assertCanMutateExistingReceiptPayment(
+  // Authorize access (read or mutation) to an EXISTING receipt payment against the parent it is already attached to.
+  private async assertReceiptPaymentAccessById(
     receiptPaymentId: string,
     currentUserId: string,
   ): Promise<void> {
@@ -133,6 +210,7 @@ export class ReceiptPaymentService {
       where: { id: receiptPaymentId },
       select: {
         organizationId: true,
+        createdByUserId: true,
         bookingId: true,
         invoiceId: true,
         projectId: true,
@@ -147,7 +225,7 @@ export class ReceiptPaymentService {
     if (!existing) {
       throw new ReceiptPaymentNotFoundException();
     }
-    await this.assertCanMutateReceiptPayment(
+    await this.assertReceiptPaymentAccessByParent(
       {
         organizationId: existing.organizationId,
         bookingId: existing.bookingId,
@@ -158,10 +236,10 @@ export class ReceiptPaymentService {
         tourSettlementId: existing.tourSettlementId,
         carMaintenanceLogId: existing.carMaintenanceLogId,
         wageId: existing.wageId,
-        tourImplementationId:
-          existing.tourImplementationReceiptPayments[0]?.tourImplementationId ?? null,
+        tourImplementationId: existing.tourImplementationReceiptPayments[0]?.tourImplementationId ?? null,
       },
       currentUserId,
+      existing.createdByUserId,
     );
   }
 
@@ -231,10 +309,7 @@ export class ReceiptPaymentService {
 
   // The data-scope membership invariant, mirrored from OrganizationPermissionGuard: the caller must
   // be an ACTIVE member (not LOCKED) of the organization that owns the parent.
-  private async assertActiveOrganizationMember(
-    organizationId: string,
-    userId: string,
-  ): Promise<void> {
+  private async assertActiveOrganizationMember(organizationId: string, userId: string): Promise<void> {
     const member = await this.prismaService.organizationMember.findFirst({
       where: { userId, organizationId },
       select: { status: true },
@@ -249,13 +324,12 @@ export class ReceiptPaymentService {
 
   async createReceiptPayment(
     createReceiptPaymentReq: CreateReceiptPaymentRequestInterface,
-    currentUserId: string
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse> {
     await this.assertReceiptPaymentRelationsExist(createReceiptPaymentReq);
-    await this.assertCanMutateReceiptPayment(createReceiptPaymentReq, currentUserId);
+    await this.assertReceiptPaymentAccessByParent(createReceiptPaymentReq, currentUserId, currentUserId);
 
-    const { tourImplementationId, groupCode, ...restCreateReceiptPaymentReq } =
-      createReceiptPaymentReq;
+    const { tourImplementationId, groupCode, ...restCreateReceiptPaymentReq } = createReceiptPaymentReq;
     const newReceiptPayment = await this.prismaService.receiptPayment.create({
       data: {
         ...restCreateReceiptPaymentReq,
@@ -264,10 +338,9 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
     if (tourImplementationId && groupCode) {
-      const tourImplementation =
-        await this.prismaService.tourImplementation.findUnique({
-          where: { id: tourImplementationId },
-        });
+      const tourImplementation = await this.prismaService.tourImplementation.findUnique({
+        where: { id: tourImplementationId },
+      });
       if (!tourImplementation) {
         throw new TourImplementationNotFoundException();
       }
@@ -294,22 +367,19 @@ export class ReceiptPaymentService {
   async updateReceiptPayment(
     id: string,
     updateReceiptPaymentReq: UpdateReceiptPaymentRequestInterface,
-    currentUserId: string
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse> {
-    // Authorize against the parent this receipt payment is currently attached to (Flow 3); this
-    // also throws ReceiptPaymentNotFoundException when the record does not exist.
-    await this.assertCanMutateExistingReceiptPayment(id, currentUserId);
+    // Authorize against the parent this receipt payment is currently attached to.
+    await this.assertReceiptPaymentAccessById(id, currentUserId);
 
     await this.assertReceiptPaymentRelationsExist(updateReceiptPaymentReq);
 
     // tourImplementationId and groupCode belong to junction table tourImplementationReceiptPayment
-    const { tourImplementationId, groupCode, ...restUpdateReceiptPaymentReq } =
-      updateReceiptPaymentReq;
+    const { tourImplementationId, groupCode, ...restUpdateReceiptPaymentReq } = updateReceiptPaymentReq;
     if (tourImplementationId && groupCode) {
-      const tourImplementation =
-        await this.prismaService.tourImplementation.findUnique({
-          where: { id: tourImplementationId },
-        });
+      const tourImplementation = await this.prismaService.tourImplementation.findUnique({
+        where: { id: tourImplementationId },
+      });
       if (!tourImplementation) {
         throw new TourImplementationNotFoundException();
       }
@@ -336,7 +406,7 @@ export class ReceiptPaymentService {
   async deleteReceiptPaymentById(id: string, currentUserId: string): Promise<void> {
     // Authorize against the parent this receipt payment is attached to (Flow 3); this also throws
     // ReceiptPaymentNotFoundException when the record does not exist.
-    await this.assertCanMutateExistingReceiptPayment(id, currentUserId);
+    await this.assertReceiptPaymentAccessById(id, currentUserId);
 
     await this.prismaService.receiptPayment.delete({
       where: { id },
@@ -345,7 +415,7 @@ export class ReceiptPaymentService {
 
   async findReceiptPaymentsByCurrentUser(
     currentUserId: string,
-    filter?: ReceiptPaymentFilterRequestInterface
+    filter?: ReceiptPaymentFilterRequestInterface,
   ): Promise<ReceiptPaymentResponse[]> {
     const dateFilterClause = (() => {
       if (!filter?.startDate || !filter?.endDate) return {};
@@ -372,7 +442,9 @@ export class ReceiptPaymentService {
     return receiptPayments;
   }
 
-  async findReceiptPaymentById(id: string): Promise<ReceiptPaymentResponse> {
+  async findReceiptPaymentById(id: string, currentUserId: string): Promise<ReceiptPaymentResponse> {
+    await this.assertReceiptPaymentAccessById(id, currentUserId);
+
     const receiptPayment = await this.prismaService.receiptPayment.findUnique({
       where: { id },
       ...receiptPaymentQueryArgs,
@@ -386,8 +458,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByProjectId(
-    projectId: string
+    projectId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ projectId });
+    await this.assertReceiptPaymentAccessByParent({ projectId }, currentUserId, null);
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { projectId },
       orderBy: {
@@ -400,8 +476,14 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByProjectIds(
-    projectIds: string[]
+    projectIds: string[],
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    for (const projectId of projectIds) {
+      await this.assertReceiptPaymentRelationsExist({ projectId });
+      await this.assertReceiptPaymentAccessByParent({ projectId }, currentUserId, null);
+    }
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { projectId: { in: projectIds } },
       orderBy: {
@@ -414,8 +496,14 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByInvoiceIds(
-    invoiceIds: string[]
+    invoiceIds: string[],
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    for (const invoiceId of invoiceIds) {
+      await this.assertReceiptPaymentRelationsExist({ invoiceId });
+      await this.assertReceiptPaymentAccessByParent({ invoiceId }, currentUserId, null);
+    }
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { invoiceId: { in: invoiceIds } },
       orderBy: {
@@ -428,8 +516,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByInvoiceId(
-    invoiceId: string
+    invoiceId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ invoiceId });
+    await this.assertReceiptPaymentAccessByParent({ invoiceId }, currentUserId, null);
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { invoiceId },
       orderBy: {
@@ -442,8 +534,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByTourCalculationId(
-    tourCalculationId: string
+    tourCalculationId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ tourCalculationId });
+    await this.assertReceiptPaymentAccessByParent({ tourCalculationId }, currentUserId, null);
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { tourCalculationId },
       orderBy: {
@@ -457,23 +553,21 @@ export class ReceiptPaymentService {
 
   async findReceiptPaymentsByTourImplementationId(
     tourImplementationId: string,
-    currentUserId: string
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
-    const memberAssigned =
-      await this.prismaService.memberAssignedTourImplementation.findFirst({
-        where: {
-          tourImplementationId,
-          organizationMember: { userId: currentUserId },
-        },
-      });
+    const memberAssigned = await this.prismaService.memberAssignedTourImplementation.findFirst({
+      where: {
+        tourImplementationId,
+        organizationMember: { userId: currentUserId },
+      },
+    });
 
-    const assignedUser =
-      await this.prismaService.userAssignedTourImplementation.findFirst({
-        where: {
-          tourImplementationAssignment: { tourImplementationId },
-          userId: currentUserId,
-        },
-      });
+    const assignedUser = await this.prismaService.userAssignedTourImplementation.findFirst({
+      where: {
+        tourImplementationAssignment: { tourImplementationId },
+        userId: currentUserId,
+      },
+    });
 
     if (!memberAssigned && !assignedUser) {
       throw new ReceiptPaymentTourImplementationAccessDeniedException();
@@ -492,9 +586,11 @@ export class ReceiptPaymentService {
       ];
     } else {
       // assignedUser only
-      if (assignedUser!.permissions.includes(TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ))
-        allowedGroupCodes = [RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE]
-      else allowedGroupCodes = []
+      if (
+        assignedUser!.permissions.includes(TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ)
+      )
+        allowedGroupCodes = [RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE];
+      else allowedGroupCodes = [];
     }
 
     if (allowedGroupCodes.length === 0) {
@@ -520,8 +616,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByTourSettlementId(
-    tourSettlementId: string
+    tourSettlementId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ tourSettlementId });
+    await this.assertReceiptPaymentAccessByParent({ tourSettlementId }, currentUserId, null);
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { tourSettlementId },
       orderBy: {
@@ -535,7 +635,7 @@ export class ReceiptPaymentService {
 
   async findReceiptPaymentsByOrganizationId(
     organizationId: string,
-    filter?: ReceiptPaymentFilterRequestInterface
+    filter?: ReceiptPaymentFilterRequestInterface,
   ): Promise<ReceiptPaymentResponse[]> {
     const dateFilterClause = (() => {
       if (!filter?.startDate || !filter?.endDate) return {};
@@ -561,8 +661,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByWageId(
-    wageId: string
+    wageId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ wageId });
+    await this.assertReceiptPaymentAccessByParent({ wageId }, currentUserId, null);
+
     return this.prismaService.receiptPayment.findMany({
       where: { wageId },
       orderBy: { createdAt: 'desc' },
@@ -571,8 +675,14 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByWageIds(
-    wageIds: string[]
+    wageIds: string[],
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    for (const wageId of wageIds) {
+      await this.assertReceiptPaymentRelationsExist({ wageId });
+      await this.assertReceiptPaymentAccessByParent({ wageId }, currentUserId, null);
+    }
+
     return this.prismaService.receiptPayment.findMany({
       where: { wageId: { in: wageIds } },
       orderBy: { createdAt: 'desc' },
@@ -581,8 +691,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByBookingId(
-    bookingId: string
+    bookingId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ bookingId });
+    await this.assertReceiptPaymentAccessByParent({ bookingId }, currentUserId, null);
+
     const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { bookingId },
       orderBy: {
@@ -595,8 +709,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByCarMaintenanceLogId(
-    carMaintenanceLogId: string
+    carMaintenanceLogId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ carMaintenanceLogId });
+    await this.assertReceiptPaymentAccessByParent({ carMaintenanceLogId }, currentUserId, null);
+
     return this.prismaService.receiptPayment.findMany({
       where: { carMaintenanceLogId },
       orderBy: { createdAt: 'desc' },
@@ -605,8 +723,12 @@ export class ReceiptPaymentService {
   }
 
   async findReceiptPaymentsByTripId(
-    tripId: string
+    tripId: string,
+    currentUserId: string,
   ): Promise<ReceiptPaymentResponse[]> {
+    await this.assertReceiptPaymentRelationsExist({ tripId });
+    await this.assertReceiptPaymentAccessByParent({ tripId }, currentUserId, null);
+
     return this.prismaService.receiptPayment.findMany({
       where: { tripId },
       orderBy: { createdAt: 'desc' },

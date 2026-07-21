@@ -10,7 +10,7 @@ A request takes **one** of three flows, decided by the route's plane
 | ------------------------------------------------------------- | ------------------------------------------ |
 | an organization's documents (`Booking`, `Invoice`, `Tour`, …) | **Flow 1** — `OrganizationPermissionGuard` |
 | a tour's execution (crew assignments)                         | **Flow 2** — `TourImplementationAccessGuard`             |
-| a `ReceiptPayment` mutation (plane depends on the parent)     | **Flow 3** — service-selected              |
+| a `ReceiptPayment` read/mutation or `Signature` mutation (decided in the service) | **Flow 3** — service-enforced        |
 
 > **Preconditions (all flows).** `JwtAuthGuard` has already proven the access JWT →
 > `req.user.userId`. There is **no** ambient organization: whatever scope a flow needs (the owning
@@ -208,29 +208,54 @@ sequenceDiagram
 
 ---
 
-## Flow 3 — Receipt payment (service-selected plane)
+## Flow 3 — Service-enforced routes
 
-A `ReceiptPayment` mutation route carries **only** `JwtAuthGuard` — no authorization guard — because
-which plane governs it depends on the parent the receipt payment attaches to, a fact known only once
-the service reads it ([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §7.4). The service makes the choice:
+Some routes carry **only** `JwtAuthGuard` — no authorization guard — because the deciding fact is
+known only once the service reads the record. Authorization runs inside the service. Two routes are
+in this class.
+
+### Flow 3a — Receipt payment (plane selected by the parent)
+
+Every `ReceiptPayment` route that touches a specific record — **reads and mutations alike** — carries
+**only** `JwtAuthGuard`, no authorization guard, because which plane governs it depends on the parent the
+receipt payment attaches to, a fact known only once the service reads it
+([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §7.4). On create the parent comes from the request
+body; on read/update/delete of a specific record it is read from the stored receipt payment; on a
+parent-collection read it is the URL's parent id. Read and write collapse to the **same** rule — who may
+see a receipt payment is exactly who may write it (the org plane checks ACTIVE membership, not a separate
+`READ` cell, so a read must never be stricter than the write it mirrors). Two methods share one
+plane-selection: `assertReceiptPaymentAccessByParent` (from a parent input) and
+`assertReceiptPaymentAccessById` (from an existing record):
 
 ```mermaid
 flowchart TD
-    A["POST /receipt-payment · JwtAuthGuard only"] --> B["createReceiptPayment (service)"]
-    B --> C{"which parent?"}
-    C -->|"tour implementation"| D["assertTourImplementationAccess<br/>(assigned OR org owner)"]
-    C -->|"booking / invoice / project"| E["ACTIVE member of the parent's organization"]
-    C -->|"none — personal"| F["caller is the creator"]
-    D -->|ok| G["create / update / delete"]
-    E -->|ok| G
-    F -->|ok| G
-    D -->|deny| X["403"]
-    E -->|deny| X
+    A["ReceiptPayment access<br/>read · create · update · delete<br/>· JwtAuthGuard only"] --> T{"has tourImplementationId?"}
+    T -->|"yes — priority"| TI["Tour ReBAC<br/>assertTourImplementationAccess · ASSIGNEE"]
+    T -->|no| S{"resolve parent → scope"}
+    S -->|"org parent"| OM["Org RBAC<br/>ACTIVE member of the parent's organization"]
+    S -->|"personal parent · org null"| PP["Ownership<br/>caller == parent's createdByUserId"]
+    S -->|"no parent"| PR["Ownership<br/>caller == receipt payment's own createdByUserId"]
 ```
 
-The same three planes as everywhere else — tour implementation access, organization RBAC, ownership — only the
-_selection_ is deferred to the service. This is the single place a route's plane is not fixed by its
-guards.
+Read it as a tree with four leaves, each leaf is a single check — pass → the request proceeds; fail → the service throws that plane's own 403
+(`TOUR_IMPLEMENTATION_ACCESS_DENIED` for the tour branch; `ORGANIZATION_NOT_MEMBER`,
+`ORGANIZATION_MEMBER_LOCKED`, or `ORGANIZATION_PERMISSION_DENIED` otherwise). This is the single place a route's plane is not fixed by its guards.
+
+### Flow 3b — Signature (per-operation edge, no org scope)
+
+A `Signature` mutation (`sign`, `cancel`, `update-url`) also carries **only** `JwtAuthGuard`, but for
+a different reason: a signature has no `organizationId` and no role matrix. Authority is a direct edge on the record — the caller must be the signature's
+`targetUserId`, or, when there is no target, its original `signedByUserId`. The rule differs per
+operation, so each service method enforces it on the signature it already loads, throwing
+`SignatureNotAuthorizedException` on a mismatch.
+
+Which caller may act, and the extra preconditions each operation adds:
+
+| Operation | Edge rule (who may act) | Extra preconditions in the service |
+| --- | --- | --- |
+| `update-url` (`PATCH /:id/url`) | `targetUserId` set → must be the target; otherwise any authenticated user | signature exists |
+| `sign` (`POST /:id/sign`) | same target-or-open rule | not already signed; a BOOKING receiver must be a member of the client organization; the sender must sign before the receiver |
+| `cancel` (`POST /:id/cancel`) | `targetUserId` set → must be the target; otherwise must be the original `signedByUserId` | document type is TOUR_CALCULATION / TOUR_SETTLEMENT / BOOKING only; a BOOKING must not be COMPLETED |
 
 ---
 
@@ -246,6 +271,7 @@ guards.
   ([ERROR-CODE-REFERENCE](../reference/ERROR-CODE-REFERENCE.md)). Separating them keeps "you are not
   in this organization" distinct from "your role lacks this cell" distinct from "you are not on this
   tour" — and the client owns the Vietnamese copy for each, keyed by code.
-- **One plane per route.** A route's guards fix its plane (Flow 1 or Flow 2); the sole exception is
-  the receipt-payment mutation, whose plane the service selects (Flow 3). No route runs two
+- **One plane per route.** A route's guards fix its plane (Flow 1 or Flow 2); the exceptions are the
+  service-enforced routes (Flow 3) — receipt-payment reads and mutations, whose plane the service selects, and
+  the signature mutation, whose per-operation edge the service checks directly. No route runs two
   authorization guards.

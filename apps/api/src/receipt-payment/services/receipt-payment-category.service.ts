@@ -63,6 +63,10 @@ export class ReceiptPaymentCategoryService {
       throw new ReceiptPaymentCategoryNotFoundException();
     }
 
+    if (existing.isSystem) {
+      throw new ReceiptPaymentCategorySystemReadonlyException();
+    }
+
     return this.prismaService.receiptPaymentCategory.update({
       where: { id },
       data: updateReq,

@@ -387,7 +387,11 @@ export class SignatureService {
     }
 
     // Only signer or target user can cancel the signature
-    if (!existingSignature.targetUserId && existingSignature.signedByUserId !== currentUserId) {
+    if (existingSignature.targetUserId) {
+      if (existingSignature.targetUserId !== currentUserId) {
+        throw new SignatureNotAuthorizedException();
+      }
+    } else if (existingSignature.signedByUserId !== currentUserId) {
       throw new SignatureNotAuthorizedException();
     }
 

@@ -20,6 +20,7 @@ import {
   OrganizationPermissionDeniedException,
 } from 'src/_common/exceptions/organization.exception';
 import { ProjectNotFoundException } from 'src/_common/exceptions/project.exception';
+import { ReceiptPaymentCategoryNotFoundException } from 'src/_common/exceptions/receipt-payment.exception';
 import {
   TourCalculationNotFoundException,
   TourImplementationNotFoundException,
@@ -177,6 +178,19 @@ export class OrganizationPermissionGuard implements CanActivate {
           throw new ProjectNotFoundException();
         }
         return project;
+      }
+      case PERMISSION_RESOURCE.RECEIPT_PAYMENT_CATEGORY: {
+        const receiptPaymentCategory = await this.prismaService.receiptPaymentCategory.findUnique({
+          where: { id: recordId },
+          select: { organizationId: true, userId: true },
+        });
+        if (!receiptPaymentCategory) {
+          throw new ReceiptPaymentCategoryNotFoundException();
+        }
+        return {
+          organizationId: receiptPaymentCategory.organizationId,
+          createdByUserId: receiptPaymentCategory.userId,
+        };
       }
 
       // Tour sub-entities resolve their organization through the parent tour id

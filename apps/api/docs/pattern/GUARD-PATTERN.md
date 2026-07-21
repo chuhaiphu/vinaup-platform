@@ -69,9 +69,10 @@ Request
 Route Handler
 ```
 
-If any guard fails, the remaining guards and the handler are skipped. The one exception to "exactly
-one authorization guard" is a receipt-payment mutation, which carries **only** `JwtAuthGuard` and
-selects its plane inside the service ([RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md) Flow 3).
+If any guard fails, the remaining guards and the handler are skipped. The exception to "exactly one
+authorization guard" is the service-enforced routes — receipt-payment reads and mutations (plane selected in
+the service) and a signature mutation (per-operation edge checked in the service) — each carrying
+**only** `JwtAuthGuard` ([RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md) Flow 3).
 
 This document covers the guard **mechanics** — the lifecycle, `JwtAuthGuard`, and how an
 authorization guard composes. The authorization **rules** each guard enforces live in
