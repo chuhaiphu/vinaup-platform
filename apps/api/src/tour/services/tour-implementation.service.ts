@@ -63,7 +63,7 @@ export class TourImplementationService {
     if (!tourImplementation) {
       throw new TourImplementationNotFoundException();
     }
-    const canEdit = await this.tourImplementationAccessService.isMemberAssigned(
+    const canEdit = await this.tourImplementationAccessService.canManage(
       tourImplementation.id,
       currentUserId,
     );
@@ -131,7 +131,7 @@ export class TourImplementationService {
         organizationMember: true,
       },
     });
-    const canEdit = await this.tourImplementationAccessService.isMemberAssigned(
+    const canEdit = await this.tourImplementationAccessService.canManage(
       tourImplementationId,
       currentUserId,
     );

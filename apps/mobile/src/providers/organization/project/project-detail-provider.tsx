@@ -10,6 +10,7 @@ import {
 } from '@/apis/project/project-apis';
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
 import { ProjectResponse, UpdateProjectRequest } from '@/interfaces/project-interfaces';
+import { OrganizationAbilityProvider } from '@/providers/organization/organization-ability-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface ProjectDetailContextType {
@@ -119,7 +120,9 @@ export function ProjectDetailProvider({
         refreshProject,
       }}
     >
-      {children}
+      <OrganizationAbilityProvider organizationId={project.organizationId ?? ''}>
+        {children}
+      </OrganizationAbilityProvider>
     </ProjectDetailContext>
   );
 }

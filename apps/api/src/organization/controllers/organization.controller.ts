@@ -18,6 +18,7 @@ import type {
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { CreateOrganizationRequest } from '../dtos/create-organization.request.dto';
+import type { OrganizationAbilityResponse } from '../dtos/organization-ability.response.dto';
 import type { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
 import type { OrganizationResponse } from '../dtos/organization.response.dto';
 import { UpdateOrganizationRequest } from '../dtos/update-organization.request.dto';
@@ -60,6 +61,23 @@ export class OrganizationController {
     return {
       statusCode: HttpStatus.OK,
       message: 'All organizations retrieved successfully',
+      data,
+    };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('/:id/my-ability')
+  async findMyAbility(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest
+  ): Promise<HttpResponse<OrganizationAbilityResponse>> {
+    const data = await this.organizationService.getMyAbilityInOrganization(
+      id,
+      req.user.userId
+    );
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Organization ability retrieved successfully',
       data,
     };
   }

@@ -1,5 +1,6 @@
 import Entypo from '@react-native-vector-icons/entypo/static';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
 import { Suspense, useRef, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
@@ -31,6 +32,7 @@ import { useScreenHeader } from '@/hooks/use-screen-header';
 import { ReceiptPaymentListInBookingProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-booking-provider';
 import { useBookingDetailContext } from '@/providers/organization/booking/booking-detail-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 
 const bookingStatusBadgeVariant: Record<BookingStatus, BadgeVariant> = {
   [BOOKING_STATUS.DRAFT]: BADGE_VARIANT.GRAY,
@@ -53,8 +55,12 @@ export function BookingDetailScreenContent() {
     refreshBooking,
     refreshSignatures,
   } = useBookingDetailContext();
+  const { can } = useOrganizationAbility();
   const receiptListRef = useRef<ReceiptPaymentListInBookingRef>(null);
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
+
+  const canUpdate = canEdit && can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.BOOKING);
+  const canDelete = canEdit && can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.BOOKING);
 
   const bookingStatus = booking.status ?? BOOKING_STATUS.DRAFT;
 
@@ -85,8 +91,8 @@ export function BookingDetailScreenContent() {
 
   useScreenHeader({
     title: 'Chi tiết Booking',
-    onDelete: canEdit ? handleDeleteBooking : undefined,
-    onSave: canEdit ? handleSaveAndExit : undefined,
+    onDelete: canDelete ? handleDeleteBooking : undefined,
+    onSave: canUpdate ? handleSaveAndExit : undefined,
     isDeleting: isDeletingBooking,
   });
 

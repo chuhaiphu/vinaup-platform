@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useGlobalSearchParams, useRouter } from 'expo-router';
 import { prefetch } from 'fetchwire';
 import React, { useState } from 'react';
@@ -10,6 +11,7 @@ import { Button } from '@/components/primitives/button';
 import { SegmentedControl, SegmentedControlItem } from '@/components/primitives/segmented-control';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
@@ -28,6 +30,7 @@ const OrganizationCarHeaderBottom = () => {
 
   const [localView, setLocalView] = useState<CarViewCode>(currentView);
 
+  const { can } = useOrganizationAbility();
   const { createCar, isCreatingCar, createTrip, isCreatingTrip } = useOrganizationActionsContext();
 
   const handleSegmentChange = (value: CarViewCode) => router.setParams({ carView: value });
@@ -86,6 +89,11 @@ const OrganizationCarHeaderBottom = () => {
   // create the same entity type the user is currently looking at.
   const handleAddNew = currentView === 'trips' ? handleAddNewTrip : handleAddNewCar;
 
+  const canAddCurrentView =
+    currentView === 'trips'
+      ? can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.TRIP)
+      : can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.CAR);
+
   return (
     <View style={styles.bottomContainer}>
       <View style={styles.segmentWrapper}>
@@ -100,13 +108,15 @@ const OrganizationCarHeaderBottom = () => {
           }}
         />
       </View>
-      <Button
-        onPress={handleAddNew}
-        isLoading={isCreatingCar || isCreatingTrip}
-        loaderStyle={{ size: 30 }}
-      >
-        <VinaupAddNew width={30} height={30} />
-      </Button>
+      {canAddCurrentView && (
+        <Button
+          onPress={handleAddNew}
+          isLoading={isCreatingCar || isCreatingTrip}
+          loaderStyle={{ size: 30 }}
+        >
+          <VinaupAddNew width={30} height={30} />
+        </Button>
+      )}
     </View>
   );
 };

@@ -1,5 +1,6 @@
 import Entypo from '@react-native-vector-icons/entypo/static';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
@@ -30,6 +31,7 @@ import { useScreenHeader } from '@/hooks/use-screen-header';
 import { ReceiptPaymentListInInvoiceProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-invoice-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
 import { useInvoiceDetailContext } from '@/providers/organization/invoice/invoice-detail-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 
 export function InvoiceDetailScreenContent() {
   const {
@@ -42,6 +44,7 @@ export function InvoiceDetailScreenContent() {
     handleDelete,
     refreshInvoice,
   } = useInvoiceDetailContext();
+  const { can } = useOrganizationAbility();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const sheetRef = useRef<SlideSheetRef>(null);
   const receiptListRef = useRef<ReceiptPaymentListInInvoiceRef>(null);
@@ -69,8 +72,12 @@ export function InvoiceDetailScreenContent() {
   useScreenHeader({
     title:
       'Chi tiết' + ' ' + (invoice.invoiceType.description ? invoice.invoiceType.description : ''),
-    onDelete: handleDeleteInvoice,
-    onSave: handleSaveAndExit,
+    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE)
+      ? handleDeleteInvoice
+      : undefined,
+    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.INVOICE)
+      ? handleSaveAndExit
+      : undefined,
     isDeleting: isDeletingInvoice,
   });
 

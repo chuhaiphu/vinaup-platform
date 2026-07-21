@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter, useGlobalSearchParams } from 'expo-router';
 import { prefetch } from 'fetchwire';
 import React from 'react';
@@ -8,6 +9,7 @@ import VinaupAddNew from '@/components/icons/vinaup-add-new.native';
 import { Button } from '@/components/primitives/button';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
@@ -18,6 +20,7 @@ const OrganizationProjectHeaderBottom = () => {
     organizationId: string;
   }>();
 
+  const { can } = useOrganizationAbility();
   const { createProject, isCreatingProject: isMutating } = useOrganizationActionsContext();
 
   const handleAddNew = () => {
@@ -54,6 +57,8 @@ const OrganizationProjectHeaderBottom = () => {
       },
     );
   };
+
+  if (!can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.PROJECT)) return null;
 
   return (
     <View style={styles.bottomContainer}>

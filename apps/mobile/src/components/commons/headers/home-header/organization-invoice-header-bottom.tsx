@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter, useGlobalSearchParams } from 'expo-router';
 import { prefetch } from 'fetchwire';
 import React, { useState } from 'react';
@@ -10,6 +11,7 @@ import { SegmentedControl, SegmentedControlItem } from '@/components/primitives/
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { useInvoiceTypeContext } from '@/providers/organization/invoice/invoice-type-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
@@ -31,6 +33,7 @@ const OrganizationInvoiceHeaderBottom = () => {
 
   const [localCode, setLocalCode] = useState<InvoiceTypeCode>(currentCode);
 
+  const { can } = useOrganizationAbility();
   const { getInvoiceTypeByCode } = useInvoiceTypeContext();
   const { createInvoice, isCreatingInvoice: isMutating } = useOrganizationActionsContext();
 
@@ -80,9 +83,11 @@ const OrganizationInvoiceHeaderBottom = () => {
           }}
         />
       </View>
-      <Button onPress={handleAddNew} isLoading={isMutating} loaderStyle={{ size: 30 }}>
-        <VinaupAddNew width={30} height={30} />
-      </Button>
+      {can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.INVOICE) && (
+        <Button onPress={handleAddNew} isLoading={isMutating} loaderStyle={{ size: 30 }}>
+          <VinaupAddNew width={30} height={30} />
+        </Button>
+      )}
     </View>
   );
 };

@@ -1,17 +1,26 @@
 import { Injectable } from '@nestjs/common';
-import { DEFAULT_ROLE_PERMISSIONS } from '@vinaup-platform/permission';
+import {
+  DEFAULT_ROLE_PERMISSIONS,
+  type PermissionAction,
+  type PermissionResource,
+} from '@vinaup-platform/permission';
 import type {
   CreateOrganizationRequestInterface,
   UpdateOrganizationRequestInterface,
 } from '@vinaup-platform/validation';
 
 import {
+  ORGANIZATION_MEMBER_STATUS,
   ORGANIZATION_ROLE_CODE,
   ORGANIZATION_ROLE_DESCRIPTION,
 } from 'src/_common/constants/organization.constant';
-import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
+import {
+  OrganizationNotFoundException,
+  OrganizationNotMemberException,
+} from 'src/_common/exceptions/organization.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
 
+import type { OrganizationAbilityResponse } from '../dtos/organization-ability.response.dto';
 import type { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
 import { organizationQueryArgs, type OrganizationResponse } from '../dtos/organization.response.dto';
 
@@ -59,6 +68,48 @@ export class OrganizationService {
 
     const counts = await this.getOrganizationMemberCounts(id);
     return { ...existingOrganization, ...counts };
+  }
+
+  async getMyAbilityInOrganization(
+    organizationId: string,
+    userId: string,
+  ): Promise<OrganizationAbilityResponse> {
+    const member = await this.prismaService.organizationMember.findFirst({
+      where: { userId, organizationId },
+      select: {
+        status: true,
+        organizationRole: {
+          select: {
+            code: true,
+            organizationRolePermissions: {
+              select: {
+                organizationPermission: { select: { action: true, resource: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!member) {
+      throw new OrganizationNotMemberException();
+    }
+
+    const roleCode = member.organizationRole.code;
+    // A LOCKED member is denied every action by the guard — return no permissions so the client
+    // hides all action affordances, matching what the server would enforce.
+    const permissions: OrganizationAbilityResponse['permissions'] =
+      member.status === ORGANIZATION_MEMBER_STATUS.LOCKED
+        ? []
+        : member.organizationRole.organizationRolePermissions.map((row) => ({
+            action: row.organizationPermission.action as PermissionAction,
+            resource: row.organizationPermission.resource as PermissionResource,
+          }));
+
+    return {
+      roleCode,
+      isOwner: roleCode === ORGANIZATION_ROLE_CODE.OWNER,
+      permissions,
+    };
   }
 
   async findOrganizationIndustries(): Promise<OrganizationIndustryResponse[]> {

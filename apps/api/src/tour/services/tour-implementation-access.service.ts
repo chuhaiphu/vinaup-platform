@@ -53,6 +53,20 @@ export class TourImplementationAccessService {
     throw new TourImplementationAccessDeniedException();
   }
 
+  async canManage(tourImplementationId: string, userId: string): Promise<boolean> {
+    const implementation = await this.prismaService.tourImplementation.findUnique({
+      where: { id: tourImplementationId },
+      select: { tour: { select: { organizationId: true } } },
+    });
+    if (!implementation) {
+      return false;
+    }
+    if (await this.isOrganizationOwner(implementation.tour.organizationId, userId)) {
+      return true;
+    }
+    return this.isMemberAssigned(tourImplementationId, userId);
+  }
+
   // An organization member assigned to run this implementation (a member-assigned row).
   async isMemberAssigned(tourImplementationId: string, userId: string): Promise<boolean> {
     const count = await this.prismaService.memberAssignedTourImplementation.count({

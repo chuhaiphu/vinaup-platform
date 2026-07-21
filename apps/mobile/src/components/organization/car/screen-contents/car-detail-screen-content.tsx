@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -13,9 +14,11 @@ import { COLORS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { useScreenHeader } from '@/hooks/use-screen-header';
 import { useCarDetailContext } from '@/providers/organization/car/car-detail-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 
 export function CarDetailScreenContent() {
   const { isRefreshingCar, isDeletingCar, refreshCar, handleDelete } = useCarDetailContext();
+  const { can } = useOrganizationAbility();
   const router = useRouter();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const handleDeleteCar = () =>
@@ -31,8 +34,8 @@ export function CarDetailScreenContent() {
 
   useScreenHeader({
     title: 'Chi tiết xe',
-    onDelete: handleDeleteCar,
-    onSave: handleSaveAndExit,
+    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.CAR) ? handleDeleteCar : undefined,
+    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.CAR) ? handleSaveAndExit : undefined,
     isDeleting: isDeletingCar,
   });
 

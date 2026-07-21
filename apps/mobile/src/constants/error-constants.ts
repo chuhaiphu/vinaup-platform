@@ -57,7 +57,7 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   RECEIPT_PAYMENT_NOT_FOUND: 'Không tìm thấy khoản thu/chi.',
   RECEIPT_PAYMENT_CATEGORY_NOT_FOUND: 'Không tìm thấy phân loại thu/chi.',
   RECEIPT_PAYMENT_CATEGORY_SYSTEM_READONLY: 'Phân loại hệ thống không thể sửa hoặc xoá.',
-  RECEIPT_PAYMENT_NOT_TOUR_PARTICIPANT:
+  RECEIPT_PAYMENT_TOUR_IMPLEMENTATION_ACCESS_DENIED:
     'Bạn không tham gia điều hành tour này nên không thể thao tác thu/chi.',
 
   // ─── Tour ────────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   TOUR_CALCULATION_NOT_FOUND: 'Không tìm thấy bảng tính giá.',
   TOUR_CALCULATION_CANCEL_LOG_NOT_FOUND: 'Không tìm thấy nhật ký huỷ tính giá.',
   TOUR_IMPLEMENTATION_NOT_FOUND: 'Không tìm thấy phần điều hành tour.',
-  TOUR_IMPLEMENTATION_NOT_ASSIGNED: 'Bạn không phụ trách điều hành tour này.',
+  TOUR_IMPLEMENTATION_ACCESS_DENIED: 'Bạn không phụ trách điều hành tour này.',
   TOUR_IMPLEMENTATION_CANNOT_REMOVE_SELF: 'Bạn không thể tự xoá mình khỏi điều hành tour.',
   TOUR_IMPLEMENTATION_CANNOT_REMOVE_CREATOR: 'Không thể xoá người tạo khỏi điều hành tour.',
   TOUR_IMPLEMENTATION_ASSIGNED_USER_NOT_FOUND: 'Không tìm thấy người được mời vào điều hành tour.',

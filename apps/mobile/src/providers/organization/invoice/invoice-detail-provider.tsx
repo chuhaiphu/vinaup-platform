@@ -10,6 +10,7 @@ import {
 } from '@/apis/invoice/invoice-apis';
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
 import { InvoiceResponse, UpdateInvoiceRequest } from '@/interfaces/invoice-interfaces';
+import { OrganizationAbilityProvider } from '@/providers/organization/organization-ability-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface InvoiceDetailContextType {
@@ -119,7 +120,9 @@ export function InvoiceDetailProvider({
         refreshInvoice,
       }}
     >
-      {children}
+      <OrganizationAbilityProvider organizationId={invoice.organizationId ?? ''}>
+        {children}
+      </OrganizationAbilityProvider>
     </InvoiceDetailContext>
   );
 }

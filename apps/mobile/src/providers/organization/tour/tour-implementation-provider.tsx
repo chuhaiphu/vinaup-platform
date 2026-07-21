@@ -1,3 +1,4 @@
+import { TOUR_ASSIGNMENT_PERMISSION } from '@vinaup-platform/permission';
 import { useFetch, useMutationFn, type ApiError } from 'fetchwire';
 import { createContext, useContext } from 'react';
 
@@ -109,10 +110,12 @@ export function TourImplementationProvider({
 
   const canViewTourGuideReceiptPayments =
     isMemberAssigned ||
-    currentUserAssignedPermissions.includes('RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ');
+    currentUserAssignedPermissions.includes(
+      TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ,
+    );
 
-  const canViewBooking =
-    isMemberAssigned || currentUserAssignedPermissions.includes('BOOKING_READ');
+  // Booking view follows crew-management access — no per-assignment grant widens it.
+  const canViewBooking = isMemberAssigned;
 
   const { executeMutationFn: execUpdateImplementation, isMutating: isUpdatingImplementation } =
     useMutationFn(

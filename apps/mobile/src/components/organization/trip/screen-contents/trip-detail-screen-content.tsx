@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
 import { Suspense, useRef } from 'react';
 import {
@@ -31,6 +32,7 @@ import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { useScreenHeader } from '@/hooks/use-screen-header';
 import { ReceiptPaymentListInTripProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-trip-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { TripAssignmentListProvider } from '@/providers/organization/trip/trip-assignment-list-provider';
 import { useTripDetailContext } from '@/providers/organization/trip/trip-detail-provider';
 
@@ -53,6 +55,7 @@ export function TripDetailScreenContent() {
     handleDelete,
     refreshTrip,
   } = useTripDetailContext();
+  const { can } = useOrganizationAbility();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
 
   function handleDeleteTrip() {
@@ -75,8 +78,10 @@ export function TripDetailScreenContent() {
 
   useScreenHeader({
     title: 'Chi tiết chuyến',
-    onDelete: handleDeleteTrip,
-    onSave: handleSaveAndExit,
+    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TRIP)
+      ? handleDeleteTrip
+      : undefined,
+    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TRIP) ? handleSaveAndExit : undefined,
     isDeleting: isDeletingTrip,
   });
 

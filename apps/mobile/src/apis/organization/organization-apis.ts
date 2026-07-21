@@ -3,12 +3,19 @@ import { wireApi } from 'fetchwire';
 import { OrganizationIndustryResponse } from '@/interfaces/organization-industry-interfaces';
 import {
   CreateOrganizationRequest,
+  OrganizationAbilityResponse,
   OrganizationResponse,
   UpdateOrganizationRequest,
 } from '@/interfaces/organization-interfaces';
 
 export async function getOrganizationsOfCurrentUser() {
   return wireApi<OrganizationResponse[]>('/organization', {
+    method: 'GET',
+  });
+}
+
+export async function getMyAbilityInOrganization(id: string) {
+  return wireApi<OrganizationAbilityResponse>(`/organization/${id}/my-ability`, {
     method: 'GET',
   });
 }

@@ -590,20 +590,3 @@ Classifying a route is a single question: **does its authority come from an orga
 from a tour assignment?** Organization documents → RBAC (§6). Tour execution → tour implementation access.
 
 ---
-
-## 8. The client side (summary)
-
-The mobile app is a member of many organizations, so — unlike a single-tenant client — it cannot
-hold one flat permission set on the user. It builds the ability **per organization**: on entering
-an organization it feeds that organization's role permissions
-(`organizationRole.organizationRolePermissions`, `action` + `resource` only) into the **same**
-`getUserAbility` and uses `can()` to hide navigation, gate screens, and show/hide action buttons.
-
-Tour-execution UI is gated by the **other** plane: the client hides crew-management and tour
-receipt-payment actions unless the current user is a tour participant (or the org owner) — the same
-question §7 enforces on the server.
-
-Both are UX, not security: the guards above are the only enforcement, and every client check can be
-wrong without a row leaking. Note that `meta.canEdit` on some responses is **business state** (e.g. a
-booking already signed can no longer be edited), computed by the service — not a permission; the
-three are decided separately and must not be conflated.

@@ -66,6 +66,8 @@ A frozen `as const` object with its type *derived* from it so value and type can
 
 A **domain (wire) enum referenced by a shared Zod schema is declared once in `@vinaup-platform/validation` and imported** — never re-declared on the device (§6), so it can't drift from the API. A wire enum **not** referenced by any schema (a plain-string column the API mirrors from its own `_common/constants/`) is mirrored on the device by hand in the same shape, kept in sync with the API constant.
 
+**Authorization vocabulary** — the RBAC axes (`PERMISSION_ACTION`, `PERMISSION_RESOURCE`) and the ReBAC tour-participation strings (`TOUR_IMPLEMENTATION_MEMBER_ROLE`, `TOUR_IMPLEMENTATION_USER_ROLE`, `RECEIPT_PAYMENT_GROUP_CODE`, `TOUR_ASSIGNMENT_PERMISSION`) — is declared once in `@vinaup-platform/permission` and imported by both API and device, same as validation wire enums. Never re-declare an authorization string on the device. See [UI Action Gating Pattern](pattern/UI-ACTION-GATING-PATTERN.md).
+
 ```ts
 export const BOOKING_STATUS = {
   DRAFT: 'DRAFT',

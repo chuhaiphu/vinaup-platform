@@ -1,3 +1,8 @@
+import {
+  RECEIPT_PAYMENT_GROUP_CODE,
+  type ReceiptPaymentGroupCode,
+} from '@vinaup-platform/permission';
+
 // Wire enums referenced by shared Zod schemas live in the package (§1.3).
 export {
   RECEIPT_PAYMENT_DEPOSIT_TYPE,
@@ -10,12 +15,8 @@ export type {
   ReceiptPaymentType,
 } from '@vinaup-platform/validation';
 
-export const RECEIPT_PAYMENT_GROUP_CODE = {
-  FOR_DIRECTOR: 'FOR_DIRECTOR',
-  FOR_TOUR_GUIDE: 'FOR_TOUR_GUIDE',
-} as const;
-export type ReceiptPaymentGroupCode =
-  (typeof RECEIPT_PAYMENT_GROUP_CODE)[keyof typeof RECEIPT_PAYMENT_GROUP_CODE];
+export { RECEIPT_PAYMENT_GROUP_CODE };
+export type { ReceiptPaymentGroupCode };
 
 export const ReceiptPaymentGroupCodeDisplay: Record<ReceiptPaymentGroupCode, string> = {
   [RECEIPT_PAYMENT_GROUP_CODE.FOR_DIRECTOR]: 'Điều hành',

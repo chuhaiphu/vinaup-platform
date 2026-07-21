@@ -49,6 +49,8 @@ export const FETCH_TAG = {
   tourSettlementByTourId: (tourId: string) => `tour-settlement-${tourId}`,
   personalProjectByProjectId: (projectId: string) => `personal-project-${projectId}`,
   personalWageByWageId: (wageId: string) => `personal-wage-${wageId}`,
+  organizationAbilityByOrganizationId: (organizationId: string) =>
+    `organization-ability-${organizationId}`,
 
   // ── C. Child-list tags (dynamic, parent id) ────────────────────────────────
   receiptPaymentListInTripByTripId: (tripId: string) =>

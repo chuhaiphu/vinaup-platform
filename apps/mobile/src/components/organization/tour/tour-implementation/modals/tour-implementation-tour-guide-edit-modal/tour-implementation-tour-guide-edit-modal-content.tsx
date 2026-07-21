@@ -1,4 +1,5 @@
 import Ionicons from '@react-native-vector-icons/ionicons/static';
+import { TOUR_ASSIGNMENT_PERMISSION } from '@vinaup-platform/permission';
 import { useFetchFn } from 'fetchwire';
 import { useEffect, useImperativeHandle, useState } from 'react';
 import {
@@ -223,34 +224,22 @@ export function TourImplementationTourGuideEditModalContent({
           <View style={styles.permissionsRow}>
             <PressableOpacity
               style={styles.permissionItem}
-              onPress={() => togglePermission('BOOKING_READ')}
-            >
-              <Text style={styles.permissionLabel}>Xem Booking</Text>
-              <View
-                style={[
-                  styles.checkbox,
-                  permissions.includes('BOOKING_READ') && styles.checkboxChecked,
-                ]}
-              >
-                {permissions.includes('BOOKING_READ') && (
-                  <VinaupDoubleCheck color={COLORS.orange500} />
-                )}
-              </View>
-            </PressableOpacity>
-            <PressableOpacity
-              style={styles.permissionItem}
-              onPress={() => togglePermission('RECEIPT_PAYMENT_TOUR_READ')}
+              onPress={() =>
+                togglePermission(TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ)
+              }
             >
               <Text style={styles.permissionLabel}>Xem Dự toán HDV</Text>
               <View
                 style={[
                   styles.checkbox,
-                  permissions.includes('RECEIPT_PAYMENT_TOUR_READ') && styles.checkboxChecked,
+                  permissions.includes(
+                    TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ,
+                  ) && styles.checkboxChecked,
                 ]}
               >
-                {permissions.includes('RECEIPT_PAYMENT_TOUR_READ') && (
-                  <VinaupDoubleCheck color={COLORS.orange500} />
-                )}
+                {permissions.includes(
+                  TOUR_ASSIGNMENT_PERMISSION.RECEIPT_PAYMENT_FOR_TOUR_GUIDE_READ,
+                ) && <VinaupDoubleCheck color={COLORS.orange500} />}
               </View>
             </PressableOpacity>
           </View>

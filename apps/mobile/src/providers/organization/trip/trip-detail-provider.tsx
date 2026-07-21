@@ -10,6 +10,7 @@ import {
 } from '@/apis/trip/trip-apis';
 import { FETCH_TAG, getTripRippleTags } from '@/constants/fetch-tag-constants';
 import { TripResponse, UpdateTripRequest } from '@/interfaces/trip-interfaces';
+import { OrganizationAbilityProvider } from '@/providers/organization/organization-ability-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface TripDetailContextType {
@@ -120,7 +121,9 @@ export function TripDetailProvider({
         refreshTrip,
       }}
     >
-      {children}
+      <OrganizationAbilityProvider organizationId={trip.organizationId}>
+        {children}
+      </OrganizationAbilityProvider>
     </TripDetailContext>
   );
 }

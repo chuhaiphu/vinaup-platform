@@ -16,6 +16,7 @@ import {
 import { getBookingRippleTags, FETCH_TAG } from '@/constants/fetch-tag-constants';
 import { BookingWithMeta, UpdateBookingRequest } from '@/interfaces/booking-interfaces';
 import { SignatureResponse } from '@/interfaces/signature-interfaces';
+import { OrganizationAbilityProvider } from '@/providers/organization/organization-ability-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface BookingDetailContextType {
@@ -193,7 +194,9 @@ export function BookingDetailProvider({
         isCancelingBooking,
       }}
     >
-      {children}
+      <OrganizationAbilityProvider organizationId={booking.organizationId}>
+        {children}
+      </OrganizationAbilityProvider>
     </BookingDetailContext>
   );
 }

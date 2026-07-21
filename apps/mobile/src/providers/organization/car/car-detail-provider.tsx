@@ -16,6 +16,7 @@ import {
   CarResponse,
   UpdateCarRequest,
 } from '@/interfaces/car-interfaces';
+import { OrganizationAbilityProvider } from '@/providers/organization/organization-ability-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface CarDetailContextType {
@@ -167,7 +168,9 @@ export function CarDetailProvider({
         fetchAssignmentHistory,
       }}
     >
-      {children}
+      <OrganizationAbilityProvider organizationId={car.organizationId}>
+        {children}
+      </OrganizationAbilityProvider>
     </CarDetailContext>
   );
 }

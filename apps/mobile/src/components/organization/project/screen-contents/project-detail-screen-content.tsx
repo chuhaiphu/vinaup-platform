@@ -1,3 +1,4 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
@@ -26,6 +27,7 @@ import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { useScreenHeader } from '@/hooks/use-screen-header';
 import { ReceiptPaymentListInProjectProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-project-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { useProjectDetailContext } from '@/providers/organization/project/project-detail-provider';
 
 import { ProjectDetailHeader } from '../detail/project-detail-header';
@@ -41,6 +43,7 @@ export function ProjectDetailScreenContent() {
     handleDelete,
     refreshProject,
   } = useProjectDetailContext();
+  const { can } = useOrganizationAbility();
   const router = useRouter();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const sheetRef = useRef<SlideSheetRef>(null);
@@ -68,9 +71,13 @@ export function ProjectDetailScreenContent() {
 
   useScreenHeader({
     title: 'Chi tiết Dự án',
-    onDelete: handleDeleteProject,
+    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT)
+      ? handleDeleteProject
+      : undefined,
     isDeleting: isDeletingProject,
-    onSave: handleSaveAndExit,
+    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.PROJECT)
+      ? handleSaveAndExit
+      : undefined,
   });
 
   return (
