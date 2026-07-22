@@ -8,7 +8,7 @@ Don't Repeat Yourself is a software design principle stating that every piece of
 
 ### 1. `as const` objects + derived union type
 
-Enumerated string values are declared once as a frozen object, and the matching TypeScript type is *derived* from that object — so the values and the type can never drift apart. An enum referenced by a shared Zod schema lives in `@vinaup-platform/validation` (`src/constants/`); an API-only enum lives in `src/_common/constants/`.
+Enumerated string values are declared once as a frozen object, and the matching TypeScript type is _derived_ from that object — so the values and the type can never drift apart. An enum referenced by a shared Zod schema lives in `@vinaup-platform/validation` (`src/constants/`); an API-only enum lives in `src/_common/constants/`.
 
 ```ts
 // packages/validation/src/constants/booking.constant.ts
@@ -41,28 +41,29 @@ Cross-cutting request shapes live in `packages/validation/src/zod-schemas/_share
 // _shared/date-filter.schema.ts — used by every list endpoint that filters by date range.
 // A field SET (not a schema): a spread copies fields but never refinements, so the
 // cross-field rule ships separately and each filter schema attaches it last.
-export const dateFilterFields = {
+export const dateInstanceFilterFields = {
   startDate: z.iso.datetime().optional(),
   endDate: z.iso.datetime().optional(),
 };
 
-export const assertDateRangeComplete = (value, ctx) => {
-  /* both-or-neither: each end is required as soon as the other is provided */
-};
+// both-or-neither: each end is required as soon as the other is provided —
+// two predicates, so each filter schema attaches them as two plain .refine() checks.
+export const isStartDatePresentWhenEndDate = (value) => !value.endDate || Boolean(value.startDate);
+export const isEndDatePresentWhenStartDate = (value) => !value.startDate || Boolean(value.endDate);
 ```
 
 ### 4. Reusable schema fragments & existence checks
 
-Recurring field rules are written once as Zod fragments and composed into request schemas (e.g. the shared `VN_PHONE_REGEX`, `dateFilterFields`). Existence checks ("does this id exist?") are **not** duplicated as a per-field rule — they live once in the service/guard that owns the entity. → [Validation Pattern](../pattern/VALIDATION-PATTERN.md)
+Recurring field rules are written once as Zod fragments and composed into request schemas (e.g. the shared `VN_PHONE_REGEX`, `dateInstanceFilterFields`). Existence checks ("does this id exist?") are **not** duplicated as a per-field rule — they live once in the service/guard that owns the entity. → [Validation Pattern](../pattern/VALIDATION-PATTERN.md)
 
 ### 5. Shared pure helpers in `_common/utils/`
 
 Logic that recurs is extracted into `src/_common/utils/`, organised by concern:
 
-| Subdirectory | Concern |
-|--------------|---------|
-| `generator/` | building a value/clause (e.g. `generate-date-overlap-clause.ts`) |
-| `generator/string-generator/` | string formatting (e.g. `generate-unique-code.ts`) |
+| Subdirectory                  | Concern                                                          |
+| ----------------------------- | ---------------------------------------------------------------- |
+| `generator/`                  | building a value/clause (e.g. `generate-date-overlap-clause.ts`) |
+| `generator/string-generator/` | string formatting (e.g. `generate-unique-code.ts`)               |
 
 → [Coding Convention §2.3](../CODING-CONVENTION.md)
 
@@ -85,4 +86,3 @@ When a piece of knowledge lives in one place, fixing a bug or changing behaviour
 7. **Do not DRY intentionally verbose.** For code that needs explicit repetition to be readable and debuggable without tracing any abstraction, this is intentional verbosity, not a DRY violation.
 
 ---
-

@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { BOOKING_STATUS } from '../constants/booking.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const bookingFields = z.strictObject({
@@ -20,18 +21,25 @@ const bookingFields = z.strictObject({
 });
 
 export const createBookingSchema = bookingFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
 export const updateBookingSchema = bookingFields.partial().refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
 export const bookingFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     status: z.enum(BOOKING_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

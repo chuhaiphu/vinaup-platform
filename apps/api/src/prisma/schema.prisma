@@ -34,8 +34,8 @@ model User {
   createdOrganizationCustomers OrganizationCustomer[] @relation("CreatedByUserOrganizationCustomer")
   socialLinks                  SocialLink[]           @relation("UserSocialLink")
 
-  organizationMembers              OrganizationMember[]            @relation("UserOrganizationMember")
-  organizationCustomers            OrganizationCustomer[]          @relation("ClientUserOrganizationCustomer")
+  organizationMembers              OrganizationMember[]             @relation("UserOrganizationMember")
+  organizationCustomers            OrganizationCustomer[]           @relation("ClientUserOrganizationCustomer")
   invoices                         Invoice[]
   tours                            Tour[]
   tourCalculations                 TourCalculation[]
@@ -45,12 +45,12 @@ model User {
   bookings                         Booking[]
   trips                            Trip[]
   cars                             Car[]
-  signedSignatures                 Signature[]                     @relation("SignedByUserSignatures")
-  targetSignatures                 Signature[]                     @relation("TargetUserSignatures")
+  signedSignatures                 Signature[]                      @relation("SignedByUserSignatures")
+  targetSignatures                 Signature[]                      @relation("TargetUserSignatures")
   createdTourCalculationCancelLogs TourCalculationCancelLog[]
   createdTourSettlementCancelLogs  TourSettlementCancelLog[]
-  projectCategories                ProjectCategory[]               @relation("UserProjectCategories")
-  receiptPaymentCategories         ReceiptPaymentCategory[]        @relation("UserReceiptPaymentCategories")
+  projectCategories                ProjectCategory[]                @relation("UserProjectCategories")
+  receiptPaymentCategories         ReceiptPaymentCategory[]         @relation("UserReceiptPaymentCategories")
   wages                            Wage[]
 }
 
@@ -98,6 +98,7 @@ model Organization {
   province                   String
   organizationIndustryId     String
   organizationIndustry       OrganizationIndustry     @relation(fields: [organizationIndustryId], references: [id])
+  timezone                   String                   @default("Asia/Ho_Chi_Minh")
   createdAt                  DateTime                 @default(now()) @db.Timestamptz(3)
   updatedAt                  DateTime                 @updatedAt @db.Timestamptz(3)
   createdByUserId            String?
@@ -116,6 +117,8 @@ model Organization {
   bookings                   Booking[]                @relation("OfOrganization")
   trips                      Trip[]
   cars                       Car[]
+  attendanceRecords          AttendanceRecord[]
+  attendanceConclusions      AttendanceConclusion[]
 }
 
 model OrganizationIndustry {
@@ -147,9 +150,56 @@ model OrganizationMember {
   carAssignments                    CarAssignment[]
   carAssignmentEvents               CarAssignmentEvent[]
   tripAssignmentMembers             TripAssignmentMember[]
+  attendanceRecords                 AttendanceRecord[]
+  attendanceConclusions             AttendanceConclusion[]
 
   // one user can only belong to the same organization once
   @@unique([userId, organizationId])
+}
+
+// Self-service punch event — immutable evidence.
+// workDate is derived once at write through the organization's timezone and frozen (Calendar-Date Pattern).
+model AttendanceRecord {
+  id                   String             @id @default(uuid())
+  organizationId       String
+  organizationMemberId String
+  checkInAt            DateTime           @default(now()) @db.Timestamptz(3)
+  checkOutAt           DateTime?          @db.Timestamptz(3)
+  workDate             String // calendar date "YYYY-MM-DD" — derived + frozen (Calendar-Date Pattern)
+  mode                 String // CHECK_IN | CHECK_IN_OUT
+  status               String // OPEN | CLOSED
+  note                 String?
+  createdByUserId      String?
+  createdAt            DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
+  organization         Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationMember   OrganizationMember @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+
+  @@index([organizationMemberId, workDate])
+}
+
+// The owner/manager's authoritative, hand-entered verdict for one (member, workDate).
+model AttendanceConclusion {
+  id                       String             @id @default(uuid())
+  organizationId           String
+  organizationMemberId     String
+  workDate                 String // calendar date "YYYY-MM-DD"
+  status                   String // DRAFT | COMPLETED
+  workdayUnit              Float              @default(0) // công trong ngày (ngày)
+  seasonalHours            Float              @default(0) // giờ công thời vụ (giờ)
+  overtimeHours            Float              @default(0) // giờ tăng ca (giờ)
+  authorizedLeaveDayUnit   Float              @default(0) // nghỉ có phép (ngày)
+  unauthorizedLeaveDayUnit Float              @default(0) // nghỉ không phép (ngày)
+  lateArrivalCount         Int                @default(0) // đi trễ (lần)
+  earlyDepartureCount      Int                @default(0) // về sớm (lần)
+  note                     String?
+  createdByUserId          String?
+  createdAt                DateTime           @default(now()) @db.Timestamptz(3)
+  updatedAt                DateTime           @updatedAt @db.Timestamptz(3)
+  organization             Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationMember       OrganizationMember @relation(fields: [organizationMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationMemberId, workDate])
 }
 
 model OrganizationCustomer {
@@ -428,14 +478,14 @@ model TourImplementation {
 }
 
 model TourImplementationAssignment {
-  id                   String                          @id @default(uuid())
+  id                   String                           @id @default(uuid())
   tourImplementationId String
-  tourImplementation   TourImplementation              @relation(fields: [tourImplementationId], references: [id], onDelete: Cascade)
+  tourImplementation   TourImplementation               @relation(fields: [tourImplementationId], references: [id], onDelete: Cascade)
   usersAssigned        UserAssignedTourImplementation[]
   carName              String?
   seatCount            Int?
   position             Int
-  createdAt            DateTime                        @default(now()) @db.Timestamptz(3)
+  createdAt            DateTime                         @default(now()) @db.Timestamptz(3)
 }
 
 model TourImplementationReceiptPayment {

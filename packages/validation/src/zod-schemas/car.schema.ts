@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
 import { CAR_STATUS } from '../constants/car.constant';
-import { assertDateRangeComplete, dateFilterFields } from './_shared/date-filter.schema';
+import {
+  dateInstanceFilterFields,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
+} from './_shared/date-filter.schema';
 
 const carFields = z.strictObject({
   name: z.string().trim().min(1).nullish(),
@@ -42,10 +46,17 @@ export const createCarAssignmentSchema = z.strictObject({
 
 export const carFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     name: z.string().trim().min(1).optional(),
     status: z.enum(CAR_STATUS).optional(),
     category: z.string().trim().min(1).optional(),
     fuelType: z.string().trim().min(1).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

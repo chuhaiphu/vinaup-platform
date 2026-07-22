@@ -59,9 +59,14 @@ This service uses **Prisma + PostgreSQL**. A calendar-date value is stored, comp
 
 - **The lens:** `Organization.timezone` — one IANA-name column per organization, the canonical lens
   for every derived calendar date in that organization.
-- **Storage:** a calendar-date column is `DateTime @db.Date` (Postgres `date` — date-only, no
-  timezone). Its **source instant**, when there is one, stays `DateTime @db.Timestamptz(3)` and is
-  server-stamped ([Instant Rule 1](INSTANT-TIME-PATTERN.md)).
+- **Storage:** a calendar-date column is a plain `String` holding the `YYYY-MM-DD` label itself —
+  **not** `DateTime @db.Date`. A calendar date is a label, not a moment, so we store the label. This
+  also keeps the response clean: services return the raw Prisma row (no transform layer in this
+  codebase), and a `String` serialises verbatim as `"2026-05-01"`, whereas a `@db.Date` would ship as
+  a spurious `"2026-05-01T00:00:00.000Z"`. Zero-padded `YYYY-MM-DD` sorts and range-compares
+  chronologically, so ordering, `gte/lte` filters, grouping and `@@unique` all work on the string. Its
+  **source instant**, when there is one, stays `DateTime @db.Timestamptz(3)` and is server-stamped
+  ([Instant Rule 1](INSTANT-TIME-PATTERN.md)).
 - **On the wire:** a calendar date arrives and leaves as a **date-only** `YYYY-MM-DD` string
   (`z.iso.date()`), never an ISO date-time and never through `.toISOString()`.
 
@@ -85,7 +90,7 @@ cannot give:
 
 ## How
 
-### Rule 1 — Storage: the label is `@db.Date`; its source instant is server-stamped `@db.Timestamptz(3)`
+### Rule 1 — Storage: the label is a `String`; its source instant is server-stamped `@db.Timestamptz(3)`
 
 ```prisma
 // src/prisma/schema.prisma
@@ -95,7 +100,7 @@ model Organization {
 
 model AttendanceRecord {
   checkInAt DateTime @default(now()) @db.Timestamptz(3) // source instant — server-stamped
-  workDate  DateTime @db.Date                            // derived label — frozen at write
+  workDate  String                                       // "YYYY-MM-DD" label — derived, frozen at write
 }
 ```
 
@@ -133,8 +138,8 @@ directly — no instant range, no bucketing of timestamps.
 // validation: a calendar date on the wire
 workDate: z.iso.date(), // "2026-05-01" — NOT z.iso.datetime()
 
-// query: match the stored label, not an instant window
-where: { organizationMemberId, workDate: new Date(filter.workDate) }
+// query: match the stored label string directly — no Date parsing, no instant window
+where: { organizationMemberId, workDate: filter.workDate }
 ```
 
 ### Rule 5 — Aggregation: the backend MAY group and count by the calendar date
@@ -164,7 +169,7 @@ new Intl.DateTimeFormat('vi-VN', { timeZone: organization.timezone, hour: '2-dig
 ```
 DEVICE                     API + POSTGRES  (one press → two stored values)     DEVICE (any tz)
 press check-in ──► now() ┬─ checkInAt  "2026-04-30T17:30:00Z"  @Timestamptz ─► org lens → "00:30"
-(sends no time)          └─ workDate   "2026-05-01"            @db.Date     ─► verbatim → "2026-05-01"
+(sends no time)          └─ workDate   "2026-05-01"            String       ─► verbatim → "2026-05-01"
                             workDate = checkInAt from the org timezone
 ```
 

@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { INVOICE_STATUS } from '../constants/invoice.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const invoiceFields = z.strictObject({
@@ -21,7 +22,7 @@ const invoiceFields = z.strictObject({
 });
 
 export const createInvoiceSchema = invoiceFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
@@ -48,14 +49,21 @@ export const updateInvoiceSchema = invoiceFields
       .optional(),
   })
   .refine(isEndDateOnOrAfterStartDate, {
-    message: 'endDate must be on or after startDate',
+    error: 'endDate must be on or after startDate',
     path: ['endDate'],
   });
 
 export const invoiceFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     invoiceTypeId: z.uuid().optional(),
     status: z.enum(INVOICE_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

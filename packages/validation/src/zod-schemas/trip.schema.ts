@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { TRIP_STATUS } from '../constants/trip.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const tripFields = z.strictObject({
@@ -26,7 +27,7 @@ const tripFields = z.strictObject({
 });
 
 export const createTripSchema = tripFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
@@ -36,7 +37,7 @@ export const updateTripSchema = tripFields
     status: z.enum(TRIP_STATUS).optional(), // update-only field; NOT NULL column → .optional()
   })
   .refine(isEndDateOnOrAfterStartDate, {
-    message: 'endDate must be on or after startDate',
+    error: 'endDate must be on or after startDate',
     path: ['endDate'],
   });
 
@@ -53,7 +54,14 @@ export const updateTripAssignmentSchema = z.strictObject({
 
 export const tripFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     status: z.enum(TRIP_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

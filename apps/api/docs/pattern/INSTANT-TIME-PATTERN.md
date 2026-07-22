@@ -14,7 +14,7 @@ One question decides it: **whose lens owns the value?**
 | Answers | "which precise moment?" | "which wall-calendar day?" |
 | Canonical lens | the **viewer's** (device) — each person sees their own local time | a **fixed** lens (the organization's timezone), or none |
 | Who decides the day | the device | the server |
-| Storage | `@db.Timestamptz(3)` | `@db.Date` |
+| Storage | `@db.Timestamptz(3)` | `String` (`"YYYY-MM-DD"`) |
 | May the backend bucket into days? | **No** | **Yes** — that is its purpose |
 | Priority | simplicity, zero config | integrity + consistency (same for all) |
 
@@ -84,7 +84,7 @@ compare** it — it never decides which calendar day a _viewer-relative_ instant
 day for an _org-anchored_ value is the other pattern's job).
 
 - **Storage:** every **instant** column is `DateTime @db.Timestamptz(3)` in `src/prisma/schema.prisma`
-  (a calendar-date column uses `@db.Date` instead — [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md)).
+  (a calendar-date column is a plain `String` `"YYYY-MM-DD"` instead — [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md)).
 - **Why `timestamptz`:** values generated _inside_ the DB — `@default(now())` → `CURRENT_TIMESTAMP` — are produced using the DB session's `TimeZone`. On a non-UTC server a plain `timestamp` column would store defaults in _local_ time while app-written values are UTC, causing silent drift. `timestamptz` removes the ambiguity, so the column is correct no matter who writes it.
 - **On the wire:** instants arrive and leave as ISO-8601 date-time strings.
 
@@ -144,16 +144,12 @@ const endAfterStart = (v: { startDate?: string; endDate?: string }) =>
   !v.startDate || !v.endDate || new Date(v.startDate) <= new Date(v.endDate);
 
 export const createBookingSchema = bookingFields.refine(endAfterStart, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'], // attach the error to the endDate field
 });
 ```
 
-`.refine()` lets us attach **our own validation logic** to any schema.
 
-It takes two arguments:
-1. A **validator function** — receives the parsed value, returns `true` (valid) or `false` (invalid).
-2. An **error config** — the message to throw when the validator returns `false`.
 
 ### Rule 3 — Writing: hand the ISO string straight to Prisma
 

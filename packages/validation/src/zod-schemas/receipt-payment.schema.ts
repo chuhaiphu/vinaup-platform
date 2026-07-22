@@ -5,7 +5,11 @@ import {
   RECEIPT_PAYMENT_TRANSACTION_TYPE,
   RECEIPT_PAYMENT_TYPE,
 } from '../constants/receipt-payment.constant';
-import { assertDateRangeComplete, dateFilterFields } from './_shared/date-filter.schema';
+import {
+  dateInstanceFilterFields,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
+} from './_shared/date-filter.schema';
 
 // Existence of every *Id reference below is checked in the service, not here.
 const receiptPaymentFields = z.strictObject({
@@ -61,8 +65,15 @@ export const findReceiptPaymentsByWageIdsSchema = z.strictObject({
 
 export const receiptPaymentFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     type: z.enum(RECEIPT_PAYMENT_TYPE).optional(),
     transactionType: z.enum(RECEIPT_PAYMENT_TRANSACTION_TYPE).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

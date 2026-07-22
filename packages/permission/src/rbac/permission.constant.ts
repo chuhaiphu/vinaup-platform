@@ -36,6 +36,10 @@ export const PERMISSION_RESOURCE = {
   TRIP: 'TRIP',
   CAR: 'CAR',
   SOCIAL_LINK: 'SOCIAL_LINK',
+
+  // Attendance
+  ATTENDANCE_RECORD: 'ATTENDANCE_RECORD',
+  ATTENDANCE_CONCLUSION: 'ATTENDANCE_CONCLUSION',
 } as const;
 
 export type PermissionResource = (typeof PERMISSION_RESOURCE)[keyof typeof PERMISSION_RESOURCE];

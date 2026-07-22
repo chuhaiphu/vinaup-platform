@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { WAGE_STATUS } from '../constants/wage.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const wageFields = z.strictObject({
@@ -18,7 +19,7 @@ const wageFields = z.strictObject({
 });
 
 export const createWageSchema = wageFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
@@ -28,13 +29,20 @@ export const updateWageSchema = wageFields
     status: z.enum(WAGE_STATUS).optional(), // update-only field; NOT NULL column → .optional()
   })
   .refine(isEndDateOnOrAfterStartDate, {
-    message: 'endDate must be on or after startDate',
+    error: 'endDate must be on or after startDate',
     path: ['endDate'],
   });
 
 export const wageFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     status: z.enum(WAGE_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

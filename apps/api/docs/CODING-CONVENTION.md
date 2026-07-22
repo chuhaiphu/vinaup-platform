@@ -185,21 +185,22 @@ action `<action>` in domain `<domain>`:
 
 Full worked example and rationale → [Validation Pattern](pattern/VALIDATION-PATTERN.md), [DTO Pattern](pattern/DTO-PATTERN.md).
 
-### 6.1 Coercion by source
+### 6.1 Builder by source
 
-Match coercion to where the value comes from — URLs are always strings, JSON body values already carry
-their JSON type.
+Match the Zod builder to where the value comes from. Temporal values use the same ISO builder
+regardless of source; numbers currently arrive **only in a JSON body**, already carrying their JSON type.
 
-| Source | Logical type | Zod | Inferred TS | Why |
-|--------|--------------|-----|-------------|-----|
-| Query / Param | number | `z.coerce.number().int()` | `number` | URLs are always strings; `coerce` converts to a real number. |
-| Query / Param | Instant | `z.iso.datetime()` | `string` | ISO date-time string; convert with `new Date(...)` only where a `Date` is needed. → [Instant](pattern/INSTANT-TIME-PATTERN.md) |
-| Query / Param | Calendar date | `z.iso.date()` | `string` | Date-only `YYYY-MM-DD`; matches a `@db.Date` column. → [Calendar-Date](pattern/CALENDAR-DATE-PATTERN.md) |
-| JSON body | number | `z.int()` | `number` | `JSON.parse` already produces a number; a string is *rejected*. |
-| JSON body | Instant | `z.iso.datetime()` | `string` | ISO date-time at runtime; Prisma accepts it for `@db.Timestamptz(3)` columns. |
-| JSON body | Calendar date | `z.iso.date()` | `string` | Date-only `YYYY-MM-DD`; Prisma accepts it for `@db.Date` columns. |
+| Logical type | Zod | Inferred TS | Why |
+|--------------|-----|-------------|-----|
+| number (JSON body) | `z.int()` / `z.number()` | `number` | `JSON.parse` already produces a number; a string is *rejected*. |
+| Instant | `z.iso.datetime()` | `string` | ISO date-time string; convert with `new Date(...)` only where a `Date` is needed. → [Instant](pattern/INSTANT-TIME-PATTERN.md) |
+| Calendar date | `z.iso.date()` | `string` | Date-only `YYYY-MM-DD`; matches a `String` `YYYY-MM-DD` column. → [Calendar-Date](pattern/CALENDAR-DATE-PATTERN.md) |
 
-Temporal values split by lens. An **instant** (viewer-relative) → `z.iso.datetime()`, store `@db.Timestamptz(3)`, compare only → [Instant Time Pattern](pattern/INSTANT-TIME-PATTERN.md). A **calendar date** (org-anchored or plain) → `z.iso.date()`, store `@db.Date`, server may derive & aggregate → [Calendar-Date Pattern](pattern/CALENDAR-DATE-PATTERN.md).
+> No endpoint takes a **number in the query/param** (no pagination, no numeric filter), so `z.int()`
+> on a body value is the only numeric case. A query string is never a number at runtime — the day a
+> numeric query param is added, pick the string-to-number conversion tool then, don't pre-empt it here.
+
+Temporal values split by lens. An **instant** (viewer-relative) → `z.iso.datetime()`, store `@db.Timestamptz(3)`, compare only → [Instant Time Pattern](pattern/INSTANT-TIME-PATTERN.md). A **calendar date** (org-anchored or plain) → `z.iso.date()`, store as a `String` `YYYY-MM-DD`, server may derive & aggregate → [Calendar-Date Pattern](pattern/CALENDAR-DATE-PATTERN.md).
 
 ---
 
@@ -226,9 +227,7 @@ enforced by the global `ZodValidationPipe`. → [Validation Pattern](pattern/VAL
 | Enum | `z.enum(E)` | `…​.optional()` |
 | Instant (ISO date-time) | `z.iso.datetime()` | `…​.optional()` |
 | Calendar date (`YYYY-MM-DD`) | `z.iso.date()` | `….optional()` |
-| Number — JSON body | `z.int().min(0)` | `…​.optional()` |
-| Number — query/param | `z.coerce.number().int()` | `…​.optional()` |
-| Boolean — query/param | `z.enum(['true','false']).transform((v) => v === 'true')` | `…​.optional()` |
+| Number (JSON body) | `z.int().min(0)` | `…​.optional()` |
 | Array of strings | `z.array(z.string())` | `…​.optional()` |
 | Array of objects | `z.array(childSchema)` | `…​.optional()` |
 | FK id | `z.string().min(1)` — existence is checked in the service/guard, **not** here | `…​.optional()` |
@@ -236,9 +235,6 @@ enforced by the global `ZodValidationPipe`. → [Validation Pattern](pattern/VAL
 > The **Optional** column is `.optional()` — optional **non-nullable** (rejects `null`). For an optional
 > **nullable** (clearable) column use `.nullish()`; for a required-but-clearable column use `.nullable()`.
 > → [Optionality & nullability](pattern/VALIDATION-PATTERN.md#optionality--nullability-gating-undefined-and-null)
-
-> Avoid `z.coerce.boolean()` for query flags — it treats the string `"false"` as `true`. Use the
-> explicit `z.enum(['true','false']).transform(...)` instead.
 
 ### 7.3 Where does a validation rule go — schema or service?
 
@@ -253,7 +249,7 @@ One question decides it: **does the rule need to read the database?**
 
 Two follow-ons:
 
-- In the schema, prefer a **built-in** Zod check (`.email()`, `.min()`, `.max()`). Only reach for `.refine()` / `.superRefine()` for a custom multi-field rule that has no built-in (e.g. `password === confirmPassword`).
+- In the schema, prefer a **built-in** Zod check (`.email()`, `.min()`, `.max()`). Only reach for `.refine()` for a custom multi-field rule that has no built-in (e.g. `password === confirmPassword`).
 - **Don't re-validate in the service** what the schema already guarantees — `z.strictObject` already rejects unknown fields.
 
 ---

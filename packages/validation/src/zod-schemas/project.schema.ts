@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { PROJECT_STATUS } from '../constants/project.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const projectFields = z.strictObject({
@@ -22,7 +23,7 @@ const projectFields = z.strictObject({
 });
 
 export const createProjectSchema = projectFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
@@ -32,7 +33,7 @@ export const updateProjectSchema = projectFields
     status: z.enum(PROJECT_STATUS).optional(), // update-only field; NOT NULL column → .optional()
   })
   .refine(isEndDateOnOrAfterStartDate, {
-    message: 'endDate must be on or after startDate',
+    error: 'endDate must be on or after startDate',
     path: ['endDate'],
   });
 
@@ -46,9 +47,16 @@ export const updateProjectCategorySchema = createProjectCategorySchema.partial()
 
 export const projectFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     type: z.string().trim().min(1).optional(),
     status: z.enum(PROJECT_STATUS).optional(),
     categoryId: z.string().trim().min(1).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

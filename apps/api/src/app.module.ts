@@ -8,6 +8,7 @@ import { AppExceptionFilter } from './_core/filters/app-exception.filter';
 import { AuthExceptionFilter } from './_core/filters/auth-exception.filter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AttendanceModule } from './attendance/attendance.module';
 import { BookingModule } from './booking/booking.module';
 import { CarModule } from './car/car.module';
 import { FuelPriceModule } from './fuel-price/fuel-price.module';
@@ -59,6 +60,7 @@ import { WageModule } from './wage/wage.module';
     TripModule,
     WageModule,
     FuelPriceModule,
+    AttendanceModule,
     ],
   controllers: [AppController],
   providers: [

@@ -16,21 +16,21 @@ Every domain has a `dtos/` folder holding the API-side DTO classes (request brid
 
 The full naming rule for all four data-shape artifacts (schema · interface · request DTO · response DTO) lives in **[Coding Convention §6](../CODING-CONVENTION.md#6-request--response-data-shapes)** — this pattern only shows them in use.
 
-> The snippets below use a placeholder `Entity` domain — they show the *shape* of the pattern, not a real feature.
+> The snippets below use a placeholder `Entity` domain — they show the _shape_ of the pattern, not a real feature.
 
 ### Building the request schema
 
-A request shape is a **Zod schema** in `@vinaup-platform/validation`, declared once and shared with the mobile forms. It has three forms, but only **create** is hand-written — update and filter are *derived* from it. Field-level rules (text/enum/date, optional vs nullable) → [Validation Pattern](VALIDATION-PATTERN.md).
+A request shape is a **Zod schema** in `@vinaup-platform/validation`, declared once and shared with the mobile forms. It has three forms, but only **create** is hand-written — update and filter are _derived_ from it. Field-level rules (text/enum/date, optional vs nullable) → [Validation Pattern](VALIDATION-PATTERN.md).
 
 **Create** — the base schema, the single place fields and rules are written:
 
 ```ts
 // packages/validation/src/zod-schemas/entity.schema.ts
 export const createEntitySchema = z.strictObject({
-  name: z.string().trim().min(1),   // required
-  status: z.enum(ENTITY_STATUS),    // required enum
-  note: z.string().nullable(),      // required, but null clears it
-  parentId: z.string().optional(),  // optional, non-nullable
+  name: z.string().trim().min(1), // required
+  status: z.enum(ENTITY_STATUS), // required enum
+  note: z.string().nullable(), // required, but null clears it
+  parentId: z.string().optional(), // optional, non-nullable
 });
 ```
 
@@ -42,15 +42,22 @@ export const updateEntitySchema = createEntitySchema.partial();
 
 `.partial()` makes every field optional while preserving its rules **including nullability**, so nullability is declared once, on the create schema. → [Validation Pattern: Optionality & nullability](VALIDATION-PATTERN.md#optionality--nullability-gating-undefined-and-null)
 
-**Filter** — composed from the shared field set, with the cross-field rule attached last (a spread copies fields, never refinements):
+**Filter** — composed from the shared field set, with the cross-field rules attached last (a spread copies fields, never refinements):
 
 ```ts
 export const entityFilterSchema = z
   .strictObject({
-    ...dateFilterFields,              // shared `_shared/date-filter.schema.ts`, reused by every date-range list
+    ...dateInstanceFilterFields, // shared `_shared/date-filter.schema.ts`, reused by every date-range list
     status: z.enum(ENTITY_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });
 ```
 
 ### Request DTOs are taken from the schema
@@ -81,8 +88,9 @@ export const organizationProfileQueryArgs = {
   select: { name: true },
 } satisfies Prisma.OrganizationDefaultArgs;
 
-export type OrganizationProfileResponse =
-  Prisma.OrganizationGetPayload<typeof organizationProfileQueryArgs>;
+export type OrganizationProfileResponse = Prisma.OrganizationGetPayload<
+  typeof organizationProfileQueryArgs
+>;
 ```
 
 The service **reuses the same const** so the query and the type can't drift:
@@ -118,11 +126,12 @@ export interface SignInTokenResponse {
 
 ### Response meta and the response envelope
 
-A response DTO declares the entity shape. When an endpoint must return per-record, request-context flags (e.g. "can *this* caller edit this record?"), the DTO is paired with a `Meta` interface that extends `BaseMeta`, plus a per-module `WithMeta` alias that merges the two:
+A response DTO declares the entity shape. When an endpoint must return per-record, request-context flags (e.g. "can _this_ caller edit this record?"), the DTO is paired with a `Meta` interface that extends `BaseMeta`, plus a per-module `WithMeta` alias that merges the two:
 
 ```ts
 // src/booking/dtos/booking.response.dto.ts
-export interface BookingMeta extends BaseMeta {   // BaseMeta guarantees `canEdit`
+export interface BookingMeta extends BaseMeta {
+  // BaseMeta guarantees `canEdit`
   isSender?: boolean;
   isSenderSigned?: boolean;
   isReceiverSigned?: boolean;
@@ -137,8 +146,14 @@ Every response is wrapped in a uniform envelope, defined once and shared across 
 
 ```ts
 // src/_common/interfaces/interface.ts
-export interface HttpResponse<T> { message: string; statusCode: number; data?: T; }
-export interface BaseMeta { canEdit: boolean; }
+export interface HttpResponse<T> {
+  message: string;
+  statusCode: number;
+  data?: T;
+}
+export interface BaseMeta {
+  canEdit: boolean;
+}
 ```
 
 Because the per-record meta is gathered into each item (`...entity, meta: { … }`), an array endpoint gives every element its own `meta` block — the same convention as [JSON:API resource `meta`](https://jsonapi.org/format/#document-resource-objects):
@@ -148,9 +163,9 @@ Because the per-record meta is gathered into each item (`...entity, meta: { … 
   "message": "Bookings retrieved successfully",
   "statusCode": 200,
   "data": [
-    { "id": "bk_123", "status": "CONFIRMED", "meta": { "canEdit": true,  "isSender": true } },
-    { "id": "bk_124", "status": "SIGNED",    "meta": { "canEdit": false, "isSender": true } }
-  ]
+    { "id": "bk_123", "status": "CONFIRMED", "meta": { "canEdit": true, "isSender": true } },
+    { "id": "bk_124", "status": "SIGNED", "meta": { "canEdit": false, "isSender": true } },
+  ],
 }
 ```
 
@@ -160,7 +175,7 @@ Because the per-record meta is gathered into each item (`...entity, meta: { … 
 
 ## Why
 
-DTOs make the wire contract explicit and reviewable in one place, independent of how data is stored or computed internally. Deriving update and filter schemas from shared bases (`.partial()`, shape spreads, `dateFilterFields`) means each field and rule is written once; sharing the schema across apps means the contract can't drift between client and server.
+DTOs make the wire contract explicit and reviewable in one place, independent of how data is stored or computed internally. Deriving update and filter schemas from shared bases (`.partial()`, shape spreads, `dateInstanceFilterFields`) means each field and rule is written once; sharing the schema across apps means the contract can't drift between client and server.
 
 ---
 
@@ -168,7 +183,7 @@ DTOs make the wire contract explicit and reviewable in one place, independent of
 
 1. **Request shape = a Zod schema** in `@vinaup-platform/validation`; its interface comes from `z.infer`. → [Validation Pattern](VALIDATION-PATTERN.md)
 2. **Derive, don't restate** — update = `createSchema.partial()`; filter = compose shared shapes by spread.
-3. **Reuse shared params** — date-range filtering spreads `dateFilterFields`; do not redeclare `startDate`/`endDate`.
+3. **Reuse shared params** — date-range filtering spreads `dateInstanceFilterFields`; do not redeclare `startDate`/`endDate`.
 4. **Bridge into the API with `createZodDto`** — name DTOs by role; controllers reference the DTO class only.
 5. **Derive the response type from a query-args const** — declare `<action><Thing>QueryArgs = { select: { … } } satisfies Prisma.<Model>DefaultArgs`, type it `Prisma.<Model>GetPayload<typeof …>`, and reuse the const in the service query. Split into a wider query const + a narrower wire const when the response is a strict subset of what the query must fetch.
 6. **Pair a response DTO with a `Meta extends BaseMeta`** when the endpoint returns per-record flags; expose a per-module `XxxWithMeta = XxxResponse & { meta: XxxMeta }` alias and compute the meta in the service.

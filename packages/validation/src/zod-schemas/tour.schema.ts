@@ -2,9 +2,10 @@ import { z } from 'zod';
 
 import { TOUR_IMPLEMENTATION_ADVANCE_TYPE, TOUR_STATUS } from '../constants/tour.constant';
 import {
-  assertDateRangeComplete,
-  dateFilterFields,
+  dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
+  isEndDatePresentWhenStartDate,
+  isStartDatePresentWhenEndDate,
 } from './_shared/date-filter.schema';
 
 const tourFields = z.strictObject({
@@ -20,7 +21,7 @@ const tourFields = z.strictObject({
 });
 
 export const createTourSchema = tourFields.refine(isEndDateOnOrAfterStartDate, {
-  message: 'endDate must be on or after startDate',
+  error: 'endDate must be on or after startDate',
   path: ['endDate'],
 });
 
@@ -35,7 +36,7 @@ export const updateTourSchema = tourFields
     childTicketPrice: z.number().optional(),
   })
   .refine(isEndDateOnOrAfterStartDate, {
-    message: 'endDate must be on or after startDate',
+    error: 'endDate must be on or after startDate',
     path: ['endDate'],
   });
 
@@ -53,11 +54,9 @@ export const createUserAssignedSchema = z.strictObject({
 export const updateUserAssignedSchema = createUserAssignedSchema.partial();
 
 export const manageMembersAssignedSchema = z.strictObject({
-  organizationMemberIds: z
-    .array(z.string())
-    .refine((list) => new Set(list).size === list.length, {
-      error: 'organizationMemberIds không được chứa phần tử trùng lặp',
-    }),
+  organizationMemberIds: z.array(z.string()).refine((list) => new Set(list).size === list.length, {
+    error: 'organizationMemberIds không được chứa phần tử trùng lặp',
+  }),
 });
 
 // Shared ticket-adjustment shape: all columns are NOT NULL (@default) — omit is
@@ -91,7 +90,14 @@ export const updateTourImplementationAssignmentSchema = z.strictObject({
 
 export const tourFilterSchema = z
   .strictObject({
-    ...dateFilterFields,
+    ...dateInstanceFilterFields,
     status: z.enum(TOUR_STATUS).optional(),
   })
-  .superRefine(assertDateRangeComplete);
+  .refine(isStartDatePresentWhenEndDate, {
+    error: 'startDate is required when endDate is provided',
+    path: ['startDate'],
+  })
+  .refine(isEndDatePresentWhenStartDate, {
+    error: 'endDate is required when startDate is provided',
+    path: ['endDate'],
+  });

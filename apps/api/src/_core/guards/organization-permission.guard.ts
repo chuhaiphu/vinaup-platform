@@ -12,6 +12,7 @@ import {
 } from '@vinaup-platform/permission';
 
 import { ORGANIZATION_MEMBER_STATUS } from 'src/_common/constants/organization.constant';
+import { AttendanceConclusionNotFoundException } from 'src/_common/exceptions/attendance.exception';
 import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
 import {
@@ -178,6 +179,16 @@ export class OrganizationPermissionGuard implements CanActivate {
           throw new ProjectNotFoundException();
         }
         return project;
+      }
+      case PERMISSION_RESOURCE.ATTENDANCE_CONCLUSION: {
+        const attendanceConclusion = await this.prismaService.attendanceConclusion.findUnique({
+          where: { id: recordId },
+          select: OWNERSHIP_SELECT,
+        });
+        if (!attendanceConclusion) {
+          throw new AttendanceConclusionNotFoundException();
+        }
+        return attendanceConclusion;
       }
       case PERMISSION_RESOURCE.RECEIPT_PAYMENT_CATEGORY: {
         const receiptPaymentCategory = await this.prismaService.receiptPaymentCategory.findUnique({

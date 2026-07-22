@@ -383,7 +383,7 @@ authorization guard — never both:
 
 **The exception — routes enforced in the service.** A few routes cannot have their authorization
 fixed by a route-level guard, because the deciding fact is known only once the handler's service
-reads the record. Two routes are in this class, for two different reasons:
+reads the record. Three classes are in this group, for three different reasons:
 
 - **`ReceiptPayment` reads and mutations — the plane itself depends on the parent.** A receipt payment attaches
   to different parents (a tour implementation, a booking, an invoice, a project, or nothing), and a
@@ -396,6 +396,11 @@ reads the record. Two routes are in this class, for two different reasons:
   from a direct edge — the caller must be the signature's `targetUserId`, or (when there is no target)
   its original signer — and that edge check differs per operation. It is neither RBAC nor the tour
   plane, so each handler enforces it directly on the record it already loads.
+- **`AttendanceRecord` check-out / edit / delete — ownership must EXCLUDE everyone else, even the owner.**
+  A punch is self-service evidence: only its creator may touch it, and no role — not even `MANAGE ALL`
+  — may edit another person's record. The RBAC guard cannot express this, because for a non-creator it
+  always falls through to the role matrix (Step 5), which a granted `UPDATE` would satisfy. So these
+  routes carry `JwtAuthGuard` only and the service asserts `record.createdByUserId === caller`.
 
 The rest of this section details the **RBAC** guard; the tour-implementation-access guard is §7.
 
