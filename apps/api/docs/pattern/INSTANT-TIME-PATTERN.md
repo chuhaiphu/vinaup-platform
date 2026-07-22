@@ -1,4 +1,26 @@
-# Date & Time Pattern
+# Instant Time Pattern
+
+> One of **two** temporal patterns. This one covers the **instant** — a precise moment whose
+> calendar day is the **viewer's** to decide. Its counterpart,
+> [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md), covers the **calendar date** — a wall-calendar
+> label anchored to a **fixed** lens (the organization).
+
+## When to use — Instant vs Calendar-Date
+
+One question decides it: **whose lens owns the value?**
+
+| | **Instant** (this pattern) | **Calendar-Date** ([other](CALENDAR-DATE-PATTERN.md)) |
+| --- | --- | --- |
+| Answers | "which precise moment?" | "which wall-calendar day?" |
+| Canonical lens | the **viewer's** (device) — each person sees their own local time | a **fixed** lens (the organization's timezone), or none |
+| Who decides the day | the device | the server |
+| Storage | `@db.Timestamptz(3)` | `@db.Date` |
+| May the backend bucket into days? | **No** | **Yes** — that is its purpose |
+| Priority | simplicity, zero config | integrity + consistency (same for all) |
+
+If a value must read **differently** for a viewer in Hanoi vs New York → **Instant**. 
+
+If it must read the **same** for everyone because it is pinned to the business (a payroll day, a cutoff) → **Calendar-Date**.
 
 ## What
 
@@ -22,13 +44,6 @@ A **timezone is only a lens** — the number itself never changes:
 - The lens at **create** decides _which number is born_: the same text "30/04 00:00" becomes
   a **different** instant depending on the timezone we read it in.
 - The lens at **display** only changes the _text_, never the number.
-
-**Two kinds of temporal value** (the distinction that drives every decision):
-
-| Concept           | Meaning                                 | Has time-of-day? | Has a timezone?                   |
-| ----------------- | --------------------------------------- | ---------------- | --------------------------------- |
-| **Instant**       | a precise moment ("signed at 14:35")    | yes              | yes — stored UTC, shown in a lens |
-| **Calendar date** | a label on a wall calendar ("the 30th") | no               | none — same for everyone          |
 
 ### 2. On the client (device)
 
@@ -60,23 +75,27 @@ into `timestamptz` explicitly; Prisma Client itself always reads/writes `DateTim
 
 ## In this codebase
 
-> **Every temporal field is an _instant_** (booking/tour/project/invoice
-> `start`/`end`, `transactionDate`, `joinedAt`, `signedAt`, `createdAt`, …).
+> **Almost every temporal field is an _instant_** (booking/tour/project/invoice
+> `start`/`end`, `transactionDate`, `joinedAt`, `signedAt`, `createdAt`, …). The lone exception is a
+> **calendar date** anchored to the organization — see [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md).
 
-This service uses **Prisma + PostgreSQL**. The backend's whole job with time is to **store and compare instants** — it never decides which calendar day an instant belongs to.
+This service uses **Prisma + PostgreSQL**. For an instant, the backend's whole job is to **store and
+compare** it — it never decides which calendar day a _viewer-relative_ instant belongs to (deciding the
+day for an _org-anchored_ value is the other pattern's job).
 
-- **Storage:** every temporal column is `DateTime @db.Timestamptz(3)` in `src/prisma/schema.prisma`.
+- **Storage:** every **instant** column is `DateTime @db.Timestamptz(3)` in `src/prisma/schema.prisma`
+  (a calendar-date column uses `@db.Date` instead — [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md)).
 - **Why `timestamptz`:** values generated _inside_ the DB — `@default(now())` → `CURRENT_TIMESTAMP` — are produced using the DB session's `TimeZone`. On a non-UTC server a plain `timestamp` column would store defaults in _local_ time while app-written values are UTC, causing silent drift. `timestamptz` removes the ambiguity, so the column is correct no matter who writes it.
-- **On the wire:** dates arrive and leave as ISO-8601 strings.
+- **On the wire:** instants arrive and leave as ISO-8601 date-time strings.
 
 Where date handling lives on this side:
 
 | Concern                          | File                                                                                         |
 | -------------------------------- | -------------------------------------------------------------------------------------------- |
 | Storage type                     | `src/prisma/schema.prisma` (`@db.Timestamptz(3)`)                                            |
-| Validate incoming dates          | `packages/validation/src/zod-schemas/<domain>.schema.ts` (`z.iso.datetime()` + `.refine()`) |
+| Validate incoming instants       | `packages/validation/src/zod-schemas/<domain>.schema.ts` (`z.iso.datetime()` + `.refine()`) |
 | Filter a date range              | `src/_common/utils/generator/generate-date-overlap-clause.ts`                                |
-| Detect a schedule conflict       | `src/trip/services/trip-assignment.service.ts` (`findOverlappingTripAssignments`) and `src/tour/services/tour-implementation-assignment.service.ts` (`findOverlappingTourImplementationAssignments`) — pure instant overlap (Rule 4), NOT a calendar-day bucket; the backend may compute it |
+| Detect a schedule conflict       | `src/trip/services/trip-assignment.service.ts` (`findOverlappingTripAssignments`) and `src/tour/services/tour-implementation-assignment.service.ts` (`findOverlappingTourImplementationAssignments`)|
 | Ship raw ranges for the calendar | `src/project/services/project.service.ts`, `src/wage/wage.service.ts`                        |
 
 ---
@@ -88,13 +107,14 @@ timezone decision.** The backend's responsibilities:
 
 1. **Store instants in UTC** (`timestamptz`).
 2. **Only ever _compare_ instants** (`a <= b`) — comparison is timezone-independent and always correct.
-3. **Never compute "which calendar day/month"** — that is _impossible_ without the viewer's timezone, it is the device's responsibilities.
+3. **Never compute "which calendar day/month" from a _viewer-relative_ instant** — that is _impossible_
+   without the viewer's timezone, so it is the device's responsibility.
 
 ---
 
 ## How
 
-### Rule 1 — Storage: every temporal column is `@db.Timestamptz(3)`
+### Rule 1 — Storage: every instant column is `@db.Timestamptz(3)`
 
 ```prisma
 // src/prisma/schema.prisma
@@ -105,7 +125,7 @@ createdAt DateTime @default(now()) @db.Timestamptz(3)
 
 ### Rule 2 — Receiving: validate as an ISO string and check ranges cross-field
 
-Dates arrive as **strings** (ISO-8601), validated with `z.iso.datetime()`.
+Instants arrive as **strings** (ISO-8601 date-time), validated with `z.iso.datetime()`.
 
 The range check (`endDate ≥ startDate`) is a cross-field rule with no DB call, so it lives in the schema as a `.refine()`.
 
@@ -156,19 +176,21 @@ just compares.
 ### Rule 5 — Aggregation: return raw ranges, compute nothing
 
 The backend never derives calendar-level values (day counts, month buckets, "busy" flags) from
-timestamps — doing so requires the viewer's timezone, which the server does not have.
+_viewer-relative_ timestamps — doing so requires the viewer's timezone, which the server does not have.
 Return raw `{ startDate, endDate }` pairs; the device groups, counts, or colours them locally.
 
 ```ts
 select: { startDate: true, endDate: true }   // instants only — no computation
 ```
 
+> **The exception:** when a value is anchored to the organization's timezone. See [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md).
+
 ### End-to-end round trip
 
 ```
 DEVICE (UTC+7)                         API + POSTGRES                       DEVICE (any tz)
 pick 30/04 08:00 ─ toISOString ─► "2026-04-30T01:00:00Z" ─► timestamptz ─► ISO back ─► dayjs().format()
-(local lens, create)              (instant on the wire)     (UTC truth)     (local lens, display)
+(local lens, create)              (instant on the wire)     (UTC truth)     (local lens)
 ```
 
 ---

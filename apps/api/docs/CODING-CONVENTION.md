@@ -193,11 +193,13 @@ their JSON type.
 | Source | Logical type | Zod | Inferred TS | Why |
 |--------|--------------|-----|-------------|-----|
 | Query / Param | number | `z.coerce.number().int()` | `number` | URLs are always strings; `coerce` converts to a real number. |
-| Query / Param | Date | `z.iso.datetime()` | `string` | Stays an ISO string; convert with `new Date(...)` only where a `Date` is needed. |
+| Query / Param | Instant | `z.iso.datetime()` | `string` | ISO date-time string; convert with `new Date(...)` only where a `Date` is needed. → [Instant](pattern/INSTANT-TIME-PATTERN.md) |
+| Query / Param | Calendar date | `z.iso.date()` | `string` | Date-only `YYYY-MM-DD`; matches a `@db.Date` column. → [Calendar-Date](pattern/CALENDAR-DATE-PATTERN.md) |
 | JSON body | number | `z.int()` | `number` | `JSON.parse` already produces a number; a string is *rejected*. |
-| JSON body | Date | `z.iso.datetime()` | `string` | ISO string at runtime; Prisma accepts ISO strings for `DateTime` columns. |
+| JSON body | Instant | `z.iso.datetime()` | `string` | ISO date-time at runtime; Prisma accepts it for `@db.Timestamptz(3)` columns. |
+| JSON body | Calendar date | `z.iso.date()` | `string` | Date-only `YYYY-MM-DD`; Prisma accepts it for `@db.Date` columns. |
 
-Temporal values: receive as ISO string, store as `@db.Timestamptz(3)`, compare instants only. → [Date & Time Pattern](pattern/DATE-TIME-PATTERN.md)
+Temporal values split by lens. An **instant** (viewer-relative) → `z.iso.datetime()`, store `@db.Timestamptz(3)`, compare only → [Instant Time Pattern](pattern/INSTANT-TIME-PATTERN.md). A **calendar date** (org-anchored or plain) → `z.iso.date()`, store `@db.Date`, server may derive & aggregate → [Calendar-Date Pattern](pattern/CALENDAR-DATE-PATTERN.md).
 
 ---
 
@@ -222,7 +224,8 @@ enforced by the global `ZodValidationPipe`. → [Validation Pattern](pattern/VAL
 | Email | `z.email()` | `…​.optional()` |
 | Phone (VN) | `z.string().trim().regex(VN_PHONE_REGEX)` | `…​.optional()` |
 | Enum | `z.enum(E)` | `…​.optional()` |
-| Date (ISO string) | `z.iso.datetime()` | `…​.optional()` |
+| Instant (ISO date-time) | `z.iso.datetime()` | `…​.optional()` |
+| Calendar date (`YYYY-MM-DD`) | `z.iso.date()` | `….optional()` |
 | Number — JSON body | `z.int().min(0)` | `…​.optional()` |
 | Number — query/param | `z.coerce.number().int()` | `…​.optional()` |
 | Boolean — query/param | `z.enum(['true','false']).transform((v) => v === 'true')` | `…​.optional()` |

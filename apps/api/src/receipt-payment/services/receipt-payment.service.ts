@@ -243,8 +243,6 @@ export class ReceiptPaymentService {
     );
   }
 
-  // Which organization (or personal creator) owns the receipt payment's parent. Existence was
-  // already asserted by the caller, so a missing row here is defensive (findUniqueOrThrow).
   private async resolveReceiptPaymentParentScope(
     input: ReceiptPaymentParentInput,
   ): Promise<{ organizationId: string | null; createdByUserId: string | null } | null> {
@@ -307,8 +305,6 @@ export class ReceiptPaymentService {
     return null;
   }
 
-  // The data-scope membership invariant, mirrored from OrganizationPermissionGuard: the caller must
-  // be an ACTIVE member (not LOCKED) of the organization that owns the parent.
   private async assertActiveOrganizationMember(organizationId: string, userId: string): Promise<void> {
     const member = await this.prismaService.organizationMember.findFirst({
       where: { userId, organizationId },

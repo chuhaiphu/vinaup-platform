@@ -298,12 +298,18 @@ Pick the simplest mechanism that works. → [KISS](principle/KISS.md)
 
 ## 12. Date & time
 
-→ [Date & Time Pattern](pattern/DATE-TIME-PATTERN.md)
+Two temporal patterns, split by whose lens owns the value → [Instant Time Pattern](pattern/INSTANT-TIME-PATTERN.md) · [Calendar-Date Pattern](pattern/CALENDAR-DATE-PATTERN.md)
 
-- **Send** instants as UTC ISO with `.toISOString()`.
+**Instant** (viewer-relative — bookings, `signedAt`, `createdAt`):
+- **Send** as UTC ISO with `.toISOString()`.
 - **Display** through the device-local lens (`dayjs(value).format(...)`).
 - **Compute** "which calendar day/month" **on-device** — the backend ships instants only.
-- Day.js **core only** (no `utc`/`timezone` plugins).
+
+**Calendar date** (org-anchored or plain — attendance `workDate`, a cutoff, a birthday):
+- **Send / show** a bare `YYYY-MM-DD` — never `.toISOString()`, never through a lens.
+- **Never derive the day on-device** — the server stamps the instant and derives the day in the org timezone; the device shows `workDate` verbatim.
+
+- Day.js **core only** (no `utc`/`timezone` plugins) — true for **both**; the device never does timezone math.
 
 ---
 

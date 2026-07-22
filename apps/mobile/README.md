@@ -69,7 +69,9 @@ Design patterns used consistently throughout the codebase.
 
 **[docs/pattern/COMPOSITE-PATTERN.md](docs/pattern/COMPOSITE-PATTERN.md)**
 
-**[docs/pattern/DATE-TIME-PATTERN.md](docs/pattern/DATE-TIME-PATTERN.md)**
+**[docs/pattern/INSTANT-TIME-PATTERN.md](docs/pattern/INSTANT-TIME-PATTERN.md)**
+
+**[docs/pattern/CALENDAR-DATE-PATTERN.md](docs/pattern/CALENDAR-DATE-PATTERN.md)**
 
 ---
 

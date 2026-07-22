@@ -1,7 +1,7 @@
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6/static';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons/static';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useRef } from 'react';
 import { View, Text, ScrollView, Pressable, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -15,7 +15,6 @@ import { SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { TextToggler } from '@/components/primitives/text-toggler';
 import {
   ReceiptPaymentType,
-  ReceiptPaymentGroupCode,
   ReceiptPaymentGroupCodeDisplay,
   RECEIPT_PAYMENT_GROUP_CODE,
 } from '@/constants/receipt-payment-constants';
@@ -23,40 +22,37 @@ import { COLORS, ICON_SIZES } from '@/constants/style-constants';
 import { useFormatDecimalInput } from '@/hooks/use-format-decimal-input';
 import { useFormatIntegerInput } from '@/hooks/use-format-integer-input';
 import { useKeyboardVisibility } from '@/hooks/use-keyboard-visibility';
-import { useReceiptPaymentFormStore } from '@/hooks/use-receipt-payment-form-store';
-import { useReceiptPaymentFormContext } from '@/providers/commons/receipt-payment/receipt-payment-form-provider';
+import { FieldErrors } from '@/hooks/use-validated-fields';
 import { calculateVatAmount } from '@/utils/calculator/calculate-vat-amount';
 import { generateLocaleFormatString } from '@/utils/generator/string-generator/generate-locale-format-string';
 
 import { styles } from './receipt-payment-form.styles';
 import { FlatTextInput } from '../../../primitives/flat-text-input';
+import type { ReceiptPaymentFieldValues } from '../../screen-contents/receipt-payment-detail-screen-content';
 import { ReceiptPaymentCategorySelectModal } from '../receipt-payment-category-select-modal/receipt-payment-category-select-modal';
 
 type ReceiptPaymentFormParams = {
-  receiptPaymentId: string;
-  groupCode?: ReceiptPaymentGroupCode;
-  organizationId?: string;
   receiptPaymentType?: ReceiptPaymentType;
+  organizationId?: string;
   projectId?: string;
   invoiceId?: string;
   bookingId?: string;
   tourCalculationId?: string;
   tourImplementationId?: string;
   tourSettlementId?: string;
-  transactionDate?: string;
   wageId?: string;
   tripId?: string;
   carMaintenanceLogId?: string;
-  categoryId?: string;
-  categoryName?: string;
-};
-
-export type ReceiptPaymentFormRef = {
-  refreshDetail: () => void;
 };
 
 type ReceiptPaymentFormProps = {
-  ref?: React.Ref<ReceiptPaymentFormRef>;
+  fieldValues: ReceiptPaymentFieldValues;
+  fieldErrors: FieldErrors<keyof ReceiptPaymentFieldValues>;
+  setFieldValue: <Field extends keyof ReceiptPaymentFieldValues>(
+    field: Field,
+    value: ReceiptPaymentFieldValues[Field],
+  ) => void;
+  setFieldValues: (values: Partial<ReceiptPaymentFieldValues>) => void;
 };
 
 function resolveFormVisibility(params: ReceiptPaymentFormParams) {
@@ -174,17 +170,19 @@ function resolveFormVisibility(params: ReceiptPaymentFormParams) {
 }
 
 /**
- * Full-screen receipt/payment entry form driven by `useReceiptPaymentFormStore`.
+ * Full-screen receipt/payment entry form. Purely presentational — field values, errors, and
+ * setters all come from the parent's `useValidatedFields` instance; this component only
+ * renders inputs and derives the on-screen totals from the current values.
  *
- * Reads route params via `useLocalSearchParams` to derives which fields are visible via `resolveFormVisibility`:
- *
- * In update mode (`receiptPaymentId !== 'new'`), the form fetches the existing
- * record and populates the store. On unmount the store is reset.
- *
- * Exposes a `refreshDetail` imperative handle for parent screens to force a
- * re-fetch after a save.
+ * Reads route params via `useLocalSearchParams` only to derive which fields are visible via
+ * `resolveFormVisibility`.
  */
-export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
+export function ReceiptPaymentForm({
+  fieldValues,
+  fieldErrors,
+  setFieldValue,
+  setFieldValues,
+}: ReceiptPaymentFormProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<ReceiptPaymentFormParams>();
@@ -198,103 +196,43 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
     isIncludedGroupCode,
   } = resolveFormVisibility(params);
 
-  const initializeForm = useReceiptPaymentFormStore((s) => s.initializeForm);
-  const resetForm = useReceiptPaymentFormStore((s) => s.resetForm);
-  const description = useReceiptPaymentFormStore((s) => s.description);
-  const setDescription = useReceiptPaymentFormStore((s) => s.setDescription);
-  const unitPrice = useReceiptPaymentFormStore((s) => s.unitPrice);
-  const setUnitPrice = useReceiptPaymentFormStore((s) => s.setUnitPrice);
-  const quantity = useReceiptPaymentFormStore((s) => s.quantity);
-  const setQuantity = useReceiptPaymentFormStore((s) => s.setQuantity);
-  const frequency = useReceiptPaymentFormStore((s) => s.frequency);
-  const setFrequency = useReceiptPaymentFormStore((s) => s.setFrequency);
-  const type = useReceiptPaymentFormStore((s) => s.type);
-  const setType = useReceiptPaymentFormStore((s) => s.setType);
-  const vatRate = useReceiptPaymentFormStore((s) => s.vatRate);
-  const setVatRate = useReceiptPaymentFormStore((s) => s.setVatRate);
-  const transactionType = useReceiptPaymentFormStore((s) => s.transactionType);
-  const setTransactionType = useReceiptPaymentFormStore((s) => s.setTransactionType);
-  const note = useReceiptPaymentFormStore((s) => s.note);
-  const setNote = useReceiptPaymentFormStore((s) => s.setNote);
-  const transactionDate = useReceiptPaymentFormStore((s) => s.transactionDate);
-  const setTransactionDate = useReceiptPaymentFormStore((s) => s.setTransactionDate);
-  const inputErrors = useReceiptPaymentFormStore((s) => s.inputErrors);
-  const setInputErrors = useReceiptPaymentFormStore((s) => s.setInputErrors);
-  const validateByInputField = useReceiptPaymentFormStore((s) => s.validateByInputField);
-  const categoryId = useReceiptPaymentFormStore((s) => s.categoryId);
-  const categoryName = useReceiptPaymentFormStore((s) => s.categoryName);
-  const setCategoryId = useReceiptPaymentFormStore((s) => s.setCategoryId);
-  const setCategoryName = useReceiptPaymentFormStore((s) => s.setCategoryName);
-  const groupCode = useReceiptPaymentFormStore((s) => s.groupCode);
-  const setGroupCode = useReceiptPaymentFormStore((s) => s.setGroupCode);
-  const depositAmount = useReceiptPaymentFormStore((s) => s.depositAmount);
-  const setDepositAmount = useReceiptPaymentFormStore((s) => s.setDepositAmount);
-  const depositType = useReceiptPaymentFormStore((s) => s.depositType);
-  const setDepositType = useReceiptPaymentFormStore((s) => s.setDepositType);
+  const {
+    description,
+    unitPrice,
+    quantity,
+    frequency,
+    type,
+    vatRate,
+    transactionType,
+    note,
+    transactionDate,
+    categoryId,
+    categoryName,
+    groupCode,
+    depositAmount,
+    depositType,
+  } = fieldValues;
 
   const { displayValue: displayUnitPrice, onDisplayValueChange: onUnitPriceChange } =
-    useFormatIntegerInput(unitPrice, (raw) => {
-      setUnitPrice(raw);
-      setInputErrors({
-        ...inputErrors,
-        unitPrice: validateByInputField('unitPrice', raw),
-      });
-    });
+    useFormatIntegerInput(unitPrice, (raw) => setFieldValue('unitPrice', raw));
   const { displayValue: displayQuantity, onDisplayValueChange: onQuantityChange } =
-    useFormatIntegerInput(quantity, setQuantity);
+    useFormatIntegerInput(quantity, (raw) => setFieldValue('quantity', raw));
   const { displayValue: displayFrequency, onDisplayValueChange: onFrequencyChange } =
-    useFormatIntegerInput(frequency, setFrequency);
+    useFormatIntegerInput(frequency, (raw) => setFieldValue('frequency', raw));
   const { displayValue: displayDepositAmount, onDisplayValueChange: onDepositAmountChange } =
-    useFormatIntegerInput(depositAmount, setDepositAmount);
+    useFormatIntegerInput(depositAmount, (raw) => setFieldValue('depositAmount', raw));
 
   const categorySelectModalRef = useRef<SlideSheetRef | null>(null);
 
   // ─── VAT rate input ─────
   const { displayValue: vatRateDisplay, onDisplayValueChange: onVatRateChange } =
-    useFormatDecimalInput(vatRate, setVatRate, { max: 20 });
+    useFormatDecimalInput(vatRate, (raw) => setFieldValue('vatRate', raw), { max: 20 });
 
   // ─── Deposit type inline toggle ─────
   // Why: the modal carried the Bank/Cash switch; tapping the (CK)/(TM) label now
   // flips it so the row stays a single line without a separate switcher.
-  const toggleDepositType = () => setDepositType(depositType === 'BANK' ? 'CASH' : 'BANK');
-
-  const { receiptPaymentId } = params;
-  const isUpdateMode = receiptPaymentId !== 'new';
-
-  const { existingReceiptPayment, refreshDetail } = useReceiptPaymentFormContext();
-
-  useImperativeHandle(ref, () => ({ refreshDetail }), [refreshDetail]);
-
-  useEffect(() => {
-    if (isUpdateMode) {
-      initializeForm({ existingReceiptPayment });
-    } else {
-      initializeForm({
-        receiptPaymentType: params.receiptPaymentType,
-        transactionDate: params.transactionDate,
-        categoryId: params.categoryId,
-        categoryName: params.categoryName,
-        groupCode: params.groupCode,
-      });
-    }
-  }, [
-    existingReceiptPayment,
-    initializeForm,
-    isUpdateMode,
-    params.receiptPaymentType,
-    params.transactionDate,
-    params.categoryId,
-    params.categoryName,
-    params.groupCode,
-    receiptPaymentId,
-  ]);
-
-  useEffect(
-    () => () => {
-      resetForm();
-    },
-    [resetForm],
-  );
+  const toggleDepositType = () =>
+    setFieldValue('depositType', depositType === 'BANK' ? 'CASH' : 'BANK');
 
   const total =
     (Number.parseFloat(unitPrice) || 0) *
@@ -309,7 +247,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
 
   const bankCashSwitcherNode = (
     <View style={styles.bankCashSwitcher}>
-      <Pressable onPress={() => setTransactionType('BANK')}>
+      <Pressable onPress={() => setFieldValue('transactionType', 'BANK')}>
         <Text
           style={[
             styles.bankCashSwitcherText,
@@ -320,7 +258,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
         </Text>
       </Pressable>
       <Text style={styles.bankCashSwitcherSeparator}>|</Text>
-      <Pressable onPress={() => setTransactionType('CASH')}>
+      <Pressable onPress={() => setFieldValue('transactionType', 'CASH')}>
         <Text
           style={[
             styles.bankCashSwitcherText,
@@ -377,7 +315,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
                       ? styles.typeBtnActive
                       : styles.typeBtnInactive,
                 ]}
-                onPress={() => setType('RECEIPT')}
+                onPress={() => setFieldValue('type', 'RECEIPT')}
                 disabled={!isIncludedReceipt}
               >
                 <View style={styles.typeBtnInner}>
@@ -397,7 +335,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
                 value={transactionDate}
                 onChange={(d) => {
                   const updated = transactionDate.year(d.year()).month(d.month()).date(d.date());
-                  setTransactionDate(updated);
+                  setFieldValue('transactionDate', updated);
                 }}
                 style={{ dateText: styles.datePickerText }}
               />
@@ -406,7 +344,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
                 value={transactionDate}
                 onChange={(d) => {
                   const updated = transactionDate.hour(d.hour()).minute(d.minute());
-                  setTransactionDate(updated);
+                  setFieldValue('transactionDate', updated);
                 }}
                 displayFormat="HH:mm"
                 style={{ dateText: styles.datePickerText }}
@@ -422,7 +360,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
                       ? styles.typeBtnActive
                       : styles.typeBtnInactive,
                 ]}
-                onPress={() => setType('PAYMENT')}
+                onPress={() => setFieldValue('type', 'PAYMENT')}
                 disabled={!isIncludedPayment}
               >
                 <View style={styles.typeBtnInner}>
@@ -448,7 +386,8 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
                 ]}
                 currentIndex={groupCode === RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE ? 1 : 0}
                 onToggle={() =>
-                  setGroupCode(
+                  setFieldValue(
+                    'groupCode',
                     groupCode === RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE
                       ? RECEIPT_PAYMENT_GROUP_CODE.FOR_DIRECTOR
                       : RECEIPT_PAYMENT_GROUP_CODE.FOR_TOUR_GUIDE,
@@ -471,16 +410,10 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
             label="Nội dung"
             labelRightSection={categorySelectorNode}
             value={description}
-            onChangeText={(val) => {
-              setDescription(val);
-              setInputErrors({
-                ...inputErrors,
-                description: validateByInputField('description', val),
-              });
-            }}
+            onChangeText={(val) => setFieldValue('description', val)}
             alignLabel="left"
             alignValue="left"
-            error={inputErrors.description}
+            error={fieldErrors.description}
             placeholder="..."
             maxLength={40}
           />
@@ -492,7 +425,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
             onChangeText={onUnitPriceChange}
             alignLabel="left"
             alignValue="left"
-            error={inputErrors.unitPrice}
+            error={fieldErrors.unitPrice}
             keyboardType="numeric"
             placeholder="0"
           />
@@ -522,7 +455,7 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
           <FlatTextInput
             label="Ghi chú"
             value={note}
-            onChangeText={setNote}
+            onChangeText={(val) => setFieldValue('note', val)}
             alignLabel="left"
             alignValue="left"
             placeholder="..."
@@ -618,8 +551,10 @@ export function ReceiptPaymentForm({ ref }: ReceiptPaymentFormProps) {
         selectedCategoryId={categoryId}
         organizationId={params.organizationId}
         onSelect={(category) => {
-          setCategoryId(category?.id ?? null);
-          setCategoryName(category?.name ?? null);
+          setFieldValues({
+            categoryId: category?.id ?? null,
+            categoryName: category?.name ?? null,
+          });
         }}
       />
     </>

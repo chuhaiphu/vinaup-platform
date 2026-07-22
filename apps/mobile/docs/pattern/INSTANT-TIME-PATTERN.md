@@ -1,4 +1,26 @@
-# Date & Time Pattern
+# Instant Time Pattern
+
+> One of **two** temporal patterns. This one covers the **instant** — a precise moment displayed
+> through the **viewer's** (device) lens. Its counterpart,
+> [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md), covers the **calendar date** — a wall-calendar
+> label anchored to a **fixed** lens (the organization), the **same** for everyone.
+> §1 below is the shared theory for both; everything after it is instant-only.
+
+## When to use — Instant vs Calendar-Date
+
+One question decides it: **whose lens owns the value?**
+
+| | **Instant** (this pattern) | **Calendar-Date** ([other](CALENDAR-DATE-PATTERN.md)) |
+| --- | --- | --- |
+| Answers | "which precise moment?" | "which wall-calendar day?" |
+| Canonical lens | the **viewer's** (device) — each person sees their own local time | a **fixed** lens (the organization's timezone), or none |
+| Who decides the day | the device | the server |
+| On the wire | ISO date-time (`.toISOString()`) | date-only `YYYY-MM-DD` |
+| The device… | reads through its local lens, groups days locally | sends/shows the label verbatim — **never** applies a lens |
+
+If a value must read **differently** for a viewer in Hanoi vs New York → **Instant**.
+
+If it must read the **same** for everyone because it is pinned to the business → **Calendar-Date**.
 
 ## What
 
@@ -22,13 +44,6 @@ A **timezone is only a lens** — the number itself never changes:
 - The lens at **create** decides _which number is born_: the same text "30/04 00:00" becomes
   a **different** instant depending on the timezone we read it in.
 - The lens at **display** only changes the _text_, never the number.
-
-**Two kinds of temporal value** (the distinction that drives every decision):
-
-| Concept           | Meaning                                 | Has time-of-day? | Has a timezone?                   |
-| ----------------- | --------------------------------------- | ---------------- | --------------------------------- |
-| **Instant**       | a precise moment ("signed at 14:35")    | yes              | yes — stored UTC, shown in a lens |
-| **Calendar date** | a label on a wall calendar ("the 30th") | no               | none — same for everyone          |
 
 ### 2. On the client (device)
 
@@ -62,6 +77,8 @@ into `timestamptz` explicitly; Prisma Client itself always reads/writes `DateTim
 
 This app uses **Day.js — core only, with no `utc`/`timezone` plugins** (adding them only
 makes sense if we deliberately switch to a fixed display timezone — a separate product decision).
+This holds for **both** patterns: the device never does timezone math for a calendar date either — the
+server owns that lens ([Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md)).
 
 - `dayjs(iso)` parses an instant and reads it through the **device-local** lens.
 - `.format(...)` renders in device-local; `.toISOString()` applies the **UTC** lens.
@@ -85,7 +102,8 @@ timezone decision.** The device is the only place that knows the viewer's lens.
 
 1. **Send instants as UTC ISO** (`.toISOString()`).
 2. **Display in the device-local lens** — each viewer sees their own local time.
-3. **Compute "which calendar day/month" locally** — the backend does not know the viewer's timezone.
+3. **Compute "which calendar day/month" locally** — for an instant, the backend does not know the
+   viewer's timezone.
 
 Net effect: the same record shows the correct local day for a viewer in Hanoi or New York,
 with no configuration.
@@ -99,6 +117,10 @@ with no configuration.
 A date picker sets year/month/day and a time picker sets hour/minute on the **same** `Dayjs` value.
 Always serialize the instant with `.toISOString()` before sending — never a date-only or
 locally-formatted string.
+
+> **Exception — a calendar date is date-only on purpose.** When the value is a calendar date (not an
+> instant), you *do* send a bare `YYYY-MM-DD` (e.g. to address one attendance workday) — that is the
+> [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md), and this rule does not apply to it.
 
 ### Rule 2 — Compute filter-window edges locally, then `.toISOString()`
 
@@ -117,15 +139,19 @@ return dayjs(value).format(format); // device-local; never hand-roll offset math
 
 ### Rule 4 — Group "which calendar day/month" locally
 
-The backend ships instants only — it never tells you which day a record belongs to.
+For an **instant**, the backend ships the raw moment only — it never tells you which day it belongs to.
 Read each instant through the local lens and group on-device (`calculate-busy-days-by-month-in-year.ts`).
+
+> **Not for calendar dates.** An org-anchored calendar date is the exception: the backend *does* ship
+> the day (a `workDate`) and *does* aggregate by it, because that day is fixed for everyone. Show it
+> verbatim; do not re-derive it. See [Calendar-Date Pattern](CALENDAR-DATE-PATTERN.md).
 
 ### End-to-end round trip
 
 ```
 DEVICE (UTC+7)                         API + POSTGRES                       DEVICE (any tz)
 pick 30/04 08:00 ─ toISOString ─► "2026-04-30T01:00:00Z" ─► timestamptz ─► ISO back ─► dayjs().format()
-(local lens, create)              (instant on the wire)     (UTC truth)     (local lens, display)
+(local lens, create)              (instant on the wire)     (UTC truth)     (local lens)
 ```
 
 ---
