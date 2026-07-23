@@ -7,6 +7,6 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@casl/ability": "^6.7.1"
+    "@casl/ability": "^7.0.1"
   }
 }

@@ -13,7 +13,7 @@ export interface InvoiceListSectionProps {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
   statusFilter?: InvoiceStatus;
-  invoiceTypeCode: string;
+  invoiceType: string;
   filterMode: DatePickerMode;
 }
 

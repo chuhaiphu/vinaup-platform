@@ -22,7 +22,7 @@ function SingleInvoiceSummary({ invoice }: { invoice: InvoiceResponse }) {
   return (
     <ReceiptPaymentsSummaryBar
       receiptPayments={receiptPayments}
-      invoiceTypeCode={invoice.invoiceType.code}
+      invoiceType={invoice.type}
       entityDiscountAmount={invoice.discountAmount}
       entityVatRate={invoice.vatRate}
       isIncludedTotalReceipt={false}

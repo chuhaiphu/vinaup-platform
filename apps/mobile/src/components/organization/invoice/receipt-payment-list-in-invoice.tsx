@@ -9,7 +9,7 @@ import { DD_MM_DATE_FORMAT_SHORT } from '@/constants/app-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 import { useReceiptPaymentListInInvoiceContext } from '@/providers/commons/receipt-payment/receipt-payment-list-in-invoice-provider';
-import { useInvoiceTypeContext } from '@/providers/organization/invoice/invoice-type-provider';
+import { INVOICE_TYPE, type InvoiceType } from '@/constants/invoice-constants';
 import { generateDayJsDateChain } from '@/utils/generator/string-generator/generate-day-js-date-chain';
 
 export interface ReceiptPaymentListInInvoiceRef {
@@ -21,7 +21,7 @@ interface ReceiptPaymentListInInvoiceProps {
   startDate: string;
   endDate: string;
   organizationId?: string;
-  invoiceTypeId?: string;
+  invoiceType?: InvoiceType;
   onRefreshingChange?: (isRefreshing: boolean) => void;
   ref?: React.Ref<ReceiptPaymentListInInvoiceRef>;
 }
@@ -31,7 +31,7 @@ export function ReceiptPaymentListInInvoice({
   startDate,
   endDate,
   organizationId,
-  invoiceTypeId,
+  invoiceType,
   onRefreshingChange,
   ref,
 }: ReceiptPaymentListInInvoiceProps) {
@@ -45,8 +45,6 @@ export function ReceiptPaymentListInInvoice({
   }, [isRefreshing, onRefreshingChange]);
 
   const dateRange = generateDayJsDateChain(startDate, endDate);
-  const { getInvoiceTypeById } = useInvoiceTypeContext();
-  const invoiceType = getInvoiceTypeById(invoiceTypeId || '');
   const dateKeysInRange = new Set(dateRange.map((d) => d.format('YYYY-MM-DD')));
   const { receiptPaymentsInRange, receiptPaymentsOutOfRange } = receiptPayments.reduce<{
     receiptPaymentsInRange: ReceiptPaymentResponse[];
@@ -91,7 +89,7 @@ export function ReceiptPaymentListInInvoice({
     receiptPaymentId?: string;
     dateKey?: string;
   }) => {
-    const receiptPaymentType = invoiceType?.code === 'BUY' ? 'PAYMENT' : 'RECEIPT';
+    const receiptPaymentType = invoiceType === INVOICE_TYPE.BUY ? 'PAYMENT' : 'RECEIPT';
     router.push({
       pathname: '/(protected)/receipt-payment-detail/[receiptPaymentId]',
       params: {

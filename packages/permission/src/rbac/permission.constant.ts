@@ -43,3 +43,12 @@ export const PERMISSION_RESOURCE = {
 } as const;
 
 export type PermissionResource = (typeof PERMISSION_RESOURCE)[keyof typeof PERMISSION_RESOURCE];
+
+// Scope codes per resource — a scoped cell narrows the resource to a field-value subset.
+// A resource listed here has NO unscoped cells: the catalog only carries the scoped ones.
+export const PERMISSION_SCOPE = {
+  INVOICE: {
+    SELL: 'SELL',
+    BUY: 'BUY',
+  },
+} as const;

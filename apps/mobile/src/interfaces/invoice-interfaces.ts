@@ -1,6 +1,5 @@
-import { InvoiceStatus } from '@/constants/invoice-constants';
+import { InvoiceStatus, InvoiceType } from '@/constants/invoice-constants';
 
-import { InvoiceTypeResponse } from './invoice-type-interfaces';
 import { OrganizationCustomerResponse } from './organization-customer-interfaces';
 import { OrganizationResponse } from './organization-interfaces';
 import { UserResponse } from './user-interfaces';
@@ -12,8 +11,7 @@ export type {
 
 export interface InvoiceResponse {
   id: string;
-  invoiceTypeId: string;
-  invoiceType: InvoiceTypeResponse;
+  type: InvoiceType;
   code: string | null;
   description: string;
   startDate: string;

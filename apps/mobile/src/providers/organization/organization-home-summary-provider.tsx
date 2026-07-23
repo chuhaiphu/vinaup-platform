@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect } from 'react';
 import { getInvoicesByOrganizationId } from '@/apis/invoice/invoice-apis';
 import { getReceiptPaymentsByInvoiceIds } from '@/apis/receipt-payment/receipt-payment-apis';
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
+import { INVOICE_TYPE } from '@/constants/invoice-constants';
 import { InvoiceResponse } from '@/interfaces/invoice-interfaces';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 
@@ -30,11 +31,9 @@ export function useOrganizationHomeSummaryContext() {
 
 export function OrganizationHomeSummaryProvider({
   organizationId,
-  sellInvoiceTypeId,
   children,
 }: {
   organizationId: string;
-  sellInvoiceTypeId: string | undefined;
   children: React.ReactNode;
 }) {
   const today = dayjs();
@@ -47,7 +46,7 @@ export function OrganizationHomeSummaryProvider({
   } = useFetchFn(
     () =>
       getInvoicesByOrganizationId(organizationId, {
-        invoiceTypeId: sellInvoiceTypeId,
+        type: INVOICE_TYPE.SELL,
         startDate: today.startOf('day').toISOString(),
         endDate: today.endOf('day').toISOString(),
       }),
@@ -65,7 +64,7 @@ export function OrganizationHomeSummaryProvider({
   } = useFetchFn(
     () =>
       getReceiptPaymentsByInvoiceIds(
-        (invoices?.filter((i) => i.invoiceType.code === 'SELL') || []).map((i) => i.id),
+        (invoices?.filter((i) => i.type === INVOICE_TYPE.SELL) || []).map((i) => i.id),
       ),
     {
       fetchKey: `receipt-payment-list-in-invoice-${organizationId}-${todayKey}`,
@@ -75,7 +74,7 @@ export function OrganizationHomeSummaryProvider({
 
   useEffect(() => {
     fetchInvoices();
-  }, [fetchInvoices, organizationId, sellInvoiceTypeId]);
+  }, [fetchInvoices, organizationId]);
 
   useEffect(() => {
     if (!organizationId) return;

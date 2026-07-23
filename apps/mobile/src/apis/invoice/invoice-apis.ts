@@ -6,7 +6,6 @@ import {
   InvoiceResponse,
   UpdateInvoiceRequest,
 } from '@/interfaces/invoice-interfaces';
-import { InvoiceTypeResponse } from '@/interfaces/invoice-type-interfaces';
 import { generateFilterQueryString } from '@/utils/generator/string-generator/generate-filter-query-string';
 
 export async function createInvoice(data: CreateInvoiceRequest) {
@@ -23,12 +22,6 @@ export async function updateInvoice(id: string, data: UpdateInvoiceRequest) {
   });
 }
 
-export async function getInvoiceTypes() {
-  return wireApi<InvoiceTypeResponse[]>(`/invoice/types`, {
-    method: 'GET',
-  });
-}
-
 export async function getInvoiceById(id: string) {
   return wireApi<InvoiceResponse>(`/invoice/${id}`, {
     method: 'GET',
@@ -40,7 +33,7 @@ export async function getInvoicesByOrganizationId(
   filter?: InvoiceFilterParam,
 ) {
   const filterQueryString = generateFilterQueryString(filter, {
-    invoiceTypeId: filter?.invoiceTypeId,
+    type: filter?.type,
     status: filter?.status,
   });
   return wireApi<InvoiceResponse[]>(`/invoice/organization/${organizationId}${filterQueryString}`, {

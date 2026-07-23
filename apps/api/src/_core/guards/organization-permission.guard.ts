@@ -9,6 +9,7 @@ import {
   PERMISSION_RESOURCE,
   PermissionResource,
   getUserAbility,
+  subject,
 } from '@vinaup-platform/permission';
 
 import { ORGANIZATION_MEMBER_STATUS } from 'src/_common/constants/organization.constant';
@@ -39,6 +40,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 interface ResourceOwnership {
   organizationId: string | null;
   createdByUserId: string | null;
+  scopeAttributes?: Record<string, string>;
 }
 
 const OWNERSHIP_SELECT = { organizationId: true, createdByUserId: true } as const;
@@ -65,7 +67,7 @@ export class OrganizationPermissionGuard implements CanActivate {
     const { userId } = request.user;
 
     // ─── Step 2: Resolve the organization this request acts in ─────
-    const { organizationId, createdByUserId } = await this.resolveResourceOwnership(
+    const { organizationId, createdByUserId, scopeAttributes } = await this.resolveResourceOwnership(
       request,
       abilityMetadata.resource,
     );
@@ -104,10 +106,20 @@ export class OrganizationPermissionGuard implements CanActivate {
           organizationMembers: { some: { userId } },
         },
       },
-      select: { organizationPermission: { select: { action: true, resource: true } } },
+      select: {
+        organizationPermission: { select: { action: true, resource: true, scope: true } },
+      },
     });
-    const ability = getUserAbility(rolePermissionList.map((row) => row.organizationPermission));
-    if (!ability.can(abilityMetadata.action, abilityMetadata.resource)) {
+    const userAbility = getUserAbility(
+      rolePermissionList.map((row) => row.organizationPermission),
+    );
+
+    const resource = scopeAttributes
+      ? subject(abilityMetadata.resource, scopeAttributes)
+      : abilityMetadata.resource;
+
+    const isAllowed = userAbility.can(abilityMetadata.action, resource);
+    if (!isAllowed) {
       throw new OrganizationPermissionDeniedException();
     }
     return true;
@@ -125,11 +137,14 @@ export class OrganizationPermissionGuard implements CanActivate {
     }
 
     // Flow 1b — no record id
-    return this.resolveOwnershipFromRequest(request);
+    return this.resolveOwnershipFromRequest(request, resource);
   }
 
   // read the organization id straight from the request
-  private resolveOwnershipFromRequest(request: AuthenticatedRequest): ResourceOwnership {
+  private resolveOwnershipFromRequest(
+    request: AuthenticatedRequest,
+    resource: PermissionResource,
+  ): ResourceOwnership {
     const params = request.params as Record<string, string | undefined>;
     const body = (request.body ?? {}) as Record<string, unknown>;
 
@@ -137,7 +152,13 @@ export class OrganizationPermissionGuard implements CanActivate {
     if (!organizationId) {
       throw new ForbiddenException('Organization not specified');
     }
-    return { organizationId, createdByUserId: null };
+
+    const scopeAttributes =
+      resource === PERMISSION_RESOURCE.INVOICE && typeof body.type === 'string'
+        ? { type: body.type }
+        : undefined;
+
+    return { organizationId, createdByUserId: null, scopeAttributes };
   }
 
   // The single place that knows how each resource finds its organization id from a record id.
@@ -161,14 +182,19 @@ export class OrganizationPermissionGuard implements CanActivate {
         return booking;
       }
       case PERMISSION_RESOURCE.INVOICE: {
+        // The invoice type feeds the scoped-cell instance check (SELL / BUY).
         const invoice = await this.prismaService.invoice.findUnique({
           where: { id: recordId },
-          select: OWNERSHIP_SELECT,
+          select: { ...OWNERSHIP_SELECT, type: true },
         });
         if (!invoice) {
           throw new InvoiceNotFoundException();
         }
-        return invoice;
+        return {
+          organizationId: invoice.organizationId,
+          createdByUserId: invoice.createdByUserId,
+          scopeAttributes: { type: invoice.type },
+        };
       }
       case PERMISSION_RESOURCE.PROJECT: {
         const project = await this.prismaService.project.findUnique({

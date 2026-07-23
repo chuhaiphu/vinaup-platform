@@ -3,10 +3,14 @@
 Authentication answers **who is calling**.
 Authorization answers a different question — **is this caller allowed to do this?**
 
-This document is the authorization pattern: the two models it rests on, the enforcement planes,
-the data model and decision engine behind each, and how a route opts into one. What one concrete
-request goes through is a separate flow doc:
-[RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
+This document is the **mechanism** pattern: the two models it rests on, the enforcement planes,
+the data model and decision engine behind each, and how a route opts into one. Two companion
+docs split off from it:
+
+- **Which model a new rule belongs to, and at what granularity** — the decision rules — is
+  [PERMISSION-GRANULARITY-PATTERN](PERMISSION-GRANULARITY-PATTERN.md).
+- What one concrete request goes through is the flow doc:
+  [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
 
 > **Preconditions.** By the time authorization runs, `JwtAuthGuard` has proven the access JWT →
 > `req.user.userId` ([GUARD-PATTERN](GUARD-PATTERN.md)).
@@ -28,21 +32,10 @@ The grant is a single **edge**, access need not follow container membership, and
 
 ### When to use which
 
-One question decides it:
-
-> Can someone legitimately act on a resource **WITHOUT holding a matching role in its container**?
-> - **No** — access is always derivable from a container role → **RBAC**.
-> - **Yes** — access comes from a per-resource grant, or a relationship that crosses the container →
->   **ReBAC**.
-
-Three signals that call for ReBAC:
-
-1. **Per-resource sharing** — access granted on one specific resource to specific users, not by role
-   (a shared document).
-2. **Cross-boundary access** — a user outside the resource's container still has access (an outside
-   collaborator; an invited operator).
-3. **Relationship inheritance** — access flows along an edge chain ("you may read a file if you may
-   read its parent folder").
+Which model a rule belongs to — and every other granularity decision (new resource vs scope vs
+relationship, new verbs, what gets seeded) — is decided by
+[PERMISSION-GRANULARITY-PATTERN](PERMISSION-GRANULARITY-PATTERN.md) (§1 sources of authority,
+§5 decision procedure). This doc assumes that classification is already made.
 
 ### They are complementary, not rivals
 
@@ -83,15 +76,15 @@ Code never asks "is this user an `OWNER`?" — role codes are policy. Code only 
 
 Used consistently below and in the codebase — no synonyms:
 
-| Term           | Meaning                                                                                          |
-| -------------- | ----------------------------------------------------------------------------------------------- |
-| **action**     | the verb — a `PERMISSION_ACTION` value: `CREATE` `READ` `UPDATE` `DELETE` `MANAGE`               |
-| **resource**   | the thing acted on — a `PERMISSION_RESOURCE` value: `PROJECT` `INVOICE` `TOUR` `ALL` …           |
-| **permission** | one `OrganizationPermission` row = one _(resource, action)_ cell the whole platform can grant    |
-| **role**       | a per-organization named bundle of permissions (`OrganizationRole` + its granted permissions)    |
-| **membership** | one `OrganizationMember` row = user U belongs to organization O with one role and a status       |
-| **rule**       | a permission after translation into CASL's format (inside the engine only)                      |
-| **ability**    | the CASL object built from a user's rules; the thing that answers `can()`                        |
+| Term           | Meaning                                                                                       |
+| -------------- | --------------------------------------------------------------------------------------------- |
+| **action**     | the verb — a `PERMISSION_ACTION` value: `CREATE` `READ` `UPDATE` `DELETE` `MANAGE`            |
+| **resource**   | the thing acted on — a `PERMISSION_RESOURCE` value: `PROJECT` `INVOICE` `TOUR` `ALL` …        |
+| **permission** | one `OrganizationPermission` row = one _(resource, action)_ cell the whole platform can grant |
+| **role**       | a per-organization named bundle of permissions (`OrganizationRole` + its granted permissions) |
+| **membership** | one `OrganizationMember` row = user U belongs to organization O with one role and a status    |
+| **rule**       | a permission after translation into CASL's format (inside the engine only)                    |
+| **ability**    | the CASL object built from a user's rules; the thing that answers `can()`                     |
 
 CASL's own vocabulary calls the second axis a **subject**; our column is named `resource`. They are
 the same axis — §5 maps one onto the other.
@@ -118,37 +111,6 @@ erDiagram
         string action
     }
 ```
-
-- `OrganizationRole` is **per organization** (`organizationId`), unique on `(organizationId, code)`;
-  the roles seeded for every organization (`OWNER`, `MEMBER`) are its system roles.
-- `OrganizationPermission` is a **platform-wide catalog** of `(resource, action)` cells, unique on
-  the pair — it is the menu of grantable cells, shared by all organizations.
-- `OrganizationRolePermission` is the join: granting a permission to a role is inserting one row,
-  revoking is deleting it.
-- `OrganizationMember` is the membership — it ties user U to organization O, carries the `status`
-  (`PENDING | ACTIVE | LOCKED`) and the one `OrganizationRole` U holds in O.
-- `action` / `resource` values come from two hand-written constants in
-  [`packages/permission`](../../../../packages/permission): `PERMISSION_ACTION` and
-  `PERMISSION_RESOURCE`.
-- `DEFAULT_ROLE_PERMISSIONS` (same package, also hand-written — nothing here comes from a library)
-  is a plain data object mapping each system role code to its granted `(action, resource)` cells —
-  the **factory-default matrix**. The seed upserts it into `OrganizationRolePermission` rows for
-  every organization; from then on the DB rows are the source of truth (the owner edits them in the
-  settings UI), and this object only defines what a fresh organization starts with. Changing that
-  default = editing this one file and reseeding — no other code moves.
-
-### Invariants the configuration can never break
-
-Policy is user-editable, so three guardrails are hard-coded into the mechanism:
-
-1. **`OWNER` is locked to `[{ MANAGE, ALL }]`** — full access, not editable.
-2. **Configuration edits matrix _cells_, never _axes_.** Actions and resources are code-defined
-   enums; an organization can change who gets a cell, not invent new verbs or resources.
-3. **Data scope is not a permission.** Organization isolation (a caller must be an `ACTIVE` member
-   of the record's organization) and record ownership (the creator may act on their own record) are
-   system invariants enforced by `OrganizationPermissionGuard` on every request regardless of what
-   the matrix says ([GUARD-PATTERN](GUARD-PATTERN.md)). A role granted `READ INVOICE` reads invoices
-   _of the organization the caller belongs to_ — never beyond.
 
 ---
 
@@ -218,10 +180,9 @@ Deciding that is no longer comparing two strings. The function must now receive 
 record being touched and evaluate the JSON against it — equality? membership in a list? nested
 fields?
 
-Today this ownership rule is kept as a **code invariant** in `OrganizationPermissionGuard`
-(§3 invariant 3, [GUARD-PATTERN](GUARD-PATTERN.md)), not as a stored condition — so `conditions`
-stays unused. It exists in the design for the day ownership becomes owner-configurable per role;
-when that grant arrives, it slots into the same engine unchanged (§5.3).
+`conditions` are in use today for **scope** — a grant narrowed to a field-value subset, e.g. _"a
+Member may `READ` an `INVOICE` — only `SELL` ones"_ → `conditions: { type: 'SELL' }`
+([PERMISSION-GRANULARITY-PATTERN §2.3](PERMISSION-GRANULARITY-PATTERN.md)).
 
 ### Step 4 — one question, two runtimes
 
@@ -247,16 +208,15 @@ between them matters more than the list:
 - **`@casl/ability` is the core, and it is self-sufficient.** It compiles grants into an
   **ability** that answers `can(action, resource)` in memory. Using CASL means using this package;
   nothing else is required.
-- **`@casl/prisma` and `@casl/mongoose` are add-ons, they do not contain the core — they depend on it.** Each is a **translator** — `@casl/prisma` emits a Prisma
-  `WhereInput`, `@casl/mongoose` a Mongoose query — so the _database_ can apply the user's
-  permissions while filtering rows.
+- **`@casl/prisma` and `@casl/mongoose` are add-ons** — translators that fold the rules into a
+  database query (`@casl/prisma` → a Prisma `WhereInput`). **We do not use them.**
 
-Same rules, two consumers, two different questions:
+Same rules, two questions — both answered by the core `@casl/ability`:
 
-| Consumer                                                 | Question it answers                                                           | Where it runs                             |
-| -------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| `@casl/ability` — `ability.can('READ', 'INVOICE')`       | _may U do A on R?_ — yes/no, for one object already in hand                   | in memory (Node / React Native)           |
-| `@casl/prisma` — `accessibleBy(ability).ofType('Invoice')` | _which rows may U see?_ — a `WHERE` clause built from the rules' `conditions` | in the database, before any object exists |
+| Question                                          | How we answer it                                                                                        | Where it runs                   |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| _may U do A on **this** record?_ — yes/no         | `ability.can('READ', subject('INVOICE', record))`                                                       | in memory (Node / React Native) |
+| _**which** rows may U see?_ — filter a list       | ask `ability.can` once per candidate scope value → the readable set → a plain `WHERE … IN (…)` (§5.4)    | in memory, then the DB filters  |
 
 ### 5.2 Why we use `@casl/ability`
 
@@ -265,22 +225,22 @@ exactly that piece, packaged. It does not know about roles, organizations, HTTP 
 that stays ours (§3, §6). Its features map one-to-one onto the three growth directions that broke
 the hand-written version:
 
-| §4 broke on             | `@casl/ability` ships                                                                                                                                                                                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Step 2 — wildcards      | `manage` (any action) and `all` (any resource) are reserved keywords with exactly the swallow-everything semantics written by hand above                                                                                                                 |
-| Step 3 — conditions     | the condition interpreter is already written: a rule can carry exactly the JSON a conditioned grant would store (e.g. `{ createdByUserId: '<userId>' }`), and the engine evaluates it against the record itself — we never build the interpreter of step 3 |
-| Step 4 — two runtimes   | the engine is isomorphic — the same code runs in Node and React Native — so the shared package contains no engine we maintain ourselves                                                                                                                  |
+| §4 broke on           | `@casl/ability` ships                                                                                                                                                                                                                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Step 2 — wildcards    | `manage` (any action) and `all` (any resource) are reserved keywords with exactly the swallow-everything semantics written by hand above                                                                                                                   |
+| Step 3 — conditions   | the condition interpreter is already written: a rule can carry exactly the JSON a conditioned grant would store (e.g. `{ createdByUserId: '<userId>' }`), and the engine evaluates it against the record itself — we never build the interpreter of step 3 |
+| Step 4 — two runtimes | the engine is isomorphic — the same code runs in Node and React Native — so the shared package contains no engine we maintain ourselves                                                                                                                    |
 
-**Deliberately not used: `@casl/prisma`.** Nothing needs permission-based row filtering yet (no
-grant uses `conditions` — record ownership is a code invariant, §4 step 3 — so there is nothing to
-translate into a `WHERE` clause). When a conditioned grant arrives, `@casl/prisma` bolts onto the
-same rules without changing anything in this pattern.
+**List filtering uses the same core — no add-on.** Scoped grants exist (Invoice `SELL` / `BUY`,
+[PERMISSION-GRANULARITY-PATTERN §2.3](PERMISSION-GRANULARITY-PATTERN.md)), so list routes must drop
+rows the caller's scope forbids. We do it by asking the already-built ability which scope values
+pass, then filtering on that set (§5.4)
 
 ### 5.3 How `@casl/ability` works
 
 The library does everything in two stages: **declare first, ask later**.
 
-| #   | Name                                | Stage   | What it is                                                                                                                                |
+| #   | Name                                | Stage   | What it is                                                                                                                               |
 | --- | ----------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | **rule**                            | declare | one statement of permission — "action X is allowed on resource Y".                                                                       |
 | 2   | **`AbilityBuilder`**                | declare | the collector. Each call to its `can(action, resource)` appends one rule to an internal list — it _declares_, it checks nothing.         |
@@ -310,14 +270,12 @@ Two things to read from this example:
 - **`createMongoAbility` does not mean MongoDB.** It is the compile target `build()` produces, and
   "Mongo" names the _notation_ conditions are written in (`{ field: value }`, `$in`, …) — a
   compact, well-known way to say "does this object match?". CASL evaluates those conditions
-  itself, in memory. No MongoDB is involved anywhere; the app's database is PostgreSQL through
-  Prisma (§3).
+  itself, in memory.
 
-### Reserved keywords — the full list
+### Reserved keywords
 
 Actions and resources are, to CASL, just strings — it accepts anything (`'READ'`, `'INVOICE'`, …)
-and matches them by comparison. Exactly **two** string values are reserved and treated specially
-by the engine:
+and matches them by comparison. Exactly **two** string values are reserved:
 
 | Reserved keyword | Meaning to the engine                                          |
 | ---------------- | -------------------------------------------------------------- |
@@ -342,12 +300,15 @@ export const getUserAbility = (permissionList: PermissionRule[]) => {
 
   // ─── DECLARE: one OrganizationPermission row → one rule ─────
   for (const permission of permissionList) {
-    const caslAction =
-      permission.action === PERMISSION_ACTION.MANAGE ? 'manage' : permission.action;
-    const caslSubject =
-      permission.resource === PERMISSION_RESOURCE.ALL ? 'all' : permission.resource;
+    const caslAction = permission.action === PERMISSION_ACTION.MANAGE ? 'manage' : permission.action;
+    const caslSubject = permission.resource === PERMISSION_RESOURCE.ALL ? 'all' : permission.resource;
 
-    can(caslAction, caslSubject);
+    // A scoped row compiles to a conditional rule; undefined conditions = whole resource.
+    const conditions =
+      permission.resource === PERMISSION_RESOURCE.INVOICE && permission.scope
+        ? { type: permission.scope }
+        : undefined;
+    can(caslAction, caslSubject, conditions);
   }
 
   // ─── COMPILE: seal the rules into the ability ─────
@@ -355,8 +316,44 @@ export const getUserAbility = (permissionList: PermissionRule[]) => {
 };
 ```
 
-`conditions` is ignored today. When a conditioned grant arrives, this function passes it as the
-third argument of `can(…)` — callers change nothing.
+
+### 5.4 List filtering — ask the same ability
+
+§5.3 answers _"may U do A on **this** record?"_ — a record already in hand. A list route asks the
+opposite: _"**which** rows may U see?"_ Rather than reach for a query-translator add-on, we reuse
+the ability §5.3 already built and ask it **once per candidate scope value**.
+
+This works because a scoped resource's values are a **fixed, small code set** — Invoice type is
+`SELL` / `BUY`, a code constant ([PERMISSION-GRANULARITY-PATTERN §2.3](PERMISSION-GRANULARITY-PATTERN.md)).
+The list service loads the caller's permissions, builds their ability, and keeps the codes whose
+READ check passes:
+
+```ts
+// InvoiceService.findInvoicesByOrganizationId
+const userAbility = getUserAbility(grantedPermissionList.map((row) => row.organizationPermission));
+
+const readableInvoiceTypeList = Object.values(INVOICE_TYPE).filter((invoiceType) =>
+  userAbility.can(PERMISSION_ACTION.READ, subject(PERMISSION_RESOURCE.INVOICE, { type: invoiceType })),
+);
+
+const invoiceList = await this.prismaService.invoice.findMany({
+  where: {
+    AND: [
+      { type: { in: readableInvoiceTypeList } }, // permission WHERE
+      { organizationId },                                       // business WHERE
+    ],
+  },
+});
+```
+
+- **One rule source, no drift.** The filter comes from the same `ability.can` the guard uses for its
+  point check, over the same permission rows — `MANAGE` / `ALL` / an unscoped grant pass every code;
+  a `SELL`-scoped grant passes only `SELL`.
+- **Fail-closed.** No matching grant ⇒ the readable set is empty ⇒ `{ in: [] }` ⇒ zero rows.
+
+**When this stops working.** Enumerating candidates is viable only because invoice types are a fixed
+code set. A scope over an open or large domain (arbitrary ids) could not be enumerated — that case
+would need a query translator (`@casl/prisma`) or a hand-built `WHERE`. No such scope exists today.
 
 ---
 
@@ -364,11 +361,11 @@ third argument of `can(…)` — callers change nothing.
 
 The two models of §1 map onto concrete mechanisms here. Every decision the API makes is one of three:
 
-| The question                                                                     | Applies to                                                                              | Enforced by                                    |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| Does your **role in the organization** permit this action on this resource?      | an organization's documents (`Booking`, `Invoice`, `Tour`, `Trip`, `Car`, the org directory, …) | `OrganizationPermissionGuard` (RBAC — below)   |
-| Are you **assigned to this tour's execution**?                                   | tour execution (crew assignments, tour receipt payments)                                | `TourImplementationAccessGuard` (ReBAC — §7)                 |
-| Is this **your own** record?                                                     | a record's creator; a personal record with no organization                             | a branch inside `OrganizationPermissionGuard`  |
+| The question                                                                | Applies to                                                                                      | Enforced by                                   |
+| --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Does your **role in the organization** permit this action on this resource? | an organization's documents (`Booking`, `Invoice`, `Tour`, `Trip`, `Car`, the org directory, …) | `OrganizationPermissionGuard` (RBAC — below)  |
+| Are you **assigned to this tour's execution**?                              | tour execution (crew assignments, tour receipt payments)                                        | `TourImplementationAccessGuard` (ReBAC — §7)  |
+| Is this **your own** record?                                                | a record's creator; a personal record with no organization                                      | a branch inside `OrganizationPermissionGuard` |
 
 The first two are **enforcement planes**, each with a guard; ownership is a short-circuit inside the
 RBAC guard, not a third plane.
@@ -379,7 +376,7 @@ authorization guard — never both:
 | Route acts on…              | Guards                                        |
 | --------------------------- | --------------------------------------------- |
 | an organization's documents | `JwtAuthGuard, OrganizationPermissionGuard`   |
-| a tour's execution          | `JwtAuthGuard, TourImplementationAccessGuard`               |
+| a tour's execution          | `JwtAuthGuard, TourImplementationAccessGuard` |
 
 **The exception — routes enforced in the service.** A few routes cannot have their authorization
 fixed by a route-level guard, because the deciding fact is known only once the handler's service
@@ -388,28 +385,19 @@ reads the record. Three classes are in this group, for three different reasons:
 - **`ReceiptPayment` reads and mutations — the plane itself depends on the parent.** A receipt payment attaches
   to different parents (a tour implementation, a booking, an invoice, a project, or nothing), and a
   guard — running before the handler — sees only the id in the URL, so it cannot yet know the parent.
-  The service resolves the parent, then selects the plane (§7.4). Read and write use the same
-  plane-selection — who may see a receipt payment is exactly who may write it — so both go through the
-  service, not a guard.
-- **`Signature` mutations (`sign` / `cancel` / `update-url`) — no organization scope, and the rule
-  differs per operation.** A signature carries no `organizationId` and no role matrix; authority comes
+- **`Signature` mutations (`sign` / `cancel` / `update-url`) — no organization scope, and the rule differs per operation.** A signature carries no `organizationId` and no role matrix; authority comes
   from a direct edge — the caller must be the signature's `targetUserId`, or (when there is no target)
-  its original signer — and that edge check differs per operation. It is neither RBAC nor the tour
-  plane, so each handler enforces it directly on the record it already loads.
+  its original signer — and that edge check differs per operation.
 - **`AttendanceRecord` check-out / edit / delete — ownership must EXCLUDE everyone else, even the owner.**
   A punch is self-service evidence: only its creator may touch it, and no role — not even `MANAGE ALL`
-  — may edit another person's record. The RBAC guard cannot express this, because for a non-creator it
-  always falls through to the role matrix (Step 5), which a granted `UPDATE` would satisfy. So these
+  — may edit another person's record. These
   routes carry `JwtAuthGuard` only and the service asserts `record.createdByUserId === caller`.
-
-The rest of this section details the **RBAC** guard; the tour-implementation-access guard is §7.
-
-The engine is already on the table: `getUserAbility` (§5.3), shared by the API and mobile. What
-the API adds is the **enforcement** — how a route declares the permission it requires, and what
-checks it on every request: `@CheckAbility` + `OrganizationPermissionGuard`. Both are ours, not
-CASL's. Default policy was already covered in §3 (`DEFAULT_ROLE_PERMISSIONS` → seed); the full
-default grid is [ROLE-PERMISSION-MATRIX](../reference/ROLE-PERMISSION-MATRIX.md), and what one
-request goes through end-to-end is [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
+- **`Booking` read by id (`GET /booking/:id`) — the legitimate reader may be OUTSIDE the sending org.**
+  A booking is visible to three disjoint parties: a member of the **sending** org, a member of the
+  **receiving** org (`organizationCustomer.clientOrganizationId` — not a member of the sender, so the
+  RBAC guard's membership invariant would reject them), or a **signature target**. The deciding fact
+  is the caller's relationship to the loaded record, so the route carries `JwtAuthGuard` only and
+  `findBookingById` throws `BookingAccessDeniedException` unless one relationship holds.
 
 **The decorator** — a decorator can attach metadata to a route handler; this one attaches exactly
 one fact and performs no check ([DECORATOR-PATTERN](DECORATOR-PATTERN.md)):
@@ -432,10 +420,7 @@ export const CheckAbility = (action: PermissionAction, resource: PermissionResou
 ```
 
 **The guard** — a guard is code NestJS runs _before_ the route handler, with the power to reject
-the request ([GUARD-PATTERN](GUARD-PATTERN.md)). This one carries the weight a single-tenant
-guard never does: it **resolves the organization** the request acts in before it can ask anything,
-then enforces the two data-scope invariants (§3) and finally runs the ASK side of §5.3. One generic
-guard replaces the per-resource mutation guards it supersedes:
+the request ([GUARD-PATTERN](GUARD-PATTERN.md)). It **resolves the organization**.
 
 ```ts
 // src/_core/guards/organization-permission.guard.ts
@@ -447,13 +432,13 @@ export class OrganizationPermissionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // ─── Step 1: Read the cell @CheckAbility stamped on this route ─────
+    // ─── Step 1: Read the @CheckAbility stamped on this route ─────
     // A route without the metadata is not permission-guarded: pass it through untouched.
-    const requiredCell = this.reflector.get<CheckAbilityMetadata | undefined>(
+    const abilityMetadata = this.reflector.get<CheckAbilityMetadata | undefined>(
       CHECK_ABILITY_KEY,
       context.getHandler(),
     );
-    if (!requiredCell) {
+    if (!abilityMetadata) {
       return true;
     }
 
@@ -461,14 +446,12 @@ export class OrganizationPermissionGuard implements CanActivate {
     const { userId } = request.user;
 
     // ─── Step 2: Resolve the organization this request acts in ─────
-    // A record route (:id present) is resolved through the target record — which also yields
-    // its creator for the ownership invariant; otherwise organizationId comes from param/body.
-    const { organizationId, createdByUserId } = await this.resolveResourceOwnership(
+    const { organizationId, createdByUserId, scopeAttributes } = await this.resolveResourceOwnership(
       request,
-      requiredCell.resource,
+      abilityMetadata.resource,
     );
 
-    // ─── Personal (non-organization) record: no membership or matrix applies — ownership only ─────
+    // ─── Personal (non-organization) record: no membership or role matrix applies —
     if (!organizationId) {
       if (createdByUserId && createdByUserId === userId) {
         return true;
@@ -476,37 +459,47 @@ export class OrganizationPermissionGuard implements CanActivate {
       throw new OrganizationPermissionDeniedException();
     }
 
-    // ─── Step 3: Membership invariants — enforced regardless of the matrix (§3, invariant 3) ─────
+    // ─── Step 3: Membership invariants ─────
     const member = await this.prismaService.organizationMember.findFirst({
       where: { userId, organizationId },
       select: { status: true },
     });
     if (!member) {
-      throw new OrganizationNotMemberException(); // HTTP 403, ORGANIZATION_NOT_MEMBER
+      throw new OrganizationNotMemberException();
     }
     if (member.status === ORGANIZATION_MEMBER_STATUS.LOCKED) {
-      throw new OrganizationMemberLockedException(); // HTTP 403, ORGANIZATION_MEMBER_LOCKED
+      throw new OrganizationMemberLockedException();
     }
 
-    // ─── Step 4: Ownership invariant — the record's creator may always act on it (§3, invariant 3) ─────
+    // ─── Step 4: Ownership invariant — the record's creator may always act on it ─────
     if (createdByUserId && createdByUserId === userId) {
       return true;
     }
 
-    // ─── Step 5: Ask the engine (§5.3) with the caller's role in THIS organization ─────
-    // Read fresh from the DB so an owner's matrix edit takes effect on the NEXT request.
-    const permissionList = await this.prismaService.organizationRolePermission.findMany({
+    // ─── Step 5: Ask the engine with the caller's role in THIS organization ─────
+    // Read fresh from the DB so an owner's matrix edit takes effect on the next request.
+    const rolePermissionList = await this.prismaService.organizationRolePermission.findMany({
       where: {
         organizationRole: {
           organizationId,
           organizationMembers: { some: { userId } },
         },
       },
-      select: { organizationPermission: { select: { action: true, resource: true } } },
+      select: {
+        organizationPermission: { select: { action: true, resource: true, scope: true } },
+      },
     });
-    const ability = getUserAbility(permissionList.map((row) => row.organizationPermission));
-    if (!ability.can(requiredCell.action, requiredCell.resource)) {
-      throw new OrganizationPermissionDeniedException(); // HTTP 403, ORGANIZATION_PERMISSION_DENIED
+    const userAbility = getUserAbility(
+      rolePermissionList.map((row) => row.organizationPermission),
+    );
+
+    const resource = scopeAttributes
+      ? subject(abilityMetadata.resource, scopeAttributes)
+      : abilityMetadata.resource;
+
+    const isAllowed = userAbility.can(abilityMetadata.action, resource);
+    if (!isAllowed) {
+      throw new OrganizationPermissionDeniedException();
     }
     return true;
   }
@@ -514,11 +507,11 @@ export class OrganizationPermissionGuard implements CanActivate {
 ```
 
 `resolveResourceOwnership` is the single place that knows how each `resource` finds its
-organization: for a record route it loads `{ organizationId, createdByUserId }` from that
+organization: for a record route it loads `{ organizationId, createdByUserId }` — plus any
+`scopeAttributes` the resource's scoped cells reference (e.g. `type`) — from that
 resource's table by `:id` (`resolveOwnershipFromRecord`); for a collection or create route it reads
-`organizationId` from the request params or body (`resolveOwnershipFromRequest`). Keeping that map in
-one method is what lets one guard serve every resource — instead of one hand-copied guard class per
-resource.
+`organizationId` from the request params or body, and the scope field from the create payload
+(`resolveOwnershipFromRequest`).
 
 **A route opts in by carrying both** — the guard via `@UseGuards`, the cell via `@CheckAbility`:
 
@@ -530,79 +523,5 @@ updateTour(/* … */) {}
 ```
 
 What one request goes through, step by step, is [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
-
----
-
-## 7. The tour implementation access plane
-
-### 7.1 Why RBAC is not enough
-
-A tour is executed by people **assigned to it**: a director (`DIRECTOR` — "Điều hành"), tour guides,
-drivers. An organization may staff a tour with members **it invited from another organization** — the
-assignee is not necessarily a member of the tour's own organization. Their authority to act inside
-the tour (add a receipt payment, edit the crew) comes from **the assignment**, not from an
-organization role.
-
-RBAC (§2) answers "are you a member of the owning org, and does your role permit it?". For an
-invited director that answer is *no* — they are not a member — yet they are legitimately in charge.
-
-The question that fits is a **relationship** one: _is there an assignment edge between this user and
-this tour?_ This is relationship-based access control (ReBAC), a separate plane.
-
-### 7.2 The data — a relationship, not a role bundle
-
-The grant lives on the **edge** between a user and a tour implementation, in two tables:
-
-- `MemberAssignedTourImplementation` — links an `OrganizationMember` to a `TourImplementation` with a
-  `role` (`CREATOR`, `DIRECTOR`). The linked member may belong to any organization.
-- `UserAssignedTourImplementation` — links a `User` to an assignment slot with a `role`
-  (`TOUR_GUIDE`, `DRIVER`) and a per-assignment `permissions[]` — a fine-grained list scoped to that
-  one assignment (e.g. whether this tour guide may read the tour-guide receipt payments).
-
-Nothing here is an organization role; the authority is the edge itself. Roles and permission strings
-are code-defined constants (like the RBAC axes), not free text.
-
-### 7.3 The decision — `assertTourImplementationAccess`
-
-One function answers the access question — the counterpart of `getUserAbility` for this plane:
-
-> Given a `tourImplementationId`, a `userId`, and a `requiredAccessLevel` (the bar the route demands),
-> the caller passes if they are the `OWNER` of the tour's organization (owner-implies-access), or they
-> hold the edge the bar requires: `MANAGER` needs a **member-assigned** row; `ASSIGNEE` also accepts a
-> **user-assigned** row.
-
-`requiredAccessLevel` is the route's *requirement*, not the caller's level — the two halves of every
-authorization decision. The **required** half is declared on the route (`@CheckTourImplementationAccess`,
-like `@CheckAbility`'s `(action, resource)` cell); the **held** half — what relationship the caller
-actually has — the engine derives from the DB (`isOrganizationOwner` / `isMemberAssigned` /
-`isUserAssigned`). The check is whether *held* clears *required*.
-
-The bar splits the two tiers of authority on a tour. **MANAGER** is the crew-management tier — only an
-assigned organization member (creator/director), or the owner, may add crew, edit the implementation,
-or manage assignments; this is what `TourImplementationAccessGuard` passes. **ASSIGNEE** is the wider "on this tour
-at all" tier — a member *or* an assigned tour guide/driver, or the owner — used where an assigned user
-legitimately acts, such as a receipt payment on the tour (Flow 3). The tiers nest: MANAGER ⊂ ASSIGNEE, so
-a higher bar is stricter. The default is `MANAGER` — the strictest bar — so an under-specified route
-fails **closed** (denies too much) rather than open.
-
-The owner clause is **owner-implies-access**: the organization owner is never locked out of a
-tour they own, expressed as one rule inside this plane.
-
-### 7.4 Enforcement
-
-Two shapes, chosen by whether the route's target maps cleanly to a tour implementation:
-
-- **`TourImplementationAccessGuard`** — for routes whose id resolves to a tour implementation (managing the
-  crew, editing an assignment). Like the RBAC guard it resolves the `tourImplementationId` from the
-  route (directly, or through the assignment/record it names), then calls `assertTourImplementationAccess`.
-- **Service-selected — `ReceiptPayment` reads and mutations.** Because a receipt payment's plane follows its
-  parent (§6), its route carries only `JwtAuthGuard`; the service inspects the parent and calls
-  `assertTourImplementationAccess` for a tour-execution parent, the organization check for an org document,
-  or the ownership check for a personal one. Reads run the same plane-selection as writes. This is the one place a plane is chosen at runtime.
-
-### 7.5 The boundary — one plane per route
-
-Classifying a route is a single question: **does its authority come from an organization role, or
-from a tour assignment?** Organization documents → RBAC (§6). Tour execution → tour implementation access.
 
 ---

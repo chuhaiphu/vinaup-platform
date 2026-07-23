@@ -83,7 +83,9 @@ export class OrganizationService {
             code: true,
             organizationRolePermissions: {
               select: {
-                organizationPermission: { select: { action: true, resource: true } },
+                organizationPermission: {
+                  select: { action: true, resource: true, scope: true },
+                },
               },
             },
           },
@@ -103,6 +105,7 @@ export class OrganizationService {
         : member.organizationRole.organizationRolePermissions.map((row) => ({
             action: row.organizationPermission.action as PermissionAction,
             resource: row.organizationPermission.resource as PermissionResource,
+            scope: row.organizationPermission.scope,
           }));
 
     return {

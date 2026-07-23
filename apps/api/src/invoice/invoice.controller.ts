@@ -23,7 +23,6 @@ import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permi
 
 import { CreateInvoiceRequest } from './dtos/create-invoice.request.dto';
 import { InvoiceFilterRequest } from './dtos/invoice-filter.request.dto';
-import { InvoiceTypeResponse } from './dtos/invoice-type.response.dto';
 import { InvoiceResponse } from './dtos/invoice.response.dto';
 import { UpdateInvoiceRequest } from './dtos/update-invoice.request.dto';
 import { InvoiceService } from './invoice.service';
@@ -36,11 +35,13 @@ export class InvoiceController {
   @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.INVOICE)
   @Get('/organization/:organizationId')
   async findByOrganizationId(
+    @Request() req: AuthenticatedRequest,
     @Param('organizationId') organizationId: string,
     @Query() filter: InvoiceFilterRequest
   ): Promise<HttpResponse<InvoiceResponse[]>> {
     const data = await this.invoiceService.findInvoicesByOrganizationId(
       organizationId,
+      req.user.userId,
       filter
     );
     return {
@@ -50,18 +51,8 @@ export class InvoiceController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('/types')
-  async findTypes(): Promise<HttpResponse<InvoiceTypeResponse[]>> {
-    const data = await this.invoiceService.findInvoiceTypes();
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Invoice types retrieved successfully',
-      data,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.INVOICE)
   @Post('/')
   async create(
     @Request() req: AuthenticatedRequest,
@@ -78,7 +69,8 @@ export class InvoiceController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OrganizationPermissionGuard)
+  @CheckAbility(PERMISSION_ACTION.READ, PERMISSION_RESOURCE.INVOICE)
   @Get('/:id')
   async findById(@Param('id') id: string): Promise<HttpResponse<InvoiceResponse>> {
     const data = await this.invoiceService.findInvoiceById(id);

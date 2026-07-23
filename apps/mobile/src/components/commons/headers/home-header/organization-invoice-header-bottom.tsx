@@ -8,18 +8,16 @@ import { getInvoiceById } from '@/apis/invoice/invoice-apis';
 import VinaupAddNew from '@/components/icons/vinaup-add-new.native';
 import { Button } from '@/components/primitives/button';
 import { SegmentedControl, SegmentedControlItem } from '@/components/primitives/segmented-control';
+import { INVOICE_TYPE, type InvoiceType } from '@/constants/invoice-constants';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useInvoiceTypeContext } from '@/providers/organization/invoice/invoice-type-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
-type InvoiceTypeCode = 'SELL' | 'BUY';
-
-const INVOICE_TYPE_ITEMS: SegmentedControlItem<InvoiceTypeCode>[] = [
-  { value: 'SELL', label: 'Thu bán hàng' },
-  { value: 'BUY', label: 'Chi mua hàng' },
+const INVOICE_TYPE_ITEMS: SegmentedControlItem<InvoiceType>[] = [
+  { value: INVOICE_TYPE.SELL, label: 'Thu bán hàng' },
+  { value: INVOICE_TYPE.BUY, label: 'Chi mua hàng' },
 ];
 
 const OrganizationInvoiceHeaderBottom = () => {
@@ -27,24 +25,19 @@ const OrganizationInvoiceHeaderBottom = () => {
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const params = useGlobalSearchParams<{
     organizationId: string;
-    invoiceTypeCode?: string;
+    invoiceType?: string;
   }>();
-  const currentCode: InvoiceTypeCode = params.invoiceTypeCode === 'BUY' ? 'BUY' : 'SELL';
+  const currentInvoiceType: InvoiceType =
+    params.invoiceType === INVOICE_TYPE.BUY ? INVOICE_TYPE.BUY : INVOICE_TYPE.SELL;
 
-  const [localCode, setLocalCode] = useState<InvoiceTypeCode>(currentCode);
+  const [localInvoiceType, setLocalInvoiceType] = useState<InvoiceType>(currentInvoiceType);
 
   const { can } = useOrganizationAbility();
-  const { getInvoiceTypeByCode } = useInvoiceTypeContext();
   const { createInvoice, isCreatingInvoice: isMutating } = useOrganizationActionsContext();
 
   const handleAddNew = () => {
-    const invoiceType = getInvoiceTypeByCode(localCode);
-    if (!invoiceType) {
-      Alert.alert('Lỗi', 'Không tìm thấy loại hoá đơn');
-      return;
-    }
     createInvoice(
-      { organizationId: params.organizationId, invoiceTypeCode: localCode },
+      { organizationId: params.organizationId, invoiceType: localInvoiceType },
       {
         onSuccess: async (data) => {
           setIsNavigating(true);
@@ -66,16 +59,16 @@ const OrganizationInvoiceHeaderBottom = () => {
       },
     );
   };
-  const handleInvoiceSegmentChange = (value: InvoiceTypeCode) =>
-    router.setParams({ invoiceTypeCode: value });
+  const handleInvoiceSegmentChange = (value: InvoiceType) =>
+    router.setParams({ invoiceType: value });
 
   return (
     <View style={styles.bottomContainer}>
       <View style={styles.segmentWrapper}>
         <SegmentedControl
           items={INVOICE_TYPE_ITEMS}
-          value={localCode}
-          onChange={setLocalCode}
+          value={localInvoiceType}
+          onChange={setLocalInvoiceType}
           onSettled={handleInvoiceSegmentChange}
           style={{
             pill: { backgroundColor: COLORS.white, boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)' },

@@ -22,7 +22,7 @@ import { styles } from './receipt-payments-summary-bar.styles';
 interface ReceiptPaymentsSummaryBarProps {
   receiptPayments?: ReceiptPaymentResponse[] | null;
   entityVatRate?: number;
-  invoiceTypeCode?: string;
+  invoiceType?: string;
   entityDiscountAmount?: number;
   isIncludedSubTotal?: boolean;
   isIncludedTotalPayment?: boolean;
@@ -46,7 +46,7 @@ interface ReceiptPaymentsSummaryBarProps {
 export function ReceiptPaymentsSummaryBar({
   receiptPayments,
   entityVatRate,
-  invoiceTypeCode,
+  invoiceType,
   entityDiscountAmount,
   isIncludedSubTotal = true,
   isIncludedTotalPayment = true,
@@ -301,7 +301,7 @@ export function ReceiptPaymentsSummaryBar({
                 </View>
               )}
               {/* != null checks only undefined/null, so value 0 still renders */}
-              {entityDiscountAmount != null && invoiceTypeCode === 'SELL' && (
+              {entityDiscountAmount != null && invoiceType === 'SELL' && (
                 <View style={styles.innerBottomContainer}>
                   <View style={styles.innerLeft}>
                     <Text style={isVATFromReceipts ? styles.strikethrough : undefined}>

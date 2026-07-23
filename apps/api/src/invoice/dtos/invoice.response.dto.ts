@@ -5,7 +5,6 @@ export const invoiceQueryArgs = {
     createdBy: true,
     organization: true,
     organizationCustomer: true,
-    invoiceType: true,
   },
 } satisfies Prisma.InvoiceDefaultArgs;
 

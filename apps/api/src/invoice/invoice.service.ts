@@ -1,15 +1,21 @@
 import { Injectable } from '@nestjs/common';
+import {
+  PERMISSION_ACTION,
+  PERMISSION_RESOURCE,
+  getUserAbility,
+  subject,
+} from '@vinaup-platform/permission';
+import { INVOICE_TYPE } from '@vinaup-platform/validation';
 import type {
   CreateInvoiceRequestInterface,
   InvoiceFilterRequestInterface,
   UpdateInvoiceRequestInterface,
 } from '@vinaup-platform/validation';
 
-import { InvoiceNotFoundException, InvoiceTypeNotFoundException } from 'src/_common/exceptions/invoice.exception';
+import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import type { InvoiceTypeResponse } from './dtos/invoice-type.response.dto';
 import { invoiceQueryArgs, type InvoiceResponse } from './dtos/invoice.response.dto';
 
 @Injectable()
@@ -18,15 +24,45 @@ export class InvoiceService {
 
   async findInvoicesByOrganizationId(
     organizationId: string,
+    userId: string,
     filter?: InvoiceFilterRequestInterface,
   ): Promise<InvoiceResponse[]> {
-    const dateFilterClause = generateDateOverlapClause(filter);
+    // ─── Step 1: Load the caller's granted permissions in THIS organization ─────
+    const grantedPermissionList = await this.prismaService.organizationRolePermission.findMany({
+      where: {
+        organizationRole: {
+          organizationId,
+          organizationMembers: { some: { userId } },
+        },
+      },
+      select: {
+        organizationPermission: { select: { action: true, resource: true, scope: true } },
+      },
+    });
 
+    // ─── Step 2: Which invoice types may the caller READ? ─────
+    const userAbility = getUserAbility(
+      grantedPermissionList.map((row) => row.organizationPermission),
+    );
+    const readableInvoiceTypeList = Object.values(INVOICE_TYPE).filter((invoiceType) =>
+      userAbility.can(
+        PERMISSION_ACTION.READ,
+        subject(PERMISSION_RESOURCE.INVOICE, { type: invoiceType }),
+      ),
+    );
+
+    // ─── Step 3: Query, restricted to those readable types ─────
+    const dateFilterClause = generateDateOverlapClause(filter);
     const whereClause = {
-      organizationId: organizationId,
-      ...(filter?.status && { status: filter.status }),
-      ...(filter?.invoiceTypeId && { invoiceTypeId: filter.invoiceTypeId }),
-      ...dateFilterClause,
+      AND: [
+        { type: { in: readableInvoiceTypeList } },
+        {
+          organizationId: organizationId,
+          ...(filter?.status && { status: filter.status }),
+          ...(filter?.type && { type: filter.type }),
+          ...dateFilterClause,
+        },
+      ],
     };
 
     const invoices = await this.prismaService.invoice.findMany({
@@ -38,25 +74,10 @@ export class InvoiceService {
     return invoices;
   }
 
-  private async assertInvoiceTypeExists(invoiceTypeId: string): Promise<void> {
-    const invoiceType = await this.prismaService.invoiceType.findUnique({
-      where: { id: invoiceTypeId },
-      select: { id: true },
-    });
-    if (!invoiceType) throw new InvoiceTypeNotFoundException();
-  }
-
-  async findInvoiceTypes(): Promise<InvoiceTypeResponse[]> {
-    const invoiceTypes = await this.prismaService.invoiceType.findMany();
-    return invoiceTypes;
-  }
-
   async createInvoice(
     createInvoiceReq: CreateInvoiceRequestInterface,
     currentUserId: string,
   ): Promise<InvoiceResponse> {
-    await this.assertInvoiceTypeExists(createInvoiceReq.invoiceTypeId);
-
     const newInvoice = await this.prismaService.invoice.create({
       data: {
         ...createInvoiceReq,
@@ -78,10 +99,6 @@ export class InvoiceService {
 
     if (!existingInvoice) {
       throw new InvoiceNotFoundException();
-    }
-
-    if (updateInvoiceReq.invoiceTypeId) {
-      await this.assertInvoiceTypeExists(updateInvoiceReq.invoiceTypeId);
     }
 
     const updatedInvoice = await this.prismaService.invoice.update({

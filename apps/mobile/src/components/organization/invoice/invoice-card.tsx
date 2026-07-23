@@ -38,7 +38,7 @@ export function InvoiceCard({ invoice, totalRemaining }: InvoiceCardProps) {
     }
     router.push({
       pathname: '/(protected)/invoice-detail/[invoiceId]',
-      params: { invoiceId, invoiceTypeCode: invoice?.invoiceType?.code },
+      params: { invoiceId, invoiceType: invoice?.type },
     });
     setIsNavigating(false);
   };

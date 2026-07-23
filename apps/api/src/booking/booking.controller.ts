@@ -13,13 +13,19 @@ import {
 } from '@nestjs/common';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 
+import {
+  TOUR_IMPLEMENTATION_ACCESS_LEVEL,
+  TOUR_TARGET_RESOURCE,
+} from 'src/_common/constants/tour.constant';
 import type {
   AuthenticatedRequest,
   HttpResponse,
 } from 'src/_common/interfaces/interface';
 import { CheckAbility } from 'src/_core/decorators/check-ability.decorator';
+import { CheckTourImplementationAccess } from 'src/_core/decorators/tour-implementation-access.decorator';
 import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 import { OrganizationPermissionGuard } from 'src/_core/guards/organization-permission.guard';
+import { TourImplementationAccessGuard } from 'src/_core/guards/tour-implementation-access.guard';
 
 import { BookingService } from './booking.service';
 import { BookingFilterRequest } from './dtos/booking-filter.request.dto';
@@ -73,7 +79,13 @@ export class BookingController {
     };
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, TourImplementationAccessGuard)
+  @CheckTourImplementationAccess({
+    source: 'param',
+    idKey: 'tourImplementationId',
+    targetResource: TOUR_TARGET_RESOURCE.TOUR_IMPLEMENTATION,
+    requiredAccessLevel: TOUR_IMPLEMENTATION_ACCESS_LEVEL.ASSIGNEE,
+  })
   @Get('/tour-implementation/:tourImplementationId')
   async findByTourImplementationId(
     @Param('tourImplementationId') tourImplementationId: string,

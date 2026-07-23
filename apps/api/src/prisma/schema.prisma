@@ -243,10 +243,14 @@ model OrganizationRole {
 model OrganizationPermission {
   id                          String                       @id @default(uuid())
   resource                    String // Model name: Project, Invoice, ReceiptPayment...
-  action                      String // READ, CREATE, UPDATE, DELETE  
+  action                      String // READ, CREATE, UPDATE, DELETE
+  // Narrows the cell to a subset of the resource ('SELL', 'BUY'); '' = the whole resource.
+  // Sentinel '' instead of NULL so the compound unique below actually rejects duplicates
+  // (Postgres treats NULLs as distinct in unique indexes).
+  scope                       String                       @default("")
   organizationRolePermissions OrganizationRolePermission[]
 
-  @@unique([resource, action])
+  @@unique([resource, action, scope])
 }
 
 model OrganizationRolePermission {
@@ -384,15 +388,7 @@ model Invoice {
   externalOrganizationName String?
   externalCustomerName     String?
   receiptPayments          ReceiptPayment[]
-  invoiceType              InvoiceType           @relation(fields: [invoiceTypeId], references: [id])
-  invoiceTypeId            String
-}
-
-model InvoiceType {
-  id          String    @id @default(uuid())
-  code        String    @unique
-  description String
-  invoices    Invoice[]
+  type                     String // SELL, BUY — code-defined set (INVOICE_TYPE in @vinaup-platform/validation)
 }
 
 model SocialLink {

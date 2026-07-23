@@ -3,6 +3,7 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
   PERMISSION_ACTION,
   PERMISSION_RESOURCE,
+  PERMISSION_SCOPE,
 } from '@vinaup-platform/permission';
 import { hash, genSalt } from 'bcrypt';
 
@@ -62,53 +63,68 @@ async function seedOrganizationIndustries() {
   );
 }
 
-async function seedInvoiceTypes() {
-  console.log('Seeding invoice types...');
-
-  const invoiceTypes = [
-    { code: 'SELL', description: 'Bán hàng' },
-    { code: 'BUY', description: 'Mua hàng' },
-  ];
-
-  for (const type of invoiceTypes) {
-    await prisma.invoiceType.upsert({
-      where: { code: type.code },
-      update: { description: type.description },
-      create: type,
-    });
-  }
-
-  console.log(`✅ Created/updated ${invoiceTypes.length} invoice types`);
-}
-
 async function seedOrganizationPermissions() {
   console.log('Seeding organization permissions...');
 
-  // The grantable catalog: CRUD on every granular resource, plus the single MANAGE/ALL wildcard
-  // OWNER is locked to. Resources/actions come from @vinaup-platform/permission (UPPER_SNAKE).
+  // The grantable catalog is JAGGED (PERMISSION-GRANULARITY-PATTERN §2.2): it lists only the
+  // cells that exist in the business — never a resources × actions cross-product.
+  // A cell absent here cannot be granted by anyone, not even OWNER.
   const crudActions = [
     PERMISSION_ACTION.CREATE,
     PERMISSION_ACTION.READ,
     PERMISSION_ACTION.UPDATE,
     PERMISSION_ACTION.DELETE,
   ];
-  const granularResources = Object.values(PERMISSION_RESOURCE).filter(
-    (resource) => resource !== PERMISSION_RESOURCE.ALL,
+
+  // Resources with plain CRUD cells. INVOICE is excluded: it exists only as scoped cells
+  // (SELL / BUY) — an unscoped INVOICE cell would bypass the scope split.
+  const crudResources = Object.values(PERMISSION_RESOURCE).filter(
+    (resource) =>
+      resource !== PERMISSION_RESOURCE.ALL && resource !== PERMISSION_RESOURCE.INVOICE,
   );
 
-  const cells: { resource: string; action: string }[] = [
-    { resource: PERMISSION_RESOURCE.ALL, action: PERMISSION_ACTION.MANAGE },
-    ...granularResources.flatMap((resource) =>
-      crudActions.map((action) => ({ resource, action })),
+  const cells: { resource: string; action: string; scope: string }[] = [
+    // OWNER-only wildcard (locked, never shown in the role matrix).
+    { resource: PERMISSION_RESOURCE.ALL, action: PERMISSION_ACTION.MANAGE, scope: '' },
+    ...crudResources.flatMap((resource) =>
+      crudActions.map((action) => ({ resource, action, scope: '' })),
+    ),
+    // INVOICE: scoped cells only — one set per invoice type (scope axis, §3.1).
+    ...Object.values(PERMISSION_SCOPE.INVOICE).flatMap((scope) =>
+      crudActions.map((action) => ({
+        resource: PERMISSION_RESOURCE.INVOICE,
+        action,
+        scope,
+      })),
     ),
   ];
 
   for (const cell of cells) {
     await prisma.organizationPermission.upsert({
-      where: { resource_action: { resource: cell.resource, action: cell.action } },
+      where: {
+        resource_action_scope: {
+          resource: cell.resource,
+          action: cell.action,
+          scope: cell.scope,
+        },
+      },
       update: {},
       create: cell,
     });
+  }
+
+  // Remove stale cells the jagged catalog no longer defines (e.g. the old unscoped INVOICE
+  // CRUD): grants cascade-delete with the cell, so a stale cell cannot survive as a grant.
+  const validCellKeySet = new Set(
+    cells.map((cell) => `${cell.resource}|${cell.action}|${cell.scope}`),
+  );
+  const existingCells = await prisma.organizationPermission.findMany();
+  const staleCellIds = existingCells
+    .filter((cell) => !validCellKeySet.has(`${cell.resource}|${cell.action}|${cell.scope}`))
+    .map((cell) => cell.id);
+  if (staleCellIds.length) {
+    await prisma.organizationPermission.deleteMany({ where: { id: { in: staleCellIds } } });
+    console.log(`🧹 Removed ${staleCellIds.length} stale organization permissions`);
   }
 
   console.log(`✅ Created/updated ${cells.length} organization permissions`);
@@ -190,10 +206,13 @@ async function seedUsersAndOrganization() {
     for (const [code, cells] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
       const permissionIds = cells.map((cell) => {
         const permission = allPermissions.find(
-          (p) => p.resource === cell.resource && p.action === cell.action,
+          (p) =>
+            p.resource === cell.resource &&
+            p.action === cell.action &&
+            p.scope === (cell.scope ?? ''),
         );
         if (!permission) {
-          throw new Error(`Missing OrganizationPermission for ${cell.action} ${cell.resource}`);
+          throw new Error(`Missing OrganizationPermission for ${cell.action} ${cell.resource} ${cell.scope ?? ''}`);
         }
         return permission.id;
       });
@@ -317,7 +336,6 @@ async function main() {
   console.log('Start seeding...');
 
   await seedOrganizationIndustries();
-  await seedInvoiceTypes();
   await seedOrganizationPermissions();
   await seedUsersAndOrganization();
 

@@ -1,9 +1,14 @@
-import { INVOICE_STATUS } from '@vinaup-platform/validation';
-import type { InvoiceStatus } from '@vinaup-platform/validation';
+import { INVOICE_STATUS, INVOICE_TYPE } from '@vinaup-platform/validation';
+import type { InvoiceStatus, InvoiceType } from '@vinaup-platform/validation';
 
 // Wire enums referenced by shared Zod schemas live in the package (§1.3).
-export { INVOICE_STATUS } from '@vinaup-platform/validation';
-export type { InvoiceStatus } from '@vinaup-platform/validation';
+export { INVOICE_STATUS, INVOICE_TYPE } from '@vinaup-platform/validation';
+export type { InvoiceStatus, InvoiceType } from '@vinaup-platform/validation';
+
+export const InvoiceTypeDisplay: Record<InvoiceType, string> = {
+  [INVOICE_TYPE.SELL]: 'Hoá đơn bán hàng',
+  [INVOICE_TYPE.BUY]: 'Hoá đơn mua hàng',
+};
 
 export const InvoiceStatusDisplay: Record<InvoiceStatus, string> = {
   [INVOICE_STATUS.PROCESSING]: 'Đang xử lý',

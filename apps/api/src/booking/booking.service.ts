@@ -8,7 +8,7 @@ import {
 } from '@vinaup-platform/validation';
 
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
-import { BookingCompletedImmutableException, BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
+import { BookingAccessDeniedException, BookingCompletedImmutableException, BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
 import { OrganizationNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { TourImplementationNotFoundException } from 'src/_common/exceptions/tour.exception';
@@ -195,12 +195,9 @@ export class BookingService {
       throw new BookingNotFoundException();
     }
 
-    const [signedSenderSignature, signedReceiverSignature, currentUserOrganizationIds] = await Promise.all([
-      this.prismaService.signature.findFirst({
-        where: { documentId: id, documentType: DOCUMENT_TYPE.BOOKING, signatureRole: SIGNATURE_ROLE.SENDER, isSigned: true },
-      }),
-      this.prismaService.signature.findFirst({
-        where: { documentId: id, documentType: DOCUMENT_TYPE.BOOKING, signatureRole: SIGNATURE_ROLE.RECEIVER, isSigned: true },
+    const [signatureList, currentUserOrganizationIds] = await Promise.all([
+      this.prismaService.signature.findMany({
+        where: { documentId: id, documentType: DOCUMENT_TYPE.BOOKING },
       }),
       this.prismaService.organizationMember.findMany({
         where: { userId: currentUserId },
@@ -212,13 +209,32 @@ export class BookingService {
       booking.createdByUserId === currentUserId ||
       currentUserOrganizationIds.includes(booking.organizationId);
 
+    const receiverOrganizationId = booking.organizationCustomer?.clientOrganizationId;
+    const isReceiver =
+      !!receiverOrganizationId && currentUserOrganizationIds.includes(receiverOrganizationId);
+
+    const isSignatureTarget = signatureList.some(
+      (signature) => signature.targetUserId === currentUserId
+    );
+
+    if (!isSender && !isReceiver && !isSignatureTarget) {
+      throw new BookingAccessDeniedException();
+    }
+
+    const isSenderSigned = signatureList.some(
+      (signature) => signature.signatureRole === SIGNATURE_ROLE.SENDER && signature.isSigned
+    );
+    const isReceiverSigned = signatureList.some(
+      (signature) => signature.signatureRole === SIGNATURE_ROLE.RECEIVER && signature.isSigned
+    );
+
     return {
       ...booking,
       meta: {
         isSender,
-        canEdit: isSender && !signedSenderSignature,
-        isSenderSigned: !!signedSenderSignature,
-        isReceiverSigned: !!signedReceiverSignature,
+        canEdit: isSender && !isSenderSigned,
+        isSenderSigned,
+        isReceiverSigned,
       },
     };
   }

@@ -14,7 +14,13 @@ export const getUserAbility = (permissionList: PermissionRule[]) => {
     const caslSubject =
       permission.resource === PERMISSION_RESOURCE.ALL ? 'all' : permission.resource;
 
-    can(caslAction, caslSubject);
+    // The only scoped resource today: INVOICE, whose scope IS the invoice type value.
+    // A scoped row compiles to a conditional rule; undefined conditions = the whole resource.
+    const conditions =
+      permission.resource === PERMISSION_RESOURCE.INVOICE && permission.scope
+        ? { type: permission.scope }
+        : undefined;
+    can(caslAction, caslSubject, conditions);
   }
 
   // ─── COMPILE: seal the rules into the ability ─────

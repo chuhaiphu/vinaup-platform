@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-import { INVOICE_STATUS } from '../constants/invoice.constant';
+import { INVOICE_STATUS, INVOICE_TYPE } from '../constants/invoice.constant';
 import {
   dateInstanceFilterFields,
   isEndDateOnOrAfterStartDate,
@@ -13,7 +13,7 @@ const invoiceFields = z.strictObject({
   description: z.string().trim().min(1),
   endDate: z.iso.datetime(),
   startDate: z.iso.datetime(),
-  invoiceTypeId: z.string().trim().min(1), // existence is checked in the service, not here
+  type: z.enum(INVOICE_TYPE), // code-defined set — the enum IS the existence check
   note: z.string().trim().min(1).nullish(),
   organizationId: z.string().trim().min(1).nullish(),
   organizationCustomerId: z.string().trim().min(1).nullish(),
@@ -27,6 +27,8 @@ export const createInvoiceSchema = invoiceFields.refine(isEndDateOnOrAfterStartD
 });
 
 export const updateInvoiceSchema = invoiceFields
+  // Immutable after creation
+  .omit({ type: true })
   .partial()
   .extend({
     status: z.enum(INVOICE_STATUS).optional(), // update-only field; NOT NULL column → .optional()
@@ -56,7 +58,7 @@ export const updateInvoiceSchema = invoiceFields
 export const invoiceFilterSchema = z
   .strictObject({
     ...dateInstanceFilterFields,
-    invoiceTypeId: z.uuid().optional(),
+    type: z.enum(INVOICE_TYPE).optional(),
     status: z.enum(INVOICE_STATUS).optional(),
   })
   .refine(isStartDatePresentWhenEndDate, {

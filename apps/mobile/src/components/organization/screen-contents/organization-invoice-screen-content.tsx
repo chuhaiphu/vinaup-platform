@@ -12,7 +12,7 @@ import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { UnifiedDatePicker } from '@/components/primitives/unified-date-picker';
 import { DD_MM_YYYY_DATE_FORMAT, MM_YYYY_DATE_FORMAT } from '@/constants/app-constants';
 import { type DatePickerMode } from '@/constants/date-constants';
-import { InvoiceStatusOptions } from '@/constants/invoice-constants';
+import { INVOICE_TYPE, InvoiceStatusOptions, type InvoiceType } from '@/constants/invoice-constants';
 import { COLORS, FONT_SIZES, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { OrganizationInvoiceListProvider } from '@/providers/organization/invoice/organization-invoice-list-provider';
 
@@ -20,13 +20,14 @@ export function OrganizationInvoiceScreenContent() {
   const router = useRouter();
   const params = useLocalSearchParams<{
     organizationId: string;
-    invoiceTypeCode: string;
+    invoiceType: string;
     month?: string;
     day?: string;
   }>();
 
   const { organizationId, month, day } = params;
-  const invoiceTypeCode = params.invoiceTypeCode || 'SELL';
+  const invoiceType: InvoiceType =
+    params.invoiceType === INVOICE_TYPE.BUY ? INVOICE_TYPE.BUY : INVOICE_TYPE.SELL;
 
   const [statusFilter, setStatusFilter] = useState<InvoiceStatus | ''>('');
   const [filterMode, setFilterMode] = useState<DatePickerMode>('month');
@@ -53,7 +54,7 @@ export function OrganizationInvoiceScreenContent() {
     }
   };
 
-  const suspenseKey = `org-invoice-list-${organizationId}-${invoiceTypeCode}-${filterMode}-${
+  const suspenseKey = `org-invoice-list-${organizationId}-${invoiceType}-${filterMode}-${
     filterMode === 'month' ? selectedDate.format('YYYY-MM') : selectedDate.format('YYYY-MM-DD')
   }-${statusFilter}`;
 
@@ -95,14 +96,14 @@ export function OrganizationInvoiceScreenContent() {
           organizationId={organizationId}
           selectedDate={selectedDate}
           statusFilter={statusFilter || undefined}
-          invoiceTypeCode={invoiceTypeCode}
+          invoiceType={invoiceType}
           filterMode={filterMode}
         >
           <InvoiceListSection
             organizationId={organizationId}
             selectedDate={selectedDate}
             statusFilter={statusFilter || undefined}
-            invoiceTypeCode={invoiceTypeCode}
+            invoiceType={invoiceType}
             filterMode={filterMode}
           />
         </OrganizationInvoiceListProvider>

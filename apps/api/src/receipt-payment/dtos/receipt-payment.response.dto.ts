@@ -5,7 +5,7 @@ export const receiptPaymentQueryArgs = {
     createdBy: true,
     project: true,
     organization: true,
-    invoice: { include: { invoiceType: true } },
+    invoice: true,
     booking: true,
     tourCalculation: true,
     tourImplementationReceiptPayments: true,

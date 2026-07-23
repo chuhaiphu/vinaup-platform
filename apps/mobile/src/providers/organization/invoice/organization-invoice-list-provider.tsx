@@ -7,10 +7,9 @@ import { getInvoicesByOrganizationId } from '@/apis/invoice/invoice-apis';
 import { getReceiptPaymentsByInvoiceIds } from '@/apis/receipt-payment/receipt-payment-apis';
 import { type DatePickerMode } from '@/constants/date-constants';
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
+import { type InvoiceType } from '@/constants/invoice-constants';
 import { InvoiceResponse } from '@/interfaces/invoice-interfaces';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
-
-import { useInvoiceTypeContext } from './invoice-type-provider';
 
 interface OrganizationInvoiceListContextType {
   invoices: InvoiceResponse[];
@@ -36,19 +35,17 @@ export function OrganizationInvoiceListProvider({
   organizationId,
   selectedDate,
   statusFilter,
-  invoiceTypeCode,
+  invoiceType,
   filterMode,
   children,
 }: {
   organizationId: string;
   selectedDate: dayjs.Dayjs;
   statusFilter?: InvoiceStatus;
-  invoiceTypeCode: string;
+  invoiceType: InvoiceType;
   filterMode: DatePickerMode;
   children: React.ReactNode;
 }) {
-  const { getInvoiceTypeByCode } = useInvoiceTypeContext();
-
   const startDate =
     filterMode === 'month'
       ? selectedDate.startOf('month').toISOString()
@@ -59,12 +56,11 @@ export function OrganizationInvoiceListProvider({
       : selectedDate.endOf('day').toISOString();
   const dateFormat = filterMode === 'month' ? 'YYYY-MM' : 'YYYY-MM-DD';
 
-  const fetchKey = `organization-invoice-list-${organizationId}-${invoiceTypeCode}-${filterMode}-${selectedDate.format(dateFormat)}-${statusFilter}`;
+  const fetchKey = `organization-invoice-list-${organizationId}-${invoiceType}-${filterMode}-${selectedDate.format(dateFormat)}-${statusFilter}`;
 
   const fetchFn = async () => {
-    const invoiceType = getInvoiceTypeByCode(invoiceTypeCode);
     const invoicesRes = await getInvoicesByOrganizationId(organizationId, {
-      invoiceTypeId: invoiceType?.id,
+      type: invoiceType,
       status: statusFilter || undefined,
       startDate,
       endDate,

@@ -9,18 +9,18 @@ import { createProject } from '@/apis/project/project-apis';
 import { createTour } from '@/apis/tour/tour-apis';
 import { createTrip } from '@/apis/trip/trip-apis';
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
+import { INVOICE_TYPE, type InvoiceType } from '@/constants/invoice-constants';
 import { BookingResponse } from '@/interfaces/booking-interfaces';
 import { CarResponse } from '@/interfaces/car-interfaces';
 import { InvoiceResponse } from '@/interfaces/invoice-interfaces';
 import { ProjectResponse } from '@/interfaces/project-interfaces';
 import { TourResponse } from '@/interfaces/tour-interfaces';
 import { TripResponse } from '@/interfaces/trip-interfaces';
-import { useInvoiceTypeContext } from '@/providers/organization/invoice/invoice-type-provider';
 import { generateDateCode } from '@/utils/generator/string-generator/generate-date-code';
 
 interface OrganizationActionsContextType {
   createInvoice: (
-    params: { organizationId: string; invoiceTypeCode: string },
+    params: { organizationId: string; invoiceType: InvoiceType },
     cb?: {
       onSuccess?: (data: InvoiceResponse | null) => void;
       onError?: (e: ApiError) => void;
@@ -81,21 +81,16 @@ export function useOrganizationActionsContext() {
 }
 
 export function OrganizationActionsProvider({ children }: { children: React.ReactNode }) {
-  const { getInvoiceTypeByCode } = useInvoiceTypeContext();
-
   const { executeMutationFn: execCreateInvoice, isMutating: isCreatingInvoice } = useMutationFn(
-    ({ organizationId, invoiceTypeCode }: { organizationId: string; invoiceTypeCode: string }) => {
-      const invoiceType = getInvoiceTypeByCode(invoiceTypeCode);
-      if (!invoiceType) return Promise.reject(new Error('Không tìm thấy loại hoá đơn'));
-      return createInvoice({
+    ({ organizationId, invoiceType }: { organizationId: string; invoiceType: InvoiceType }) =>
+      createInvoice({
         code: generateDateCode(),
-        invoiceTypeId: invoiceType.id,
-        description: invoiceTypeCode === 'BUY' ? 'Biên nhận chi' : 'Hoá đơn',
+        type: invoiceType,
+        description: invoiceType === INVOICE_TYPE.BUY ? 'Biên nhận chi' : 'Hoá đơn',
         endDate: new Date().toISOString(),
         startDate: new Date().toISOString(),
         organizationId,
-      });
-    },
+      }),
     { invalidatesTags: [FETCH_TAG.invoiceList] },
   );
 

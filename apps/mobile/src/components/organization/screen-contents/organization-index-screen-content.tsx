@@ -72,7 +72,7 @@ export function OrganizationIndexScreenContent({ organizationId }: { organizatio
       pathname: '/(protected)/organization/[organizationId]/(tabs)/invoice',
       params: {
         organizationId,
-        invoiceTypeCode: key === ORGANIZATION_UTILITY_KEYS.INVOICE_SELL ? 'SELL' : 'BUY',
+        invoiceType: key === ORGANIZATION_UTILITY_KEYS.INVOICE_SELL ? 'SELL' : 'BUY',
       },
     });
   };

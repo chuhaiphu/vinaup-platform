@@ -5,7 +5,6 @@ import { EntityDetailSkeleton } from '@/components/commons/skeletons/entity-deta
 import { InvoiceDetailScreenContent } from '@/components/organization/invoice/screen-contents/invoice-detail-screen-content';
 import { ErrorBoundary } from '@/components/primitives/error-boundary';
 import { InvoiceDetailProvider } from '@/providers/organization/invoice/invoice-detail-provider';
-import { InvoiceTypeProvider } from '@/providers/organization/invoice/invoice-type-provider';
 
 export default function InvoiceDetailScreen() {
   const { invoiceId } = useLocalSearchParams<{ invoiceId: string }>();
@@ -14,9 +13,7 @@ export default function InvoiceDetailScreen() {
     <ErrorBoundary>
       <Suspense fallback={<EntityDetailSkeleton />}>
         <InvoiceDetailProvider invoiceId={invoiceId}>
-          <InvoiceTypeProvider>
-            <InvoiceDetailScreenContent />
-          </InvoiceTypeProvider>
+          <InvoiceDetailScreenContent />
         </InvoiceDetailProvider>
       </Suspense>
     </ErrorBoundary>

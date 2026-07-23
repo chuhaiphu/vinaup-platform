@@ -31,7 +31,7 @@ export function OrganizationHomeIndexSummary({
       pathname: '/(protected)/organization/[organizationId]/(tabs)/invoice',
       params: {
         organizationId,
-        invoiceTypeCode: 'SELL',
+        invoiceType: 'SELL',
         month: currentMonth.format('YYYY-MM'),
       },
     });

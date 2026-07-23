@@ -24,7 +24,7 @@ import {
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SingleSelect } from '@/components/primitives/single-select';
 import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { InvoiceStatus, InvoiceStatusOptions } from '@/constants/invoice-constants';
+import { InvoiceStatus, InvoiceStatusOptions, InvoiceTypeDisplay } from '@/constants/invoice-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { useScreenHeader } from '@/hooks/use-screen-header';
@@ -70,8 +70,7 @@ export function InvoiceDetailScreenContent() {
   }, [refreshInvoice]);
 
   useScreenHeader({
-    title:
-      'Chi tiết' + ' ' + (invoice.invoiceType.description ? invoice.invoiceType.description : ''),
+    title: 'Chi tiết' + ' ' + InvoiceTypeDisplay[invoice.type],
     onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE)
       ? handleDeleteInvoice
       : undefined,
@@ -144,7 +143,7 @@ export function InvoiceDetailScreenContent() {
               endDate={invoice.endDate}
               invoiceId={invoiceId}
               organizationId={invoice.organization?.id}
-              invoiceTypeId={invoice.invoiceType.id}
+              invoiceType={invoice.type}
             />
           </ReceiptPaymentListInInvoiceProvider>
         </Suspense>

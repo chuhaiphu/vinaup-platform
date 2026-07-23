@@ -26,7 +26,6 @@ export const FETCH_TAG = {
   personalCalendarWage: 'personal-calendar-wage',
 
   fuelPrice: 'fuel-price',
-  invoiceTypeList: 'invoice-type-list',
   organizationList: 'organization-list',
   allOrganizationList: 'all-organization-list',
   tourCalculationCancelLogDetail: 'tour-calculation-cancel-log-detail',
