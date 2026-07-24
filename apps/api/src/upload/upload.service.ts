@@ -6,9 +6,6 @@ import type { ConfigType } from '@nestjs/config';
 
 import {
   UploadFileNotFoundException,
-  UploadFileRequiredException,
-  UploadFileTooLargeException,
-  UploadInvalidFileTypeException,
   UploadPathRequiredException,
 } from 'src/_common/exceptions/upload.exception';
 import { generateUniqueCode } from 'src/_common/utils/generator/string-generator/generate-unique-code';
@@ -33,14 +30,8 @@ export class UploadService {
     file: Express.Multer.File,
     userId: string,
   ): Promise<UploadImageResponse> {
-    // Validate
-    if (!file) throw new UploadFileRequiredException();
-    if (!this.config.allowedMimeTypes.includes(file.mimetype)) {
-      throw new UploadInvalidFileTypeException();
-    }
-    if (file.size > this.config.maxFileSize) {
-      throw new UploadFileTooLargeException();
-    }
+    // File type/size/presence are validated by ParseFilePipe at the controller
+    // boundary (magic-number based), so the service receives a trusted file.
 
     // Generate filename
     const ext = file.originalname.split('.').pop() || 'jpg';

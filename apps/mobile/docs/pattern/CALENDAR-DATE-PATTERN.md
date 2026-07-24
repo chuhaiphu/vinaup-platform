@@ -31,7 +31,7 @@ We **never** parse it with `dayjs(value)` to read a local day, and **never** ser
 - **Day.js — core only, unchanged.** No `utc`/`timezone` plugin is ever needed for a calendar date,
   because the device does no timezone math for it.
 - **On the wire:** a calendar date is a bare `YYYY-MM-DD` string, matching the API's `z.iso.date()`
-  and a `@db.Date` column — never an ISO date-time.
+  and a `String` `YYYY-MM-DD` column — never an ISO date-time.
 - Pressing check-in sends **no timestamp**; the server returns the record
   with a `workDate` the device renders as-is. Loading a day's roster sends that `workDate`.
 
@@ -96,7 +96,7 @@ timestamp on the record.
 ```
 DEVICE                     API + POSTGRES  (one press → two stored values)        DEVICE (any tz)
 press check-in ──► now() ┬─ checkInAt  "2026-04-30T17:30:00Z"  @Timestamptz   ─► org lens → "00:30"
-(sends no time)          └─ workDate   "2026-05-01"            @db.Date       ─► verbatim → "2026-05-01"
+(sends no time)          └─ workDate   "2026-05-01"            String         ─► verbatim → "2026-05-01"
                             workDate = checkInAt from the org timezone
 ```
 

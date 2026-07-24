@@ -52,7 +52,7 @@ it.
 
 ### 2.2 The catalog is jagged
 
-> **The catalog contains only the cells that exist in the business.
+> **The catalog contains only the cells that exist in the business.**
 
 Two states look similar in a UI but are fundamentally different:
 

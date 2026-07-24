@@ -15,7 +15,6 @@
     "start:prod": "NODE_ENV=production node dist/src/main"
   },
   "dependencies": {
-    "@casl/ability": "^7.0.1",
     "@nestjs/common": "^11.1.12",
     "@nestjs/config": "^4.0.2",
     "@nestjs/core": "^11.1.12",

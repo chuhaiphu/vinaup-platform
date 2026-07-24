@@ -3,6 +3,9 @@ import {
   Post,
   Delete,
   Body,
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  ParseFilePipe,
   UploadedFile,
   UseInterceptors,
   HttpStatus,
@@ -12,6 +15,12 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 
+import { ALLOWED_MIME_REGEX, MAX_FILE_SIZE_BYTES } from 'src/_common/constants/upload.constant';
+import {
+  UploadFileRequiredException,
+  UploadFileTooLargeException,
+  UploadInvalidFileTypeException,
+} from 'src/_common/exceptions/upload.exception';
 import type {
   AuthenticatedRequest,
   HttpResponse,
@@ -30,7 +39,26 @@ export class UploadController {
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
   async uploadImage(
     @Request() req: AuthenticatedRequest,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: MAX_FILE_SIZE_BYTES,
+            errorMessage: 'FILE_TOO_LARGE',
+          }),
+          new FileTypeValidator({
+            fileType: ALLOWED_MIME_REGEX,
+            errorMessage: 'FILE_TYPE_INVALID',
+          }),
+        ],
+        exceptionFactory: (error: string) => {
+          if (error === 'FILE_TOO_LARGE') throw new UploadFileTooLargeException();
+          if (error === 'FILE_TYPE_INVALID') throw new UploadInvalidFileTypeException();
+          throw new UploadFileRequiredException();
+        },
+      }),
+    )
+    file: Express.Multer.File,
   ): Promise<HttpResponse<UploadImageResponse>> {
     const result = await this.uploadService.uploadImageByCurrentUser(
       file,

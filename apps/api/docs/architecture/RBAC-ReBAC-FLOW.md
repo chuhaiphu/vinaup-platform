@@ -219,7 +219,7 @@ in this class.
 Every `ReceiptPayment` route that touches a specific record — **reads and mutations alike** — carries
 **only** `JwtAuthGuard`, no authorization guard, because which plane governs it depends on the parent the
 receipt payment attaches to, a fact known only once the service reads it
-([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §7.4). On create the parent comes from the request
+([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §6). On create the parent comes from the request
 body; on read/update/delete of a specific record it is read from the stored receipt payment; on a
 parent-collection read it is the URL's parent id. Read and write collapse to the **same** rule — who may
 see a receipt payment is exactly who may write it (the org plane checks ACTIVE membership, not a separate

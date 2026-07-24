@@ -189,9 +189,9 @@ The membership/permission family below is the shared vocabulary of the org RBAC 
 
 | `error` code             | HTTP | Exception class                | Thrown by                                                       |
 | ------------------------ | ---- | ------------------------------ | -------------------------------------------------------------- |
-| `UPLOAD_FILE_REQUIRED`   | 400  | `UploadFileRequiredException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
-| `UPLOAD_INVALID_FILE_TYPE`| 400 | `UploadInvalidFileTypeException`| [`upload.service.ts`](../../src/upload/upload.service.ts)     |
-| `UPLOAD_FILE_TOO_LARGE`  | 413  | `UploadFileTooLargeException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
+| `UPLOAD_FILE_REQUIRED`   | 400  | `UploadFileRequiredException`  | [`upload.controller.ts`](../../src/upload/upload.controller.ts) — raised by `ParseFilePipe` when no file is sent |
+| `UPLOAD_INVALID_FILE_TYPE`| 415 | `UploadInvalidFileTypeException`| [`upload.controller.ts`](../../src/upload/upload.controller.ts) — `FileTypeValidator` (magic-number) rejects the type |
+| `UPLOAD_FILE_TOO_LARGE`  | 413  | `UploadFileTooLargeException`  | [`upload.controller.ts`](../../src/upload/upload.controller.ts) — `MaxFileSizeValidator` rejects the size |
 | `UPLOAD_PATH_REQUIRED`   | 400  | `UploadPathRequiredException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
 | `UPLOAD_FILE_NOT_FOUND`  | 404  | `UploadFileNotFoundException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
 

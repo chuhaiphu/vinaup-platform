@@ -44,7 +44,9 @@ delegation inside or across it. One principle spans both — **each authorizatio
 single authority.** You do not answer one "may you act here?" with two competing models; a route
 belongs to one model, or one model's relevant grant is folded into the other as an explicit rule.
 
-This codebase uses both: §2–§6 are its RBAC, §7 its ReBAC. How each maps to concrete routes is §6.
+This codebase uses both: §2–§5 are its RBAC mechanism; how each model maps to concrete routes —
+including the ReBAC plane (`TourImplementationAccessGuard`) — is §6, and the runtime walk-through
+is [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
 
 ---
 
@@ -364,7 +366,7 @@ The two models of §1 map onto concrete mechanisms here. Every decision the API 
 | The question                                                                | Applies to                                                                                      | Enforced by                                   |
 | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | Does your **role in the organization** permit this action on this resource? | an organization's documents (`Booking`, `Invoice`, `Tour`, `Trip`, `Car`, the org directory, …) | `OrganizationPermissionGuard` (RBAC — below)  |
-| Are you **assigned to this tour's execution**?                              | tour execution (crew assignments, tour receipt payments)                                        | `TourImplementationAccessGuard` (ReBAC — §7)  |
+| Are you **assigned to this tour's execution**?                              | tour execution (crew assignments, tour receipt payments)                                        | `TourImplementationAccessGuard` (ReBAC — [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md) Flow 2)  |
 | Is this **your own** record?                                                | a record's creator; a personal record with no organization                                      | a branch inside `OrganizationPermissionGuard` |
 
 The first two are **enforcement planes**, each with a guard; ownership is a short-circuit inside the

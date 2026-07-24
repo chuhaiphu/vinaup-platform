@@ -3,6 +3,7 @@ import {
   HttpStatus,
   NotFoundException,
   PayloadTooLargeException,
+  UnsupportedMediaTypeException,
 } from '@nestjs/common';
 
 export class UploadFileRequiredException extends BadRequestException {
@@ -11,9 +12,9 @@ export class UploadFileRequiredException extends BadRequestException {
   }
 }
 
-export class UploadInvalidFileTypeException extends BadRequestException {
+export class UploadInvalidFileTypeException extends UnsupportedMediaTypeException {
   constructor() {
-    super({ error: 'UPLOAD_INVALID_FILE_TYPE', message: 'Invalid file type', statusCode: HttpStatus.BAD_REQUEST });
+    super({ error: 'UPLOAD_INVALID_FILE_TYPE', message: 'Invalid file type', statusCode: HttpStatus.UNSUPPORTED_MEDIA_TYPE });
   }
 }
 
