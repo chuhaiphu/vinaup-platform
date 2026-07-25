@@ -6,7 +6,7 @@ import VinaupLocation from '@/components/icons/vinaup-location.native';
 import { AttendancePunchConfirmModal } from '@/components/organization/attendance/modals/attendance-punch-confirm-modal/attendance-punch-confirm-modal';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { ATTENDANCE_PUNCH_ACTION, AttendanceMode } from '@/constants/attendance-constants';
+import { ATTENDANCE_PUNCH_ACTION } from '@/constants/attendance-constants';
 import {
   AVATAR_SIZES,
   COLORS,
@@ -16,23 +16,22 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
-import { useOrganizationAttendanceRecordListContext } from '@/providers/organization/attendance/organization-attendance-record-list-provider';
+import { useOrganizationAttendancePunchContext } from '@/providers/organization/attendance/organization-attendance-punch-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 
 interface AttendancePunchBarProps {
   organizationId: string;
-  attendanceMode: AttendanceMode;
 }
 
-export function AttendancePunchBar({ organizationId, attendanceMode }: AttendancePunchBarProps) {
+export function AttendancePunchBar({ organizationId }: AttendancePunchBarProps) {
   const { can } = useOrganizationAbility();
   const {
+    attendanceMode,
     openAttendanceRecord,
-    isCreatingAttendanceRecord,
-    isCheckingOutAttendanceRecord,
+    isMutatingAttendanceRecord,
     handleCreateAttendanceRecord,
     handleCheckOutAttendanceRecord,
-  } = useOrganizationAttendanceRecordListContext();
+  } = useOrganizationAttendancePunchContext();
   const modalRef = useRef<SlideSheetRef | null>(null);
 
   if (!can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.ATTENDANCE_RECORD)) return null;
@@ -51,8 +50,15 @@ export function AttendancePunchBar({ organizationId, attendanceMode }: Attendanc
           Check in
         </Text>
       </View>
-      <PressableOpacity style={styles.punchButton} onPress={() => modalRef.current?.open()}>
-        <VinaupLocation width={ICON_SIZES.xxl} height={ICON_SIZES.xxl} />
+      <PressableOpacity
+        style={[styles.punchButton, !isCheckingIn && styles.punchCheckOutButton]}
+        onPress={() => modalRef.current?.open()}
+      >
+        <VinaupLocation
+          width={ICON_SIZES.xxl}
+          height={ICON_SIZES.xxl}
+          color={isCheckingIn ? COLORS.yellow400 : COLORS.teal700}
+        />
       </PressableOpacity>
       <View style={[styles.punchLabelContainer, styles.punchLabelRightContainer]}>
         <Text style={[styles.punchHintText, isCheckingIn && styles.punchDisabledText]}>Bấm</Text>
@@ -65,7 +71,7 @@ export function AttendancePunchBar({ organizationId, attendanceMode }: Attendanc
         organizationId={organizationId}
         punchAction={punchAction}
         attendanceMode={attendanceMode}
-        isLoading={isCreatingAttendanceRecord || isCheckingOutAttendanceRecord}
+        isLoading={isMutatingAttendanceRecord}
         onConfirm={(value, closeModal) => {
           if (value.punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_IN) {
             handleCreateAttendanceRecord(value.request, closeModal);
@@ -84,6 +90,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: SPACING.sm,
+    marginVertical: SPACING.sm,
   },
   punchButton: {
     width: AVATAR_SIZES.lg,
@@ -92,6 +99,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.teal700,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  punchCheckOutButton: {
+    backgroundColor: COLORS.yellow400,
   },
   punchLabelContainer: {
     flex: 1,

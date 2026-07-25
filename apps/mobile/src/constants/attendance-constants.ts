@@ -7,7 +7,7 @@ export type { AttendanceMode, AttendanceRecordStatus } from '@vinaup-platform/va
 
 export const AttendanceModeDisplay: Record<AttendanceMode, string> = {
   [ATTENDANCE_MODE.CHECK_IN]: 'Check in',
-  [ATTENDANCE_MODE.CHECK_IN_OUT]: 'Check in - out',
+  [ATTENDANCE_MODE.CHECK_IN_OUT]: 'Check in + Check out',
 };
 
 export const ATTENDANCE_PUNCH_ACTION = {

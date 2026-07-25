@@ -1,7 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { DateRangeText } from '@/components/commons/texts/date-range-text';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  LINE_HEIGHTS,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 import { TourStatusDisplay } from '@/constants/tour-constants';
 import { TourResponse } from '@/interfaces/tour-interfaces';
 
@@ -96,7 +103,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: FONT_SIZES.base,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHTS.base,
     fontWeight: FONT_WEIGHTS.bold,
     color: COLORS.teal700,
   },

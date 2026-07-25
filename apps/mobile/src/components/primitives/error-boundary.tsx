@@ -2,7 +2,14 @@ import { fetchClient } from 'fetchwire';
 import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  LINE_HEIGHTS,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 // React has no function-component equivalent for error boundaries,
@@ -51,7 +58,12 @@ const styles = StyleSheet.create({
     gap: SPACING.md,
   },
   title: { fontSize: FONT_SIZES.lg, fontWeight: FONT_WEIGHTS.semibold, color: COLORS.teal900 },
-  message: { fontSize: FONT_SIZES.sm, lineHeight: 20, textAlign: 'center', color: COLORS.gray700 },
+  message: {
+    fontSize: FONT_SIZES.sm,
+    lineHeight: LINE_HEIGHTS.sm,
+    textAlign: 'center',
+    color: COLORS.gray700,
+  },
   button: {
     marginTop: SPACING.sm,
     paddingHorizontal: SPACING.xl,

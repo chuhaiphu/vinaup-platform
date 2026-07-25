@@ -149,6 +149,27 @@ export const FONT_WEIGHTS = {
   bold: '700', // titles, amounts, primary emphasis — always '700', never 'bold'
 } as const;
 
+// Leading grows by a flat 6px, so the ratio tightens as type scales up — what large text needs.
+// Only for text that can wrap; a single line next to an icon wants CENTERED_TEXT instead.
+export const LINE_HEIGHTS = {
+  xxs: 16,
+  xs: 18,
+  sm: 20,
+  base: 22,
+  lg: 24,
+  xl: 26,
+  '2xl': 30,
+  '3xl': 36,
+  '4xl': 42,
+} as const;
+
+// Android pads the line box using the font's max ascender/descender — Vietnamese diacritics make
+// that padding thick — which drops the glyphs below the row's centre axis. Ignored on iOS.
+export const CENTERED_TEXT = {
+  includeFontPadding: false,
+  textAlignVertical: 'center',
+} as const;
+
 export const ICON_SIZES = {
   xs: 12, // tiny indicators (chevrons in dense rows)
   sm: 16, // inside inputs / badges

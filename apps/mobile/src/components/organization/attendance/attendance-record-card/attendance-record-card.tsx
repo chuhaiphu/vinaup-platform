@@ -1,7 +1,11 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { Text, View } from 'react-native';
 
-import { ATTENDANCE_RECORD_STATUS, AttendanceModeDisplay } from '@/constants/attendance-constants';
+import {
+  ATTENDANCE_MODE,
+  ATTENDANCE_RECORD_STATUS,
+  AttendanceModeDisplay,
+} from '@/constants/attendance-constants';
 import { COLORS, ICON_SIZES } from '@/constants/style-constants';
 import { AttendanceRecordResponse } from '@/interfaces/attendance-interfaces';
 import { calculateAttendanceDuration } from '@/utils/calculator/calculate-attendance-duration';
@@ -26,11 +30,15 @@ export function AttendanceRecordCard({
   const { mode, status, checkInAt, checkOutAt, location, note } = attendanceRecord;
 
   const isOpen = status === ATTENDANCE_RECORD_STATUS.OPEN;
+  const isCheckInOnly = mode === ATTENDANCE_MODE.CHECK_IN;
   const checkOutInstant = checkOutAt ? new Date(checkOutAt) : null;
   const checkInTime = generateZonedTime(new Date(checkInAt), organizationTimezone);
   const checkOutTime = checkOutInstant
     ? generateZonedTime(checkOutInstant, organizationTimezone)
     : EMPTY_TIME_PLACEHOLDER;
+
+  // A lone check-in is a single instant, so it has no closing time and nothing to total up.
+  const timeText = isCheckInOnly ? checkInTime : `${checkInTime} - ${checkOutTime}`;
 
   const durationEndInstant = isOpen ? now : checkOutInstant;
   const duration = durationEndInstant
@@ -41,22 +49,32 @@ export function AttendanceRecordCard({
 
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          isCheckInOnly && styles.contentCheckIn,
+          isOpen && styles.contentOpen,
+        ]}
+      >
         <View style={styles.titleRow}>
-          <Text style={[styles.titleText, !isOpen && styles.titleClosedText]}>
+          <Text
+            style={[
+              styles.titleText,
+              isCheckInOnly && styles.titleCheckInText,
+              isOpen && styles.titleOpenText,
+            ]}
+          >
             {AttendanceModeDisplay[mode]}
           </Text>
-          <Text style={styles.totalLabelText}>Tổng</Text>
+          {!isCheckInOnly && <Text style={styles.totalLabelText}>Tổng</Text>}
         </View>
 
         <View style={styles.timeRow}>
           <View style={styles.timeContainer}>
             <FontAwesome5 name="clock" size={ICON_SIZES.sm} color={COLORS.gray500} />
-            <Text style={styles.timeText}>
-              {checkInTime} - {checkOutTime}
-            </Text>
+            <Text style={styles.timeText}>{timeText}</Text>
           </View>
-          <Text style={styles.durationText}>{duration}</Text>
+          {!isCheckInOnly && <Text style={styles.durationText}>{duration}</Text>}
         </View>
 
         {showDetail && (

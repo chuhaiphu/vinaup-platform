@@ -7,12 +7,16 @@ import {
 } from '../constants/attendance.constant';
 
 // ─── AttendanceRecord ─────────────────────────────────────────────
-// `location` stays free text (never a place id) so a map picker can later write a label into it.
+// The device owns `latitude`/`longitude` (measured); the person owns `location` (the label, editable).
+// All are nullish: a fix can fail (basement, no signal, denied permission) and that must never block a punch.
 export const createAttendanceRecordSchema = z.strictObject({
   organizationId: z.string().trim().min(1),
   mode: z.enum(ATTENDANCE_MODE),
   note: z.string().trim().min(1).nullish(),
   location: z.string().trim().min(1).nullish(),
+  latitude: z.number().min(-90).max(90).nullish(),
+  longitude: z.number().min(-180).max(180).nullish(),
+  locationAccuracy: z.number().min(0).nullish(),
 });
 
 // Check-out carries no time either — the server stamps checkOutAt = now().
@@ -22,7 +26,8 @@ export const checkOutAttendanceRecordSchema = z.strictObject({
   location: z.string().trim().min(1).nullish(),
 });
 
-// A punch is immutable except for the fields its owner typed.
+// A punch is immutable except for the fields its owner typed — coordinates are deliberately absent,
+// since a rewritable coordinate is just self-declared text, which `location` already covers.
 export const updateAttendanceRecordSchema = z.strictObject({
   note: z.string().trim().min(1).nullish(),
   location: z.string().trim().min(1).nullish(),

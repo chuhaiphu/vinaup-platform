@@ -170,7 +170,11 @@ model AttendanceRecord {
   mode                 String // CHECK_IN | CHECK_IN_OUT
   status               String // OPEN | CLOSED
   note                 String?
-  location             String?
+  location             String? // human-readable label, editable by its owner
+  // Device-measured position at check-in (WGS84 decimal degrees) — never editable, unlike `location`.
+  latitude             Float?
+  longitude            Float?
+  locationAccuracy     Float? // radius of the fix in metres; NULL coordinates mean the fix failed
   createdByUserId      String?
   createdAt            DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime           @updatedAt @db.Timestamptz(3)

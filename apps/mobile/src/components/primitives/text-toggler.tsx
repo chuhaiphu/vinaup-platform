@@ -12,6 +12,7 @@ interface TextTogglerProps {
   iconPair?: [React.ReactNode, React.ReactNode];
   iconPosition?: 'left' | 'right';
   currentIndex: number;
+  disabled?: boolean;
   onToggle: () => void;
   style?: {
     container?: StyleProp<ViewStyle>;
@@ -26,15 +27,22 @@ export function TextToggler({
   iconPair,
   currentIndex,
   iconPosition = 'left',
+  disabled = false,
   onToggle,
   style,
 }: TextTogglerProps) {
   const currentIcon = iconPair ? iconPair[currentIndex] : null;
   return (
-    <PressableOpacity onPress={onToggle} style={[styles.container, style?.container]}>
+    <PressableOpacity
+      onPress={onToggle}
+      disabled={disabled}
+      style={[styles.container, style?.container]}
+    >
       {leftSection && <View>{leftSection}</View>}
       {iconPosition === 'left' && <View>{currentIcon}</View>}
-      <Text style={[styles.text, style?.text]}>{textPair[currentIndex]}</Text>
+      <Text style={[styles.text, style?.text, disabled && styles.disabledText]}>
+        {textPair[currentIndex]}
+      </Text>
       {iconPosition === 'right' && <View>{currentIcon}</View>}
       {rightSection && <View>{rightSection}</View>}
     </PressableOpacity>
@@ -50,5 +58,8 @@ const styles = StyleSheet.create({
   text: {
     fontSize: FONT_SIZES.base,
     color: COLORS.teal700,
+  },
+  disabledText: {
+    color: COLORS.gray400,
   },
 });

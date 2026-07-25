@@ -25,6 +25,9 @@ export interface AttendanceRecordResponse {
   status: AttendanceRecordStatus;
   note: string | null;
   location: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationAccuracy: number | null;
   createdByUserId: string | null;
   createdAt: string;
   updatedAt: string;

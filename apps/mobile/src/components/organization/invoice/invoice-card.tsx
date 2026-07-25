@@ -5,7 +5,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { getInvoiceById } from '@/apis/invoice/invoice-apis';
 import { DateRangeText } from '@/components/commons/texts/date-range-text';
 import { InvoiceStatusDisplay } from '@/constants/invoice-constants';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  LINE_HEIGHTS,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { InvoiceResponse } from '@/interfaces/invoice-interfaces';
 import { generateLocaleFormatString } from '@/utils/generator/string-generator/generate-locale-format-string';
@@ -132,7 +139,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: FONT_SIZES.base,
-    lineHeight: 22,
+    lineHeight: LINE_HEIGHTS.base,
     fontWeight: FONT_WEIGHTS.bold,
     color: COLORS.teal700,
   },

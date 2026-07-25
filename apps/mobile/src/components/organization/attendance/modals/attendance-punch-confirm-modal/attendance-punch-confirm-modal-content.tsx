@@ -1,19 +1,12 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
-import {
-  checkOutAttendanceRecordSchema,
-  createAttendanceRecordSchema,
-} from '@vinaup-platform/validation';
+import { createAttendanceRecordSchema } from '@vinaup-platform/validation';
 import { useImperativeHandle, useState } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmSlideSheetContentRef } from '@/components/primitives/confirm-slide-sheet/confirm-slide-sheet';
 import { FlatTextInput } from '@/components/primitives/flat-text-input';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
-import {
-  ATTENDANCE_PUNCH_ACTION,
-  AttendanceMode,
-  AttendancePunchAction,
-} from '@/constants/attendance-constants';
+import { ATTENDANCE_PUNCH_ACTION, AttendanceMode } from '@/constants/attendance-constants';
 import { COLORS, FONT_SIZES, ICON_SIZES, RADIUS, SPACING } from '@/constants/style-constants';
 import { FieldErrors, FieldValidator, useValidatedFields } from '@/hooks/use-validated-fields';
 import {
@@ -40,10 +33,9 @@ const DEFAULT_FIELD_VALUES: AttendancePunchFieldValues = {
   note: '',
 };
 
+// Check-in only — check-out has no form, so the sheet renders this for nothing else.
 interface AttendancePunchConfirmModalContentProps {
   organizationId: string;
-  punchAction: AttendancePunchAction;
-  /** Only read for a check-in — check-out closes whatever session the server has open. */
   attendanceMode: AttendanceMode;
   isLoading?: boolean;
   onSubmit?: (value: AttendancePunchSubmitValue) => void;
@@ -52,13 +44,12 @@ interface AttendancePunchConfirmModalContentProps {
 
 export function AttendancePunchConfirmModalContent({
   organizationId,
-  punchAction,
   attendanceMode,
   isLoading = false,
   onSubmit,
   ref,
 }: AttendancePunchConfirmModalContentProps) {
-  const [isExtraInfoExpanded, setIsExtraInfoExpanded] = useState(false);
+  const [isExtraInfoExpanded, setIsExtraInfoExpanded] = useState(true);
 
   const validate: FieldValidator<
     AttendancePunchFieldValues,
@@ -69,21 +60,14 @@ export function AttendancePunchConfirmModalContent({
     const location = values.location.trim() || null;
     const note = values.note.trim() || null;
 
-    const submitValue: AttendancePunchSubmitValue =
-      punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_IN
-        ? {
-            punchAction: ATTENDANCE_PUNCH_ACTION.CHECK_IN,
-            request: { organizationId, mode: attendanceMode, location, note },
-          }
-        : {
-            punchAction: ATTENDANCE_PUNCH_ACTION.CHECK_OUT,
-            request: { organizationId, location, note },
-          };
+    const request: CreateAttendanceRecordRequest = {
+      organizationId,
+      mode: attendanceMode,
+      location,
+      note,
+    };
 
-    const result =
-      submitValue.punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_IN
-        ? createAttendanceRecordSchema.safeParse(submitValue.request)
-        : checkOutAttendanceRecordSchema.safeParse(submitValue.request);
+    const result = createAttendanceRecordSchema.safeParse(request);
     const fieldErrors: FieldErrors<keyof AttendancePunchFieldValues> = {};
 
     if (!result.success) {
@@ -94,7 +78,7 @@ export function AttendancePunchConfirmModalContent({
     }
 
     if (Object.keys(fieldErrors).length > 0) return { success: false, fieldErrors };
-    return { success: true, data: submitValue };
+    return { success: true, data: { punchAction: ATTENDANCE_PUNCH_ACTION.CHECK_IN, request } };
   };
 
   const { fieldValues, fieldErrors, setFieldValue, validateAll } = useValidatedFields(

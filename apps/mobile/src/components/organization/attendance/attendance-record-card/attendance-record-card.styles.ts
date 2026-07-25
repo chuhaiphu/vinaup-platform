@@ -1,6 +1,13 @@
 import { StyleSheet } from 'react-native';
 
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  CENTERED_TEXT,
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 
 export const styles = StyleSheet.create({
   container: {
@@ -10,9 +17,15 @@ export const styles = StyleSheet.create({
     gap: SPACING.sm,
     backgroundColor: COLORS.white,
     borderRadius: RADIUS.md,
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderColor: COLORS.gray400,
     padding: SPACING.sm,
+  },
+  contentCheckIn: {
+    borderColor: COLORS.teal700,
+  },
+  contentOpen: {
+    borderColor: COLORS.yellow400,
   },
   titleRow: {
     flexDirection: 'row',
@@ -21,10 +34,13 @@ export const styles = StyleSheet.create({
   },
   titleText: {
     fontSize: FONT_SIZES.base,
+    color: COLORS.gray700,
+  },
+  titleCheckInText: {
     color: COLORS.teal700,
   },
-  titleClosedText: {
-    color: COLORS.gray500,
+  titleOpenText: {
+    color: COLORS.yellow700,
   },
   totalLabelText: {
     fontSize: FONT_SIZES.base,
@@ -44,10 +60,12 @@ export const styles = StyleSheet.create({
     fontSize: FONT_SIZES.base,
     fontWeight: FONT_WEIGHTS.bold,
     color: COLORS.teal900,
+    ...CENTERED_TEXT,
   },
   durationText: {
     fontSize: FONT_SIZES.base,
     color: COLORS.teal900,
+    ...CENTERED_TEXT,
   },
   detailContainer: {
     gap: SPACING.sm,

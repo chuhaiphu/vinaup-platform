@@ -12,6 +12,7 @@ import {
   FONT_SIZES,
   HEADER_HEIGHT,
   ICON_SIZES,
+  LINE_HEIGHTS,
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
   message: {
     flex: 1,
     fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHTS.sm,
     color: COLORS.white,
   },
 });

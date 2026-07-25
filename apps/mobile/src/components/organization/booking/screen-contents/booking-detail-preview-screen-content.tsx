@@ -17,6 +17,7 @@ import {
   FONT_SIZES,
   FONT_WEIGHTS,
   ICON_SIZES,
+  LINE_HEIGHTS,
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
@@ -454,7 +455,7 @@ const styles = StyleSheet.create({
     flex: 2.2,
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray900,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHTS.sm,
   },
   tdCol2: {
     flex: 1.4,
@@ -510,7 +511,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZES.xs,
     color: COLORS.gray400,
-    lineHeight: 18,
+    lineHeight: LINE_HEIGHTS.xs,
   },
   partiesBox: {
     flexDirection: 'row',

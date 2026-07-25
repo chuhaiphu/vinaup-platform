@@ -8,7 +8,7 @@ import { SimpleTextInputModal } from '@/components/commons/modals/simple-text-in
 import { VinaupPenLineOutline } from '@/components/icons/vinaup-pen-line-outline.native';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { COLORS, FONT_SIZES, ICON_SIZES, SPACING } from '@/constants/style-constants';
+import { COLORS, FONT_SIZES, ICON_SIZES, LINE_HEIGHTS, SPACING } from '@/constants/style-constants';
 import { useToastStore } from '@/hooks/use-toast-store';
 import { useCarDetailContext } from '@/providers/organization/car/car-detail-provider';
 
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   },
   descriptionText: {
     fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHTS.sm,
     color: COLORS.teal900,
   },
 });

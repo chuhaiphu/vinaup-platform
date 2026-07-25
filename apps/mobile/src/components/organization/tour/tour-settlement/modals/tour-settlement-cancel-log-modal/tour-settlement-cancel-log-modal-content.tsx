@@ -10,6 +10,7 @@ import {
   FONT_SIZES,
   FONT_WEIGHTS,
   ICON_SIZES,
+  LINE_HEIGHTS,
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
   },
   footerNoteText: {
     fontSize: FONT_SIZES.sm,
-    lineHeight: 20,
+    lineHeight: LINE_HEIGHTS.sm,
     color: COLORS.teal900,
   },
 });
