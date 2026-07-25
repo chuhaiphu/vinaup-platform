@@ -19,6 +19,7 @@ import {
 
 // import PersonalIndexHeaderBottom from './personal-index-header-bottom';
 // import OrganizationIndexHeaderBottom from './organization-index-header-bottom';
+import OrganizationAttendanceHeaderBottom from './organization-attendance-header-bottom';
 import OrganizationBookingHeaderBottom from './organization-booking-header-bottom';
 import OrganizationCarHeaderBottom from './organization-car-header-bottom';
 import OrganizationInvoiceHeaderBottom from './organization-invoice-header-bottom';
@@ -62,6 +63,8 @@ export const HomeHeader = () => {
         return <OrganizationProjectHeaderBottom />;
       case pathname === `/organization/${params.organizationId}/car`:
         return <OrganizationCarHeaderBottom />;
+      case pathname === `/organization/${params.organizationId}/attendance`:
+        return <OrganizationAttendanceHeaderBottom />;
       default:
         return null;
     }

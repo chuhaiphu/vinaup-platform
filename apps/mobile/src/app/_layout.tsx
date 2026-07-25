@@ -61,6 +61,11 @@ initWire({
       message: rawResponse.message || '',
     };
   },
+  transformError: (error) => {
+    const raw = error as { statusCode?: number; message?: string | string[]; error?: string };
+    const message = Array.isArray(raw.message) ? raw.message[0] : raw.message;
+    return new ApiError(message ?? 'Đã có lỗi xảy ra', raw.error ?? 'UNKNOWN', raw.statusCode);
+  },
 });
 export default function RootLayout() {
   const isNavigating = useNavigationStore((s) => s.isNavigating);

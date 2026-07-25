@@ -5,6 +5,8 @@ import type { OrganizationMemberType } from '@vinaup-platform/validation';
 export { ORGANIZATION_MEMBER_TYPE } from '@vinaup-platform/validation';
 export type { OrganizationMemberType } from '@vinaup-platform/validation';
 
+export const DEFAULT_ORGANIZATION_TIMEZONE = 'Asia/Ho_Chi_Minh';
+
 export const ORGANIZATION_CUSTOMER_STATUS = {
   ACTIVE: 'ACTIVE',
   INACTIVE: 'INACTIVE',

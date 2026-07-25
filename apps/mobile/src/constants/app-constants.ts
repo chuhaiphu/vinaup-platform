@@ -3,6 +3,7 @@ export const HH_MM_DATE_FORMAT_SHORT = 'HH:mm';
 export const YYYY_DATE_FORMAT = 'YYYY';
 export const MM_YYYY_DATE_FORMAT = 'MM/YYYY';
 export const DD_MM_YYYY_DATE_FORMAT = 'DD/MM/YYYY';
+export const YYYY_MM_DD_DATE_FORMAT = 'YYYY-MM-DD';
 export const DD_MM_YYYY_HH_MM_DATE_FORMAT = 'DD/MM/YYYY HH:mm';
 
 // ─── Why SecureStore, not AsyncStorage ──────────────────────────────────────

@@ -26,6 +26,7 @@ export interface OrganizationResponse {
   website: string | null;
   avatarUrl: string | null;
   province: string;
+  timezone: string;
   createdAt: string;
   updatedAt: string;
   createdByUserId: string | null;

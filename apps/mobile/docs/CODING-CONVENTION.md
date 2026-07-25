@@ -308,6 +308,7 @@ Two temporal patterns, split by whose lens owns the value → [Instant Time Patt
 **Calendar date** (org-anchored or plain — attendance `workDate`, a cutoff, a birthday):
 - **Send / show** a bare `YYYY-MM-DD` — never `.toISOString()`, never through a lens.
 - **Never derive the day on-device** — the server stamps the instant and derives the day in the org timezone; the device shows `workDate` verbatim.
+- **Gate a punch affordance on the live workDate** — a check-in control only renders when the day on screen equals `generateCalendarDate(now, organization.timezone)`, compared in the **org** lens (never the device's). → [Calendar-Date Rule 5](pattern/CALENDAR-DATE-PATTERN.md)
 
 - Day.js **core only** (no `utc`/`timezone` plugins) — true for **both**; the device never does timezone math.
 

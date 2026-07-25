@@ -155,6 +155,7 @@ export const ICON_SIZES = {
   md: 20, // default (nav, buttons)
   lg: 24, // header, small empty-state
   xl: 32, // illustration
+  xxl: 40,
 } as const;
 
 export const AVATAR_SIZES = {

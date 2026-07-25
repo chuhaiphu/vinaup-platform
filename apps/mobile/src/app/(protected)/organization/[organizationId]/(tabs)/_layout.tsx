@@ -5,6 +5,7 @@ import { TabBarButton } from '@/components/commons/bars/tab-bar-button/tab-bar-b
 import { HomeHeader } from '@/components/commons/headers/home-header/home-header';
 import VinaupCircleHorizontalHalfArrow from '@/components/icons/vinaup-circle-horizontal-half-arrow.native';
 import VinaupHome from '@/components/icons/vinaup-home.native';
+import VinaupLocation from '@/components/icons/vinaup-location.native';
 import VinaupPlusMinusMultiplyEqual from '@/components/icons/vinaup-plus-minus-multiply-equal.native';
 import VinaupPlusMinus from '@/components/icons/vinaup-plus-minus.native';
 import VinaupSigningPenWithFrame from '@/components/icons/vinaup-signing-pen-with-frame.native';
@@ -94,6 +95,16 @@ export default function OrganizationTabsLayout() {
           options={{
             title: 'Xe',
             tabBarIcon: ({ color, size }) => <VinaupVan width={size} height={size} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="attendance"
+          initialParams={{ organizationId }}
+          options={{
+            title: 'Chấm công',
+            tabBarIcon: ({ color, size }) => (
+              <VinaupLocation width={size} height={size} color={color} />
+            ),
           }}
         />
         <Tabs.Screen

@@ -82,8 +82,6 @@ new Intl.DateTimeFormat('vi-VN', { timeZone: orgTimezone, hour: '2-digit', minut
   .format(new Date(checkInAt)); // → "00:30"
 ```
 
-> ⚠️ Confirm Hermes `Intl` supports `timeZone` in this build; if not, show a string the server
-> pre-formatted in the org lens. Day.js stays **core only**.
 
 ### Rule 4 — Never re-group a shipped day
 
