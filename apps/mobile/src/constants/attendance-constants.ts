@@ -10,8 +10,6 @@ export const AttendanceModeDisplay: Record<AttendanceMode, string> = {
   [ATTENDANCE_MODE.CHECK_IN_OUT]: 'Check in - out',
 };
 
-// Which end of a punch the sheet is confirming. Device-only — the API splits these
-// into two endpoints rather than carrying an action field on the wire.
 export const ATTENDANCE_PUNCH_ACTION = {
   CHECK_IN: 'CHECK_IN',
   CHECK_OUT: 'CHECK_OUT',
@@ -20,6 +18,6 @@ export type AttendancePunchAction =
   (typeof ATTENDANCE_PUNCH_ACTION)[keyof typeof ATTENDANCE_PUNCH_ACTION];
 
 export const AttendancePunchActionDisplay: Record<AttendancePunchAction, string> = {
-  [ATTENDANCE_PUNCH_ACTION.CHECK_IN]: 'Xác nhận check in',
-  [ATTENDANCE_PUNCH_ACTION.CHECK_OUT]: 'Xác nhận check out',
+  [ATTENDANCE_PUNCH_ACTION.CHECK_IN]: 'Check In',
+  [ATTENDANCE_PUNCH_ACTION.CHECK_OUT]: 'Check Out',
 };

@@ -25,6 +25,7 @@ import {
   OrganizationNotMemberException,
 } from 'src/_common/exceptions/organization.exception';
 import { generateCalendarDate } from 'src/_common/utils/generator/generate-calendar-date';
+import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 
 import {
@@ -49,27 +50,31 @@ export class AttendanceRecordService {
 
     await this.assertDayNotLocked(member.id, workDate);
 
-    // CHECK_IN_OUT opens a session that a later check-out closes, only one may be open at a time.
-    // CHECK_IN is a standalone punch, born closed and repeatable.
-    const isCheckInOut = input.mode === ATTENDANCE_MODE.CHECK_IN_OUT;
-    if (isCheckInOut) {
-      await this.assertNoOpenAttendanceRecord(member.id);
-    }
+    await this.assertNoOpenAttendanceRecord(member.id);
 
-    return this.prismaService.attendanceRecord.create({
-      data: {
-        organizationId: input.organizationId,
-        organizationMemberId: member.id,
-        checkInAt,
-        workDate,
-        mode: input.mode,
-        status: isCheckInOut ? ATTENDANCE_RECORD_STATUS.OPEN : ATTENDANCE_RECORD_STATUS.CLOSED,
-        note: input.note ?? null,
-        location: input.location ?? null,
-        createdByUserId: currentUserId,
-      },
-      ...attendanceRecordQueryArgs,
-    });
+    const isCheckInOut = input.mode === ATTENDANCE_MODE.CHECK_IN_OUT;
+
+    try {
+      return await this.prismaService.attendanceRecord.create({
+        data: {
+          organizationId: input.organizationId,
+          organizationMemberId: member.id,
+          checkInAt,
+          workDate,
+          mode: input.mode,
+          status: isCheckInOut ? ATTENDANCE_RECORD_STATUS.OPEN : ATTENDANCE_RECORD_STATUS.CLOSED,
+          note: input.note ?? null,
+          location: input.location ?? null,
+          createdByUserId: currentUserId,
+        },
+        ...attendanceRecordQueryArgs,
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        throw new AttendanceHasOpenRecordException();
+      }
+      throw error;
+    }
   }
 
   // Check-out closes the caller's single open session — workDate is NOT recomputed (frozen at check-in).

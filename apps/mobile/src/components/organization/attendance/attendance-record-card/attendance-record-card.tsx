@@ -26,13 +26,16 @@ export function AttendanceRecordCard({
   const { mode, status, checkInAt, checkOutAt, location, note } = attendanceRecord;
 
   const isOpen = status === ATTENDANCE_RECORD_STATUS.OPEN;
+  const checkOutInstant = checkOutAt ? new Date(checkOutAt) : null;
   const checkInTime = generateZonedTime(new Date(checkInAt), organizationTimezone);
-  const checkOutTime = checkOutAt
-    ? generateZonedTime(new Date(checkOutAt), organizationTimezone)
+  const checkOutTime = checkOutInstant
+    ? generateZonedTime(checkOutInstant, organizationTimezone)
     : EMPTY_TIME_PLACEHOLDER;
 
-  // An open session has no checkOutAt yet, so its total counts up to now instead.
-  const duration = calculateAttendanceDuration(checkInAt, checkOutAt ? new Date(checkOutAt) : now);
+  const durationEndInstant = isOpen ? now : checkOutInstant;
+  const duration = durationEndInstant
+    ? calculateAttendanceDuration(checkInAt, durationEndInstant)
+    : EMPTY_TIME_PLACEHOLDER;
 
   const showDetail = Boolean(location) || Boolean(note);
 
