@@ -103,7 +103,7 @@ export function ReceiptPaymentDetailScreenContent() {
       type: values.type,
       vatRate: Number(values.vatRate) || 0,
       transactionType: values.transactionType,
-      note: values.note.trim() || undefined,
+      note: values.note.trim() || null,
       transactionDate: values.transactionDate.toISOString(),
       currency: 'VND',
       projectId: params.projectId,
@@ -114,7 +114,8 @@ export function ReceiptPaymentDetailScreenContent() {
       tourSettlementId: params.tourSettlementId,
       groupCode: values.groupCode ?? params.groupCode,
       organizationId: params.organizationId,
-      categoryId: values.categoryId ?? undefined,
+      // In update mode a removed category must clear the column, so null has to survive to the wire.
+      categoryId: values.categoryId,
       wageId: params.wageId,
       tripId: params.tripId,
       carMaintenanceLogId: params.carMaintenanceLogId,

@@ -15,7 +15,8 @@ interface PersonalProjectOrgCustomerModalProps {
   isLoading?: boolean;
   onConfirm?: (
     data: {
-      externalOrganizationName?: string;
+      // Both nullable: an emptied input clears the column, which only an explicit null can say.
+      externalOrganizationName?: string | null;
       externalCustomerName?: string | null;
     },
     closeModal: () => void,
@@ -44,16 +45,9 @@ export function PersonalProjectOrgCustomerModal({
         organizationName={organizationName}
         customerName={customerName}
         isLoading={isLoading}
-        onSubmit={(data) =>
-          onConfirm?.(
-            {
-              ...data,
-              externalOrganizationName: data.externalOrganizationName ?? undefined,
-              externalCustomerName: data.externalCustomerName ?? undefined,
-            },
-            closeModal,
-          )
-        }
+        // Forwarded untouched: the content already emits null for an emptied input, and only that
+        // null can clear the column — rewriting it to undefined would mean "leave unchanged".
+        onSubmit={(data) => onConfirm?.(data, closeModal)}
       />
     </ConfirmSlideSheet>
   );

@@ -52,14 +52,15 @@ export class AttendanceConclusionService {
           organizationMemberId: input.organizationMemberId,
           workDate: input.workDate,
           status,
-          workdayUnit: input.workdayUnit ?? undefined,
-          seasonalHours: input.seasonalHours ?? undefined,
-          overtimeHours: input.overtimeHours ?? undefined,
-          authorizedLeaveDayUnit: input.authorizedLeaveDayUnit ?? undefined,
-          unauthorizedLeaveDayUnit: input.unauthorizedLeaveDayUnit ?? undefined,
-          lateArrivalCount: input.lateArrivalCount ?? undefined,
-          earlyDepartureCount: input.earlyDepartureCount ?? undefined,
-          note: input.note ?? null,
+          // Every metric is optional over a NOT NULL @default(0) column: omitting one lets the DB default apply.
+          workdayUnit: input.workdayUnit,
+          seasonalHours: input.seasonalHours,
+          overtimeHours: input.overtimeHours,
+          authorizedLeaveDayUnit: input.authorizedLeaveDayUnit,
+          unauthorizedLeaveDayUnit: input.unauthorizedLeaveDayUnit,
+          lateArrivalCount: input.lateArrivalCount,
+          earlyDepartureCount: input.earlyDepartureCount,
+          note: input.note,
           createdByUserId: currentUserId,
         },
         ...attendanceConclusionQueryArgs,
@@ -94,17 +95,8 @@ export class AttendanceConclusionService {
     return this.prismaService.$transaction(async (tx) => {
       const attendanceConclusion = await tx.attendanceConclusion.update({
         where: { id: attendanceConclusionId },
-        data: {
-          status: input.status ?? undefined,
-          workdayUnit: input.workdayUnit ?? undefined,
-          seasonalHours: input.seasonalHours ?? undefined,
-          overtimeHours: input.overtimeHours ?? undefined,
-          authorizedLeaveDayUnit: input.authorizedLeaveDayUnit ?? undefined,
-          unauthorizedLeaveDayUnit: input.unauthorizedLeaveDayUnit ?? undefined,
-          lateArrivalCount: input.lateArrivalCount ?? undefined,
-          earlyDepartureCount: input.earlyDepartureCount ?? undefined,
-          note: input.note ?? undefined,
-        },
+        // Passed through as parsed: an omitted metric stays as it was, an explicit null clears the note.
+        data: input,
         ...attendanceConclusionQueryArgs,
       });
 

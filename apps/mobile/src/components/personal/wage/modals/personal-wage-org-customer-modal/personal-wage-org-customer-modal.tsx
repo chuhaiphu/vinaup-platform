@@ -42,15 +42,7 @@ export function PersonalWageOrgCustomerModal({
         organizationName={organizationName}
         customerName={customerName}
         isLoading={isLoading}
-        onSubmit={(data) =>
-          onConfirm?.(
-            {
-              externalOrganizationName: data.externalOrganizationName ?? undefined,
-              externalCustomerName: data.externalCustomerName ?? undefined,
-            },
-            closeModal,
-          )
-        }
+        onSubmit={(data) => onConfirm?.(data, closeModal)}
       />
     </ConfirmSlideSheet>
   );

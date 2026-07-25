@@ -7,31 +7,41 @@ import {
 } from '../constants/attendance.constant';
 
 // ─── AttendanceRecord ─────────────────────────────────────────────
-// The device owns `latitude`/`longitude` (measured); the person owns `location` (the label, editable).
-// All are nullish: a fix can fail (basement, no signal, denied permission) and that must never block a punch.
-export const createAttendanceRecordSchema = z.strictObject({
-  organizationId: z.string().trim().min(1),
-  mode: z.enum(ATTENDANCE_MODE),
+// The two fields a person types on a punch — shared by all three record endpoints, which agree on
+// the gate: nullish, so a punch may carry no text at all and its owner may later clear what it has.
+const attendanceRecordEditableFields = {
   note: z.string().trim().min(1).nullish(),
   location: z.string().trim().min(1).nullish(),
-  latitude: z.number().min(-90).max(90).nullish(),
-  longitude: z.number().min(-180).max(180).nullish(),
-  locationAccuracy: z.number().min(0).nullish(),
-});
+};
+
+// The device owns `latitude`/`longitude` (measured); the person owns `location` (the label, editable).
+// Coordinates are nullish: a fix can fail (basement, no signal, denied permission) and that must never block a punch.
+export const createAttendanceRecordSchema = z
+  .strictObject({
+    organizationId: z.string().trim().min(1),
+    mode: z.enum(ATTENDANCE_MODE),
+    ...attendanceRecordEditableFields,
+    latitude: z.number().min(-90).max(90).nullish(),
+    longitude: z.number().min(-180).max(180).nullish(),
+    locationAccuracy: z.number().min(0).nullish(),
+  })
+  // A lone latitude is not half a position, it is no position — and since a punch's coordinates are
+  // never editable afterwards, a half-written fix could never be repaired. Reject it at the boundary.
+  .refine((value) => (value.latitude == null) === (value.longitude == null), {
+    error: 'latitude and longitude must both be provided or both omitted',
+    path: ['longitude'],
+  });
 
 // Check-out carries no time either — the server stamps checkOutAt = now().
+// It reuses the same gate: check-out may add the text forgotten at check-in, or clear it with a null.
 export const checkOutAttendanceRecordSchema = z.strictObject({
   organizationId: z.string().trim().min(1),
-  note: z.string().trim().min(1).nullish(),
-  location: z.string().trim().min(1).nullish(),
+  ...attendanceRecordEditableFields,
 });
 
 // A punch is immutable except for the fields its owner typed — coordinates are deliberately absent,
 // since a rewritable coordinate is just self-declared text, which `location` already covers.
-export const updateAttendanceRecordSchema = z.strictObject({
-  note: z.string().trim().min(1).nullish(),
-  location: z.string().trim().min(1).nullish(),
-});
+export const updateAttendanceRecordSchema = z.strictObject(attendanceRecordEditableFields);
 
 // A workday is addressed by a bare YYYY-MM-DD (calendar date), never an instant.
 export const attendanceRecordFilterSchema = z

@@ -58,10 +58,10 @@ Every file is `kebab-case` with a role suffix. The file name matches its primary
 
 ### 1.3 Enum constants
 
-A frozen `as const` object with its type *derived* from it so value and type can't drift. → [DRY](principle/DRY.md)
+A frozen `as const` object with its type _derived_ from it so value and type can't drift. → [DRY](principle/DRY.md)
 
 1. **Container** — `UPPER_SNAKE`, singular, no abbreviations: `BOOKING_STATUS` (never `_TYPES` / `ORG_*`).
-2. **Keys** — an *enum-like* object (a closed member set) uses `UPPER_SNAKE` keys and the value equals the key (`DRAFT: 'DRAFT'`, multi-word `SENDER_SIGNED: 'SENDER_SIGNED'`); a *config/data* object (palette, scale) uses `camelCase` keys (`teal700`). A value is intrinsic — an enum member, a display label, a storage slot — never re-cased to fit a rule.
+2. **Keys** — an _enum-like_ object (a closed member set) uses `UPPER_SNAKE` keys and the value equals the key (`DRAFT: 'DRAFT'`, multi-word `SENDER_SIGNED: 'SENDER_SIGNED'`); a _config/data_ object (palette, scale) uses `camelCase` keys (`teal700`). A value is intrinsic — an enum member, a display label, a storage slot — never re-cased to fit a rule.
 3. **Derived type** — `PascalCase`, singular: `BookingStatus`.
 
 A **domain (wire) enum referenced by a shared Zod schema is declared once in `@vinaup-platform/validation` and imported** — never re-declared on the device (§6), so it can't drift from the API. A wire enum **not** referenced by any schema (a plain-string column the API mirrors from its own `_common/constants/`) is mirrored on the device by hand in the same shape, kept in sync with the API constant.
@@ -216,6 +216,38 @@ if (!result.success) {
 createEntity(result.data); // result.data: CreateEntityRequestInterface, already cleaned
 ```
 
+### 6.1 An emptied input sends `null`, never `undefined`
+
+A field the user clears and a field the user never touched are **two different instructions**, and the wire keeps them apart: `null` means "clear this column", an omitted key means "leave it unchanged". The API acts on that distinction directly — it hands the parsed body straight to Prisma. → [Validation Pattern: Optionality & nullability (api)](../../api/docs/pattern/VALIDATION-PATTERN.md#optionality--nullability-gating-undefined-and-null)
+
+So on a field the schema declares `.nullish()`, an emptied input must travel as `null`. Send `undefined` and the update silently does nothing — the form closes, the request returns 200, and the old value is still there.
+
+```ts
+// ✅ empty -> null: the column is cleared
+note: note.trim() || null,
+categoryId: selectedCategory?.id ?? null,   // deselecting clears it too
+// ✅ empty -> null, without letting a legitimate 0 become null
+seatCount: seatCount.trim() === '' ? null : Number(seatCount),
+
+// ❌ empty -> undefined: reads as "leave unchanged", so the field can never be cleared
+note: note.trim() || undefined,
+categoryId: selectedCategory?.id,
+```
+
+**Type the field `T | null`, not `T?`.** A local prop or callback type narrowed to `T?` is what forces a `?? undefined` coercion to typecheck — the narrow type is the cause, the coercion only the symptom. Every layer the value crosses (content → modal → header) must carry the same nullable type:
+
+```ts
+// ✅ every layer keeps the null
+onSubmit?: (data: { note?: string | null }) => void;
+onSubmit={(data) => onConfirm?.(data, closeModal)}   // forwarded untouched
+
+// ❌ a narrow type upstream, then a coercion that destroys what the form got right
+onSubmit?: (data: { note?: string }) => void;
+onSubmit={(data) => onConfirm?.({ ...data, note: data.note ?? undefined }, closeModal)}
+```
+
+`undefined` stays correct where the value is **not** an update payload: create-only requests (on a nullable column both mean NULL), filter queries (filter fields are `.optional()`, so `null` is rejected 400), router params (they cannot carry `null`), and display props typed `string | undefined`.
+
 ---
 
 ## 7. Providers
@@ -231,7 +263,7 @@ createEntity(result.data); // result.data: CreateEntityRequestInterface, already
 **fetchKey & tag naming** — full model in [Tag-Based Cache Invalidation Pattern](pattern/INVALIDATE-TAG-PATTERN.md). The load-bearing rules:
 
 - **Tags live in one registry — never a string literal at a call-site.** All `tags`/`invalidatesTags` values come from `FETCH_TAG.*` and the `get*RippleTags` functions in [`@/constants/fetch-tag-constants`](src/constants/fetch-tag-constants.ts). An untyped tag drifts silently (no error, just stale UI), so routing every provide and invalidate through the same function is what prevents drift.
-- **fetchKey stays inline** — it is the local cache identity (`organization-<entity>-${id}`, `organization-<entity>-list-${orgId}`, …), used at one call-site; only *tags* move to the registry. Unlike file/symbol names in §1.1, the `organization-` / `personal-` scope prefix on these strings is **unconditional** — they name scoped server state.
+- **fetchKey stays inline** — it is the local cache identity (`organization-<entity>-${id}`, `organization-<entity>-list-${orgId}`, …), used at one call-site; only _tags_ move to the registry. Unlike file/symbol names in §1.1, the `organization-` / `personal-` scope prefix on these strings is **unconditional** — they name scoped server state.
 - **A read lists its own tag + the `-list` of anything on screen that another write can change.** Usually just its own tag; add a `-list` only when the screen shows data edited elsewhere (car detail lists `carList` because assigning a trip changes the car's status).
 - **A write to X lists `FETCH_TAG.xList` + every `-list` that shows X (= `getXRippleTags()`), plus `FETCH_TAG.xByXId(id)` on an update.** A name you display counts (renaming a customer must refresh the booking that shows it). When an interface gains an embedded/derived field, update its `getXRippleTags`. A child under many parents gets one `getXRippleTags(parent)` function, not a per-screen list.
 
@@ -301,11 +333,13 @@ Pick the simplest mechanism that works. → [KISS](principle/KISS.md)
 Two temporal patterns, split by whose lens owns the value → [Instant Time Pattern](pattern/INSTANT-TIME-PATTERN.md) · [Calendar-Date Pattern](pattern/CALENDAR-DATE-PATTERN.md)
 
 **Instant** (viewer-relative — bookings, `signedAt`, `createdAt`):
+
 - **Send** as UTC ISO with `.toISOString()`.
 - **Display** through the device-local lens (`dayjs(value).format(...)`).
 - **Compute** "which calendar day/month" **on-device** — the backend ships instants only.
 
 **Calendar date** (org-anchored or plain — attendance `workDate`, a cutoff, a birthday):
+
 - **Send / show** a bare `YYYY-MM-DD` — never `.toISOString()`, never through a lens.
 - **Never derive the day on-device** — the server stamps the instant and derives the day in the org timezone; the device shows `workDate` verbatim.
 - **Gate a punch affordance on the live workDate** — a check-in control only renders when the day on screen equals `generateCalendarDate(now, organization.timezone)`, compared in the **org** lens (never the device's). → [Calendar-Date Rule 5](pattern/CALENDAR-DATE-PATTERN.md)
@@ -356,28 +390,28 @@ const insets = useSafeAreaInsets();
 
 All style values come from the token objects in [`@/constants/style-constants`](../src/constants/style-constants.ts) — **never a magic number** in a style prop or `StyleSheet.create`.
 
-| Style prop                        | Token object            |
-| --------------------------------- | ----------------------- |
-| `fontSize`                        | `FONT_SIZES`            |
-| `fontWeight`                      | `FONT_WEIGHTS` (never `'bold'` — always the token, which resolves to `'700'`) |
-| `gap` / `padding*` / `margin*`    | `SPACING`               |
-| `borderRadius`                    | `RADIUS`                |
-| icon `size=`                      | `ICON_SIZES`            |
-| `<Avatar size>`                   | `AVATAR_SIZES`          |
-| header bar height                 | `HEADER_HEIGHT`         |
+| Style prop                     | Token object                                                                  |
+| ------------------------------ | ----------------------------------------------------------------------------- |
+| `fontSize`                     | `FONT_SIZES`                                                                  |
+| `fontWeight`                   | `FONT_WEIGHTS` (never `'bold'` — always the token, which resolves to `'700'`) |
+| `gap` / `padding*` / `margin*` | `SPACING`                                                                     |
+| `borderRadius`                 | `RADIUS`                                                                      |
+| icon `size=`                   | `ICON_SIZES`                                                                  |
+| `<Avatar size>`                | `AVATAR_SIZES`                                                                |
+| header bar height              | `HEADER_HEIGHT`                                                               |
 
-**Font size is a role, not a number** — pick the token by what the text *is*:
+**Font size is a role, not a number** — pick the token by what the text _is_:
 
-| Token       | Value | Role                                          |
-| ----------- | ----- | --------------------------------------------- |
-| `xxs`       | 10    | tab-bar label only                            |
-| `xs`        | 12    | caption, badge, helper, field error           |
-| `sm`        | 14    | secondary text, field label, table cell       |
-| `base`      | 16    | body, input text, button title                |
-| `lg`        | 18    | screen-header title, emphasised body          |
-| `xl`        | 20    | small heading (profile name, section header)  |
-| `'2xl'`     | 24    | section heading, auth title, large amount     |
-| `'3xl'/'4xl'` | 30/36 | reserved (hero / large numerals)            |
+| Token         | Value | Role                                         |
+| ------------- | ----- | -------------------------------------------- |
+| `xxs`         | 10    | tab-bar label only                           |
+| `xs`          | 12    | caption, badge, helper, field error          |
+| `sm`          | 14    | secondary text, field label, table cell      |
+| `base`        | 16    | body, input text, button title               |
+| `lg`          | 18    | screen-header title, emphasised body         |
+| `xl`          | 20    | small heading (profile name, section header) |
+| `'2xl'`       | 24    | section heading, auth title, large amount    |
+| `'3xl'/'4xl'` | 30/36 | reserved (hero / large numerals)             |
 
 Grounding: [Material 3 type roles](https://m3.material.io/styles/typography/applying-type) · [Apple HIG typography](https://developer.apple.com/design/human-interface-guidelines/typography) (11pt minimum) · 4pt spacing grid.
 
@@ -394,15 +428,15 @@ Grounding: [Material 3 type roles](https://m3.material.io/styles/typography/appl
 
 ## Enforcement map
 
-| §    | Convention                                                         | Enforced by                                      |
-| ---- | ------------------------------------------------------------------ | ------------------------------------------------ |
-| 1.1  | File naming                                                        | `eslint-plugin-check-file` (excludes `src/app/`) |
-| 1.2  | Symbol casing                                                      | `@typescript-eslint/naming-convention`           |
-| 1.3  | Enum constants                                                     | Review                                           |
-| 2    | Folder structure                                                   | Review                                           |
-| 3.2  | Import order                                                       | `import/order` (`warn`)                          |
-| 3.3  | Import direction                                                   | Review                                           |
-| 4    | Formatting                                                         | Prettier (`eslint-plugin-prettier/recommended`)  |
-| 5–13 | API, validation, provider, store, modal, component, state, date-time, comments | Review                               |
-| 14   | Safe area insets (no `SafeAreaView`)                               | Review                                           |
-| 15   | Styling tokens (no magic numbers in styles)                        | Review                                           |
+| §    | Convention                                                                     | Enforced by                                      |
+| ---- | ------------------------------------------------------------------------------ | ------------------------------------------------ |
+| 1.1  | File naming                                                                    | `eslint-plugin-check-file` (excludes `src/app/`) |
+| 1.2  | Symbol casing                                                                  | `@typescript-eslint/naming-convention`           |
+| 1.3  | Enum constants                                                                 | Review                                           |
+| 2    | Folder structure                                                               | Review                                           |
+| 3.2  | Import order                                                                   | `import/order` (`warn`)                          |
+| 3.3  | Import direction                                                               | Review                                           |
+| 4    | Formatting                                                                     | Prettier (`eslint-plugin-prettier/recommended`)  |
+| 5–13 | API, validation, provider, store, modal, component, state, date-time, comments | Review                                           |
+| 14   | Safe area insets (no `SafeAreaView`)                                           | Review                                           |
+| 15   | Styling tokens (no magic numbers in styles)                                    | Review                                           |

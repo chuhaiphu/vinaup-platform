@@ -63,11 +63,11 @@ export class AttendanceRecordService {
           workDate,
           mode: input.mode,
           status: isCheckInOut ? ATTENDANCE_RECORD_STATUS.OPEN : ATTENDANCE_RECORD_STATUS.CLOSED,
-          note: input.note ?? null,
-          location: input.location ?? null,
-          latitude: input.latitude ?? null,
-          longitude: input.longitude ?? null,
-          locationAccuracy: input.locationAccuracy ?? null,
+          note: input.note,
+          location: input.location,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          locationAccuracy: input.locationAccuracy,
           createdByUserId: currentUserId,
         },
         ...attendanceRecordQueryArgs,
@@ -105,8 +105,10 @@ export class AttendanceRecordService {
       data: {
         checkOutAt: new Date(),
         status: ATTENDANCE_RECORD_STATUS.CLOSED,
-        note: input.note ?? undefined,
-        location: input.location ?? undefined,
+        // Passed through as parsed: an omitted field leaves what check-in wrote untouched,
+        // an explicit null clears it.
+        note: input.note,
+        location: input.location,
       },
       ...attendanceRecordQueryArgs,
     });
@@ -124,7 +126,8 @@ export class AttendanceRecordService {
 
     return this.prismaService.attendanceRecord.update({
       where: { id: recordId },
-      data: { note: input.note ?? null, location: input.location ?? null },
+      // Passed through as parsed: an omitted field stays as it was, an explicit null clears it.
+      data: input,
       ...attendanceRecordQueryArgs,
     });
   }

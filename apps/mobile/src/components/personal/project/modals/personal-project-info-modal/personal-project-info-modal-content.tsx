@@ -26,9 +26,10 @@ interface PersonalProjectInfoModalContentProps {
     description: string;
     startDate: string;
     endDate: string;
-    code?: string;
-    note?: string;
-    categoryId?: string;
+    // Nullable, not just optional: an emptied input must clear the column, which needs an explicit null.
+    code?: string | null;
+    note?: string | null;
+    categoryId?: string | null;
   }) => void;
   ref?: React.RefObject<ConfirmSlideSheetContentRef | null>;
 }
@@ -75,9 +76,10 @@ export function PersonalProjectInfoModalContent({
       description,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      code: code.trim() || undefined,
-      note: note.trim() || undefined,
-      categoryId: selectedCategory?.id,
+      code: code.trim() || null,
+      note: note.trim() || null,
+      // Deselecting the category must clear the column, so the absence has to travel as null.
+      categoryId: selectedCategory?.id ?? null,
     });
   };
 

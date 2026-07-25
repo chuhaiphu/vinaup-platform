@@ -10,15 +10,17 @@ import { CarResponse } from '@/interfaces/car-interfaces';
 
 import { CarInfoModalContent } from './car-info-modal-content';
 
+// Every editable field is nullable, not just optional: emptying an input means "clear this column",
+// which only an explicit null can express — an omitted key would mean "leave it unchanged".
 export interface CarInfoModalData {
-  name?: string;
-  youtubeUrl?: string;
-  manufacturer?: string;
-  model?: string;
-  category?: string;
-  seatCount?: number;
-  inServiceDate?: string;
-  pickedImage?: ImagePickerAsset;
+  name?: string | null;
+  youtubeUrl?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  category?: string | null;
+  seatCount?: number | null;
+  inServiceDate?: string | null;
+  pickedImage?: ImagePickerAsset; // not a column — the asset to upload, so it stays optional-only
 }
 
 interface CarInfoModalProps {

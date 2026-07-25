@@ -213,15 +213,15 @@ A request field can arrive in **three distinct states**, and they are not interc
 
 ### 1. Two declarations, enforced at two different times
 
-A field's shape is governed by **two** declarations: the **Prisma column** (can the DB store NULL?) and the **Zod rule** (what the client may send). The TypeScript type is _not_ a third — it is `z.infer` of the rule, derived automatically and used only to type the input in the **service**:
+A field's shape is governed by **two** declarations: the **Prisma column** (can the DB store NULL?) and the **Zod rule** (what the client may send). The TypeScript type is `z.infer` of the rule, derived automatically and used only to type the input in the **service**.
 
 ```
  Prisma column      Zod rule (@ pipe, runtime)        Inferred type (tsc)         Service → Prisma
  (DB truth)         validates the client payload      z.infer of the rule         (persist)
  ──────────         ──────────────────────────        ───────────────────         ──────────────
-   T | T?     ─►    none / .optional() /        ─►    derived, never        ─►     undefined → do nothing
-                    .nullable() / .nullish()          hand-written;                null      → set NULL
-                                                       types the service           value     → set value
+   T | T?     ─►    none / .optional() /        ─►    derived,             ─►     undefined → do nothing
+                    .nullable() / .nullish()          types the service           null      → set NULL
+                                                                                  value     → set value
 ```
 
 The rule decides what the client may send; the type is inferred from it
@@ -234,8 +234,7 @@ export const createEntitySchema = z.strictObject({
   avatar: z.string().optional(), // may be omitted; an explicit null is rejected
 });
 
-// The type is z.infer of the schema — derived, never hand-written, so it
-// can never drift from the rules above:
+
 type CreateEntity = z.infer<typeof createEntitySchema>;
 // { name: string; bio: string | null; avatar?: string }
 
@@ -247,7 +246,7 @@ function createEntity(input: CreateEntity) {
 
 ### 2. The four builders
 
-A value-rule (`z.string()`, `z.email()`, `z.int()`, …) runs on **whatever arrives**, so a bare field is **required and non-nullable** — both `undefined` and `null` are rejected (400). To let one of them through, wrap the rule:
+A value-rule (`z.string()`, `z.email()`, `z.int()`, …) runs on **whatever arrives**, so a bare field is **required and non-nullable** — both `undefined` and `null` are rejected (400).
 
 | Builder       | a value           | `undefined` / missing key     | `null`                 |
 | ------------- | ----------------- | ----------------------------- | ---------------------- |
@@ -258,7 +257,7 @@ A value-rule (`z.string()`, `z.email()`, `z.int()`, …) runs on **whatever arri
 
 "Survives" means the value reaches the service **unchanged** — the pipe never rewrites it: a `null` then sets the column to NULL, a missing key means "leave unchanged".
 
-> `.optional()` widens the type to `T | undefined` **only**, so an explicit `null` sent to an optional **non-nullable** field is rejected at the pipe — a clean **400**, not a `null` slipping through to a `NOT NULL` column and dying as a **500**.
+> `.optional()` widens the type to `T | undefined` **only**, so an explicit `null` sent to an optional **non-nullable** field is rejected at the pipe.
 
 ### 3. Match the builder to the column
 
@@ -293,9 +292,9 @@ Each builder maps to exactly one (presence × nullability) combo:
 
 ```ts
 export const updateEntitySchema = createEntitySchema.partial();
-// name   → .optional()             : omit = leave unchanged; null still rejected
-// bio    → .nullable() + optional  : omit = leave unchanged; null still clears it (≡ .nullish())
-// avatar → .optional()             : already optional non-nullable; unchanged
+// name   → .optional()               : omit = leave unchanged; null still rejected
+// bio    → .nullable() + optional()  : omit = leave unchanged; null still clears it (≡ .nullish())
+// avatar → .optional()               : already optional non-nullable; unchanged
 ```
 
 If the update has a field the create schema doesn't, attach it with `.extend()` and pick its builder by hand:
@@ -305,6 +304,7 @@ export const updateEntitySchema = createEntitySchema.partial().extend({
   status: z.enum(ENTITY_STATUS).optional(), // update-only field; NOT NULL column → .optional()
   // a nullable column would be → .nullish()
 });
+
 ```
 
 ---
@@ -382,3 +382,4 @@ Each request shape is written **once** as a Zod schema; the `ZodValidationPipe` 
 7. Register `ZodValidationPipe` once globally; nothing else to wire.
 8. Existence, ownership, state-machine, and DB-dependent cross-field rules go in the service or a guard; a pure cross-field rule (no I/O) uses a schema `.refine()`. → [Guard Pattern](GUARD-PATTERN.md) · [Custom validation](#custom-validation-refine)
 9. Let Zod's issue path name the field; the global pipe and exception filter surface it. → [Exception Filter Pattern](EXCEPTION-FILTER-PATTERN.md)
+10. **The service passes the parsed value through** — never `?? null` / `?? undefined` on a validated field; that merges "leave unchanged" and "set NULL" back together. A field that must not be clearable is declared `.optional()` in the schema, not absorbed in the service. `??` is only for defaulting an omitted field. → [Optionality & nullability](#optionality--nullability-gating-undefined-and-null)

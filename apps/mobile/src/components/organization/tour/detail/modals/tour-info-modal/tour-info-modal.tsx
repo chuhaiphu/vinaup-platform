@@ -18,8 +18,9 @@ interface TourInfoModalProps {
       description: string;
       startDate: string;
       endDate: string;
-      code?: string;
-      note?: string;
+      // Nullable: an emptied input clears the column, and only an explicit null says that.
+      code?: string | null;
+      note?: string | null;
     },
     closeModal: () => void,
   ) => void;

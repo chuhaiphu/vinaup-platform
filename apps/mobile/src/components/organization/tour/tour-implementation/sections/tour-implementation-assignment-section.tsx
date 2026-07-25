@@ -128,7 +128,7 @@ export function TourImplementationAssignmentSection({
     updateAssignment(
       {
         id: data.assignmentId,
-        data: { carName: data.carName ?? undefined, seatCount: data.seatCount },
+        data: { carName: data.carName, seatCount: data.seatCount },
       },
       {
         onSuccess: () =>

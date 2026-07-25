@@ -1,13 +1,15 @@
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { createAttendanceRecordSchema } from '@vinaup-platform/validation';
-import { useImperativeHandle, useState } from 'react';
+import { useImperativeHandle } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 
 import { ConfirmSlideSheetContentRef } from '@/components/primitives/confirm-slide-sheet/confirm-slide-sheet';
 import { FlatTextInput } from '@/components/primitives/flat-text-input';
-import { PressableOpacity } from '@/components/primitives/pressable-opacity';
-import { ATTENDANCE_PUNCH_ACTION, AttendanceMode } from '@/constants/attendance-constants';
-import { COLORS, FONT_SIZES, ICON_SIZES, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  ATTENDANCE_PUNCH_ACTION,
+  AttendanceMode,
+  AttendancePunchAction,
+} from '@/constants/attendance-constants';
+import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@/constants/style-constants';
 import { FieldErrors, FieldValidator, useValidatedFields } from '@/hooks/use-validated-fields';
 import {
   CheckOutAttendanceRecordRequest,
@@ -33,9 +35,9 @@ const DEFAULT_FIELD_VALUES: AttendancePunchFieldValues = {
   note: '',
 };
 
-// Check-in only — check-out has no form, so the sheet renders this for nothing else.
 interface AttendancePunchConfirmModalContentProps {
   organizationId: string;
+  punchAction: AttendancePunchAction;
   attendanceMode: AttendanceMode;
   isLoading?: boolean;
   onSubmit?: (value: AttendancePunchSubmitValue) => void;
@@ -44,18 +46,27 @@ interface AttendancePunchConfirmModalContentProps {
 
 export function AttendancePunchConfirmModalContent({
   organizationId,
+  punchAction,
   attendanceMode,
   isLoading = false,
   onSubmit,
   ref,
 }: AttendancePunchConfirmModalContentProps) {
-  const [isExtraInfoExpanded, setIsExtraInfoExpanded] = useState(true);
+  const isCheckOut = punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_OUT;
 
   const validate: FieldValidator<
     AttendancePunchFieldValues,
     keyof AttendancePunchFieldValues,
     AttendancePunchSubmitValue
   > = (values) => {
+    // Check-out carries no form data — the fields are disabled, so skip straight to the payload.
+    if (isCheckOut) {
+      return {
+        success: true,
+        data: { punchAction: ATTENDANCE_PUNCH_ACTION.CHECK_OUT, request: { organizationId } },
+      };
+    }
+
     // Both fields are nullish on the wire, so an untouched sheet submits as a bare punch.
     const location = values.location.trim() || null;
     const note = values.note.trim() || null;
@@ -90,54 +101,38 @@ export function AttendancePunchConfirmModalContent({
     Keyboard.dismiss();
     const submitValue = validateAll();
     // A field error only ever comes from an expanded field, so surface the section holding it.
-    if (!submitValue) {
-      setIsExtraInfoExpanded(true);
-      return;
+    if (submitValue) {
+      onSubmit?.(submitValue);
     }
-    onSubmit?.(submitValue);
   };
 
   useImperativeHandle(ref, () => ({ submit: handleConfirm }));
 
   return (
     <View style={styles.container}>
-      <PressableOpacity
-        style={styles.titleContainer}
-        onPress={() => setIsExtraInfoExpanded((isExpanded) => !isExpanded)}
-        hitSlop={SPACING.sm}
-      >
-        <Text style={styles.titleText}>Thông tin thêm</Text>
-        <FontAwesome5
-          name={isExtraInfoExpanded ? 'caret-up' : 'caret-down'}
-          iconStyle="solid"
-          size={ICON_SIZES.md}
-          color={COLORS.teal700}
+      <Text style={styles.titleText}>Thông tin thêm</Text>
+      <View style={styles.fieldContainer}>
+        <FlatTextInput
+          label="Địa điểm"
+          value={fieldValues.location}
+          onChangeText={(value) => setFieldValue('location', value)}
+          alignLabel="left"
+          alignValue="left"
+          error={fieldErrors.location}
+          placeholder="..."
+          editable={!isLoading && !isCheckOut}
         />
-      </PressableOpacity>
-      {isExtraInfoExpanded && (
-        <View style={styles.fieldContainer}>
-          <FlatTextInput
-            label="Địa điểm"
-            value={fieldValues.location}
-            onChangeText={(value) => setFieldValue('location', value)}
-            alignLabel="left"
-            alignValue="left"
-            error={fieldErrors.location}
-            placeholder="..."
-            editable={!isLoading}
-          />
-          <FlatTextInput
-            label="Ghi chú"
-            value={fieldValues.note}
-            onChangeText={(value) => setFieldValue('note', value)}
-            alignLabel="left"
-            alignValue="left"
-            error={fieldErrors.note}
-            placeholder="..."
-            editable={!isLoading}
-          />
-        </View>
-      )}
+        <FlatTextInput
+          label="Ghi chú"
+          value={fieldValues.note}
+          onChangeText={(value) => setFieldValue('note', value)}
+          alignLabel="left"
+          alignValue="left"
+          error={fieldErrors.note}
+          placeholder="..."
+          editable={!isLoading && !isCheckOut}
+        />
+      </View>
     </View>
   );
 }

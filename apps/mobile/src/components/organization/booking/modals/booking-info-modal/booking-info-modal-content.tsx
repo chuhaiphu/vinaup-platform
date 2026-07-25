@@ -21,8 +21,9 @@ interface BookingInfoModalContentProps {
     description: string;
     startDate: string;
     endDate: string;
-    code?: string;
-    note?: string;
+    // Nullable, not just optional: an emptied input must clear the column, which needs an explicit null.
+    code?: string | null;
+    note?: string | null;
   }) => void;
   ref?: React.RefObject<ConfirmSlideSheetContentRef | null>;
 }
@@ -65,8 +66,8 @@ export function BookingInfoModalContent({
       description,
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
-      code: code.trim() || undefined,
-      note: note.trim() || undefined,
+      code: code.trim() || null,
+      note: note.trim() || null,
     });
   };
 

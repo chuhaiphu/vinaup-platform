@@ -138,15 +138,15 @@ export function CarInfoModalContent({
 
   const handleConfirm = () => {
     onSubmit?.({
-      name: name.trim() || undefined,
-      youtubeUrl: youtubeUrl.trim() || undefined,
-      manufacturer: manufacturer.trim() || undefined,
-      model: model.trim() || undefined,
-      category: category.trim() || undefined,
-      // Empty -> omit; otherwise parse. Avoid `Number(x) || undefined`, which turns a
-      // legitimate 0 into undefined and silently drops it.
-      seatCount: seatCount.trim() === '' ? undefined : Number(seatCount),
-      inServiceDate: inServiceDate ? inServiceDate.toISOString() : undefined,
+      name: name.trim() || null,
+      youtubeUrl: youtubeUrl.trim() || null,
+      manufacturer: manufacturer.trim() || null,
+      model: model.trim() || null,
+      category: category.trim() || null,
+      // Empty -> clear the column; otherwise parse. Avoid `Number(x) || null`, which turns a
+      // legitimate 0 into null and silently drops it.
+      seatCount: seatCount.trim() === '' ? null : Number(seatCount),
+      inServiceDate: inServiceDate ? inServiceDate.toISOString() : null,
       pickedImage: pickedImage ?? undefined,
     });
   };
