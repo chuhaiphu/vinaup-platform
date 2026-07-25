@@ -54,8 +54,9 @@ response. Do not compute "which day is it" from `Date.now()` or `dayjs()` — th
 device clock/timezone the server pattern exists to remove.
 
 ```ts
-// check-in: send no timestamp — the server stamps now() and derives workDate
-await checkIn({ organizationId });
+// check-in: send no timestamp — the server stamps now() and derives workDate.
+// `mode`, `note` and `location` are what the user chose/typed; none of them is a time.
+await createAttendanceRecord({ organizationId, mode, note, location });
 ```
 
 ### Rule 2 — Address a day with a bare `YYYY-MM-DD`
@@ -78,16 +79,72 @@ await getAttendance({ organizationId, workDate: "2026-05-01" });
 workDate; // "2026-05-01" — verbatim
 
 // instant in the ORG lens — Intl, no Day.js plugin
+// wrapped as generateZonedTime(instant, timeZone) in src/utils/generator/string-generator/
 new Intl.DateTimeFormat('vi-VN', { timeZone: orgTimezone, hour: '2-digit', minute: '2-digit' })
   .format(new Date(checkInAt)); // → "00:30"
 ```
 
+**A still-open session has no end instant.** An `OPEN` `AttendanceRecord` has `checkOutAt === null`,
+so its elapsed total counts from `checkInAt` up to **now**, and the missing end time renders as a
+placeholder rather than a fabricated one:
+
+```ts
+// AttendanceRecordCard — CLOSED stops at checkOutAt, OPEN keeps counting
+calculateAttendanceDuration(checkInAt, checkOutAt ? new Date(checkOutAt) : now); // → "3h21"
+```
+
+`now` is passed **in** from the list (`useCurrentMinute()` called once in
+`AttendanceRecordListSection`), so one timer drives every open card instead of one timer per card.
 
 ### Rule 4 — Never re-group a shipped day
 
 Unlike an instant (which the device groups locally — [Instant Rule 4](INSTANT-TIME-PATTERN.md)), a
 `workDate` is already the canonical day. Group and count on it as-is; never recompute it from any
 timestamp on the record.
+
+### Rule 5 — Gate a punch affordance on the live workDate, compared in the org lens
+
+A check-in control may only render when the day **on screen** is the day the server would stamp
+right now. Both sides of that comparison must be calendar dates in the **organization's** lens — the
+device's own lens is never one of them, or a user in another timezone could punch into yesterday.
+
+```ts
+const todayWorkDate = generateCalendarDate(now, organizationTimezone); // "2026-05-01"
+const selectedWorkDate = workDate ?? todayWorkDate;
+const isLiveWorkDate = selectedWorkDate === todayWorkDate;
+
+{isLiveWorkDate && <AttendancePunchBar … />}   // punch controls; hidden on any other day
+```
+
+`generateCalendarDate(instant, timeZone)` is the device-side mirror of the server's derivation — the
+**same** `Intl` formatter with `en-CA` (which yields `YYYY-MM-DD`), so the two agree by construction.
+
+This gate is **UI-UX only** ([UI Action Gating Pattern](UI-ACTION-GATING-PATTERN.md)): the server
+re-derives `workDate` itself and rejects a punch on a locked day, so a stale screen cannot forge one.
+Combine it with the RBAC gate — the punch bar also requires `can(CREATE, ATTENDANCE_RECORD)`.
+
+**A session outlives its own workDate — so don't look for it by day.** The server keeps at most one
+`OPEN` record per **organization member across all days** (`assertNoOpenAttendanceRecord` filters on
+`status` only, never on `workDate`). That is what lets an overnight shift check out the next morning
+with its `workDate` still frozen at check-in.
+
+The consequence for the device: "is a session still open?" **cannot** be answered from the day in
+view. A session opened yesterday is absent from today's list, so deriving it from that list would
+make the punch bar offer *check in*, which the server then refuses with `ATTENDANCE_HAS_OPEN_RECORD`
+— and the session could never be closed, because the bar renders only on the live day.
+
+So the open session is fetched **separately and unbounded by day**, using the filter's `status`, and
+keyed without `workDate` so it survives day changes:
+
+```ts
+// day-scoped — what the list renders
+getMyAttendanceRecords({ organizationId, workDateFrom: workDate, workDateTo: workDate });
+
+// day-independent — what decides the next punch action
+getMyAttendanceRecords({ organizationId, status: ATTENDANCE_RECORD_STATUS.OPEN });
+```
+
+Both carry `FETCH_TAG.attendanceRecordList`, so either punch refreshes both.
 
 ### End-to-end round trip
 

@@ -142,6 +142,25 @@ workDate: z.iso.date(), // "2026-05-01" — NOT z.iso.datetime()
 where: { organizationMemberId, workDate: filter.workDate }
 ```
 
+A **span** of days is the same idea with two labels. `attendanceRecordFilterSchema` takes
+`workDateFrom` / `workDateTo` and `.refine()`s them as **both-or-neither**, so a half-open range can
+never silently widen to "all history"; a single day is simply the two bounds set equal. Because
+`workDate` is a lexicographically sortable `YYYY-MM-DD` string, `gte` / `lte` on the column is an
+ordinary string comparison — still no Date parsing:
+
+```ts
+where: {
+  createdByUserId: currentUserId,
+  ...(filter.organizationId ? { organizationId: filter.organizationId } : {}),
+  ...(filter.workDateFrom && filter.workDateTo
+    ? { workDate: { gte: filter.workDateFrom, lte: filter.workDateTo } }
+    : {}),
+}
+```
+
+`organizationId` is an **ownership** filter, not a temporal one — "my punches" is scoped per
+organization so a member of several orgs never sees another org's day on an org-scoped screen.
+
 ### Rule 5 — Aggregation: the backend MAY group and count by the calendar date
 
 This is the mirror image of [Instant Rule 5](INSTANT-TIME-PATTERN.md). Because the label is already a

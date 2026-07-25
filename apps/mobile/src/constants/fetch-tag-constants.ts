@@ -15,6 +15,7 @@ export const FETCH_TAG = {
   bookingList: 'organization-booking-list',
   customerList: 'organization-customer-list',
   memberList: 'organization-member-list',
+  attendanceRecordList: 'organization-attendance-record-list',
   tripAssignmentList: 'organization-trip-assignment-list',
   tourImplementationAssignmentList: 'tour-implementation-assignment-list',
 

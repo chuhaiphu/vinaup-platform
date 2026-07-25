@@ -1,5 +1,14 @@
 import React, { useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  StyleSheet,
+  KeyboardTypeOptions,
+  StyleProp,
+  TextStyle,
+  ViewStyle,
+} from 'react-native';
 
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 
@@ -18,6 +27,15 @@ export type FlatTextInputProps = {
   labelRightSection?: React.ReactNode;
   valueLeftSection?: React.ReactNode;
   valueRightSection?: React.ReactNode;
+  style?: {
+    /** Outer wrapper holding both rows. */
+    container?: StyleProp<ViewStyle>;
+    /** The label text itself — not the row, which also holds the label sections. */
+    label?: StyleProp<TextStyle>;
+    /** The underlined row holding the value sections and the input. */
+    inputContainer?: StyleProp<ViewStyle>;
+    input?: StyleProp<TextStyle>;
+  };
 };
 
 export function FlatTextInput({
@@ -35,20 +53,23 @@ export function FlatTextInput({
   labelRightSection,
   valueLeftSection,
   valueRightSection,
+  style,
 }: FlatTextInputProps) {
   const inputRef = useRef<TextInput>(null);
 
   const isDisabled = editable === false;
 
+  // Slot overrides sit AFTER the base style but BEFORE the disabled/error styles,
+  // so a caller can restyle a field yet never style its error state away.
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style?.container]}>
       <View style={styles.row}>
         {labelLeftSection}
         <Text
           style={[
             styles.label,
-            styles.flexFill,
             { textAlign: alignLabel },
+            style?.label,
             isDisabled && styles.labelDisabled,
             !!error && styles.labelError,
           ]}
@@ -58,11 +79,18 @@ export function FlatTextInput({
         </Text>
         {labelRightSection}
       </View>
-      <View style={[styles.inputBorder, styles.row, !!error && styles.inputBorderError]}>
+      <View
+        style={[
+          styles.inputContainer,
+          styles.row,
+          style?.inputContainer,
+          !!error && styles.inputContainerError,
+        ]}
+      >
         {valueLeftSection}
         <TextInput
           ref={inputRef}
-          style={[styles.input, styles.flexFill, { textAlign: alignValue }]}
+          style={[styles.input, { textAlign: alignValue }, style?.input]}
           value={value}
           onChangeText={onChangeText}
           keyboardType={keyboardType}
@@ -85,10 +113,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  flexFill: {
-    flex: 1,
-  },
   label: {
+    flex: 1,
     fontSize: FONT_SIZES.sm,
     color: COLORS.teal700,
   },
@@ -98,14 +124,15 @@ const styles = StyleSheet.create({
   labelError: {
     color: COLORS.red600,
   },
-  inputBorder: {
+  inputContainer: {
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.gray400,
   },
-  inputBorderError: {
+  inputContainerError: {
     borderBottomColor: COLORS.red600,
   },
   input: {
+    flex: 1,
     paddingHorizontal: 0,
     paddingVertical: SPACING.sm,
     fontSize: FONT_SIZES.base,

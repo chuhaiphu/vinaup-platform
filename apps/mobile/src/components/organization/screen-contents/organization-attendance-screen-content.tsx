@@ -2,27 +2,22 @@ import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { ATTENDANCE_MODE, type AttendanceMode } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
 import VinaupLeftRightArrows from '@/components/icons/vinaup-left-right-arrows.native';
-import VinaupLocation from '@/components/icons/vinaup-location.native';
+import { AttendancePunchBar } from '@/components/organization/attendance/attendance-punch-bar';
+import { AttendanceRecordListSection } from '@/components/organization/attendance/list/attendance-record-list-section';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { TextToggler } from '@/components/primitives/text-toggler';
 import { UnifiedDatePicker } from '@/components/primitives/unified-date-picker';
 import { DD_MM_YYYY_DATE_FORMAT, YYYY_MM_DD_DATE_FORMAT } from '@/constants/app-constants';
 import { DEFAULT_ORGANIZATION_TIMEZONE } from '@/constants/organization-constants';
-import {
-  AVATAR_SIZES,
-  COLORS,
-  FONT_SIZES,
-  FONT_WEIGHTS,
-  ICON_SIZES,
-  RADIUS,
-  SPACING,
-} from '@/constants/style-constants';
+import { COLORS, FONT_SIZES, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
+import { OrganizationAttendanceRecordListProvider } from '@/providers/organization/attendance/organization-attendance-record-list-provider';
 import { generateCalendarDate } from '@/utils/generator/string-generator/generate-calendar-date';
 import { generateZonedTime } from '@/utils/generator/string-generator/generate-zoned-time';
 
@@ -89,21 +84,18 @@ export function OrganizationAttendanceScreenContent() {
           />
         )}
       </View>
-      {isLiveWorkDate && (
-        <View style={styles.punchContainer}>
-          <View style={[styles.punchLabelContainer, styles.punchLabelLeftContainer]}>
-            <Text style={styles.punchHintText}>Bấm</Text>
-            <Text style={styles.punchActionText}>Check in</Text>
-          </View>
-          <PressableOpacity style={styles.punchButton}>
-            <VinaupLocation width={ICON_SIZES.xxl} height={ICON_SIZES.xxl} />
-          </PressableOpacity>
-          <View style={[styles.punchLabelContainer, styles.punchLabelRightContainer]}>
-            <Text style={[styles.punchHintText, styles.punchDisabledText]}>Bấm</Text>
-            <Text style={[styles.punchActionText, styles.punchDisabledText]}>Check out</Text>
-          </View>
-        </View>
-      )}
+      <Suspense fallback={<EntityListSectionSkeleton />}>
+        <OrganizationAttendanceRecordListProvider
+          key={`organization-attendance-record-list-${organizationId}-${selectedWorkDate}`}
+          organizationId={organizationId}
+          workDate={selectedWorkDate}
+        >
+          {isLiveWorkDate && (
+            <AttendancePunchBar organizationId={organizationId} attendanceMode={attendanceMode} />
+          )}
+          <AttendanceRecordListSection organizationTimezone={organizationTimezone} />
+        </OrganizationAttendanceRecordListProvider>
+      </Suspense>
       <UnifiedDatePicker
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
@@ -146,42 +138,5 @@ const styles = StyleSheet.create({
   },
   togglerText: {
     fontSize: FONT_SIZES.sm,
-  },
-  punchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: SPACING.sm,
-  },
-  punchButton: {
-    width: AVATAR_SIZES.lg,
-    height: AVATAR_SIZES.lg,
-    borderRadius: RADIUS.full,
-    backgroundColor: COLORS.teal700,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  punchLabelContainer: {
-    flex: 1,
-  },
-  punchLabelLeftContainer: {
-    alignItems: 'flex-end',
-    paddingRight: SPACING.md,
-  },
-  punchLabelRightContainer: {
-    alignItems: 'flex-start',
-    paddingLeft: SPACING.md,
-  },
-  punchHintText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.teal900,
-  },
-  punchActionText: {
-    fontSize: FONT_SIZES.base,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.teal900,
-  },
-  punchDisabledText: {
-    color: COLORS.gray400,
   },
 });

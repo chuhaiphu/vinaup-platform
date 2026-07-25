@@ -65,6 +65,7 @@ export class AttendanceRecordService {
         mode: input.mode,
         status: isCheckInOut ? ATTENDANCE_RECORD_STATUS.OPEN : ATTENDANCE_RECORD_STATUS.CLOSED,
         note: input.note ?? null,
+        location: input.location ?? null,
         createdByUserId: currentUserId,
       },
       ...attendanceRecordQueryArgs,
@@ -97,6 +98,7 @@ export class AttendanceRecordService {
         checkOutAt: new Date(),
         status: ATTENDANCE_RECORD_STATUS.CLOSED,
         note: input.note ?? undefined,
+        location: input.location ?? undefined,
       },
       ...attendanceRecordQueryArgs,
     });
@@ -114,7 +116,7 @@ export class AttendanceRecordService {
 
     return this.prismaService.attendanceRecord.update({
       where: { id: recordId },
-      data: { note: input.note ?? null },
+      data: { note: input.note ?? null, location: input.location ?? null },
       ...attendanceRecordQueryArgs,
     });
   }
@@ -133,6 +135,8 @@ export class AttendanceRecordService {
     return this.prismaService.attendanceRecord.findMany({
       where: {
         createdByUserId: currentUserId,
+        ...(filter.organizationId ? { organizationId: filter.organizationId } : {}),
+        ...(filter.status ? { status: filter.status } : {}),
         // Add the workDate range only when BOTH bounds are present
         ...(filter.workDateFrom && filter.workDateTo
           ? { workDate: { gte: filter.workDateFrom, lte: filter.workDateTo } }
@@ -150,6 +154,7 @@ export class AttendanceRecordService {
     return this.prismaService.attendanceRecord.findMany({
       where: {
         organizationId,
+        ...(filter.status ? { status: filter.status } : {}),
         // Add the workDate range only when BOTH bounds are present
         ...(filter.workDateFrom && filter.workDateTo
           ? { workDate: { gte: filter.workDateFrom, lte: filter.workDateTo } }

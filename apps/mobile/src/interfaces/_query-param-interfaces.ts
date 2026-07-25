@@ -1,4 +1,5 @@
 export type {
+  AttendanceRecordFilterRequestInterface as AttendanceRecordFilterParam,
   BookingFilterRequestInterface as BookingFilterParam,
   CarFilterRequestInterface as CarFilterParam,
   InvoiceFilterRequestInterface as InvoiceFilterParam,

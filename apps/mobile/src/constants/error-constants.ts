@@ -98,6 +98,17 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   UPLOAD_PATH_REQUIRED: 'Thiếu đường dẫn lưu tệp.',
   UPLOAD_FILE_NOT_FOUND: 'Không tìm thấy tệp tải lên.',
 
+  // ─── Attendance ──────────────────────────────────────────────────────────
+  ATTENDANCE_RECORD_NOT_FOUND: 'Không tìm thấy lượt chấm công.',
+  ATTENDANCE_RECORD_NOT_OWNER: 'Bạn chỉ có thể thay đổi lượt chấm công của chính mình.',
+  ATTENDANCE_HAS_OPEN_RECORD:
+    'Bạn đang có một lượt chấm công chưa check out. Vui lòng check out trước.',
+  ATTENDANCE_NO_OPEN_RECORD: 'Không có lượt chấm công nào đang mở để check out.',
+  ATTENDANCE_DAY_LOCKED: 'Ngày công này đã được chốt nên không thể thay đổi.',
+  ATTENDANCE_CONCLUSION_NOT_FOUND: 'Không tìm thấy bảng chốt công.',
+  ATTENDANCE_CONCLUSION_ALREADY_EXISTS: 'Ngày công này đã có bảng chốt công.',
+  ATTENDANCE_CONCLUSION_LOCKED: 'Bảng chốt công đã hoàn tất, cần mở lại trước khi thay đổi.',
+
   // ─── Document (signing lock) ─────────────────────────────────────────────
   DOCUMENT_LOCKED_AFTER_SIGN: 'Tài liệu đã có chữ ký nên không thể chỉnh sửa hoặc xoá.',
 

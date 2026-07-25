@@ -169,6 +169,7 @@ model AttendanceRecord {
   mode                 String // CHECK_IN | CHECK_IN_OUT
   status               String // OPEN | CLOSED
   note                 String?
+  location             String?
   createdByUserId      String?
   createdAt            DateTime           @default(now()) @db.Timestamptz(3)
   updatedAt            DateTime           @updatedAt @db.Timestamptz(3)
