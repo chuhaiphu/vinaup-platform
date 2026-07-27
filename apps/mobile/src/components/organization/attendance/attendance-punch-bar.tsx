@@ -6,7 +6,7 @@ import VinaupLocation from '@/components/icons/vinaup-location.native';
 import { AttendancePunchConfirmModal } from '@/components/organization/attendance/modals/attendance-punch-confirm-modal/attendance-punch-confirm-modal';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { ATTENDANCE_PUNCH_ACTION } from '@/constants/attendance-constants';
+import { ATTENDANCE_MODE, ATTENDANCE_PUNCH_ACTION } from '@/constants/attendance-constants';
 import {
   AVATAR_SIZES,
   COLORS,
@@ -42,6 +42,11 @@ export function AttendancePunchBar({ organizationId }: AttendancePunchBarProps) 
     : ATTENDANCE_PUNCH_ACTION.CHECK_IN;
   const isCheckingIn = punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_IN;
 
+  // "In" mode closes the record on the very same punch, so the check-out label would name an action
+  // that never arrives. Still shown whenever a check-out is genuinely pending, which covers a session
+  // opened on another device while the toggler here reads "In".
+  const showCheckOutLabel = attendanceMode === ATTENDANCE_MODE.CHECK_IN_OUT || !isCheckingIn;
+
   return (
     <View style={styles.punchContainer}>
       <View style={[styles.punchLabelContainer, styles.punchLabelLeftContainer]}>
@@ -60,11 +65,19 @@ export function AttendancePunchBar({ organizationId }: AttendancePunchBarProps) 
           color={isCheckingIn ? COLORS.yellow400 : COLORS.teal700}
         />
       </PressableOpacity>
+      {/* The container stays even when empty — it is the flex counterweight that keeps the punch
+          button centred against the left label. */}
       <View style={[styles.punchLabelContainer, styles.punchLabelRightContainer]}>
-        <Text style={[styles.punchHintText, isCheckingIn && styles.punchDisabledText]}>Bấm</Text>
-        <Text style={[styles.punchActionText, isCheckingIn && styles.punchDisabledText]}>
-          Check out
-        </Text>
+        {showCheckOutLabel && (
+          <>
+            <Text style={[styles.punchHintText, isCheckingIn && styles.punchDisabledText]}>
+              Bấm
+            </Text>
+            <Text style={[styles.punchActionText, isCheckingIn && styles.punchDisabledText]}>
+              Check out
+            </Text>
+          </>
+        )}
       </View>
       <AttendancePunchConfirmModal
         modalRef={modalRef}

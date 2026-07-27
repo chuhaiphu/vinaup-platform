@@ -1,5 +1,5 @@
-import { useImperativeHandle, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useEffect, useImperativeHandle, useState } from 'react';
+import { AppState, Modal, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useReanimatedKeyboardAnimation } from 'react-native-keyboard-controller';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -58,6 +58,8 @@ export function SlideSheet({
   // So when changing values from useSharedValue, React DONOT re-render.
   const sheetTranslateY = useSharedValue(animationDistance);
 
+  const isSettled = useSharedValue(false);
+
   // useReanimatedKeyboardAnimation return a value of the keyboard height on UI Thread, frame by frame.
   // So when keyboard moves, the sheet follows it WITHOUT React re-render.
   // no manual Keyboard.addListener needed.
@@ -89,6 +91,7 @@ export function SlideSheet({
   });
 
   const handleClose = (onImperativeCloseCompleted?: () => void) => {
+    isSettled.set(false);
     sheetTranslateY.set(
       withTiming(animationDistance, { duration: 200 }, (finished) => {
         if (finished) {
@@ -103,12 +106,14 @@ export function SlideSheet({
   };
 
   const handleOpen = (onImperativeOpenCompleted?: () => void) => {
+    isSettled.set(false);
     setModalVisible(true);
     setShouldMountChildren(true);
     sheetTranslateY.set(animationDistance);
     sheetTranslateY.set(
       withTiming(0, { duration: 350 }, (finished) => {
         if (finished) {
+          isSettled.set(true);
           if (onOpenCompleted) scheduleOnRN(onOpenCompleted);
           if (onImperativeOpenCompleted) scheduleOnRN(onImperativeOpenCompleted);
         }
@@ -120,6 +125,48 @@ export function SlideSheet({
     open: handleOpen,
     close: handleClose,
   }));
+
+  // ─── Re-assert the style after the app returns to the foreground ─────
+  //
+  // React and the screen hold two DIFFERENT positions for this sheet, by design:
+  // - Reanimated writes the style straight to the native view on the UI thread,
+  // - React commits a style snapshot taken at the Animated.View's first render and never refreshed again.
+  //
+  // with animationDistance = 812:
+  //   1. open()     sheetTranslateY = 812, then withTiming(0) starts.
+  //                 <Modal> renders null while hidden, so Animated.View does not exist yet.
+  //   2. commit     Animated.View mounts and snapshots the value as it stands right now: 812.
+  //   3. 0→350ms    the animation walks the native view 812 → 0. The snapshot stays 812.
+  //   4. open       screen = 0 (right), the style React committed = 812 (off-screen).
+  //
+  // Then an OS surface — the location permission prompt, camera, a picker — takes over the screen.
+  // They live on Android's separate Activity (Android's unit of "one interactive screen"),
+  // drawn on top of ours, so Android pulls out of the foreground and hands it back once that screen closes.
+  // That is exactly the round trip as AppState 'background' → 'active' (iOS: 'inactive' → 'active').
+  //
+  // In that hand-back the native view is re-synced from React's committed style and jumps back to 812,
+  // which cause the sheet vanishes while the backdrop stays put.
+  //
+  useEffect(() => {
+    if (!modalVisible) return;
+
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState !== 'active') return;
+
+      // withTiming runs it re-runs the worklet every frame, so the native view is already correct.
+      // !isSettled.get() prevent modify() to cancels the animation running on it,
+      // which will cause calls onOpenCompleted never runs — the sheet stops mid-slide.
+      if (!isSettled.get()) return;
+
+      // Reanimated will not update the UI if assign an unchanged value.
+      // After sheet appear, sheetTranslateY is already 0. set(0) and withTiming(0) will assign value 0,
+      // which will not cause the UI to update.
+      // modify() is the only setter that skips that check with the curent '0' value.
+      sheetTranslateY.modify();
+    });
+
+    return () => subscription.remove();
+  }, [modalVisible, isSettled, sheetTranslateY]);
 
   return (
     <Modal

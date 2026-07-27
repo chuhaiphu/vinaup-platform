@@ -24,7 +24,7 @@ initWire({
         // After 100ms, resolve the promise to allow the request to proceed
         setTimeout(() => {
           resolve();
-        }, 300);
+        }, 100);
       }),
     onResponse: async (url, response) => {
       // ─── Dev-only logging, must never throw ──────────────────────────

@@ -111,7 +111,11 @@ export function ConfirmSlideSheet({
           </Button>
           {!hideConfirm && (
             <Button
-              style={[styles.confirmButton, isLoading && styles.buttonDisabled]}
+              // Dimmed on either gate — an inert button that still reads as pressable is a trap.
+              style={[
+                styles.confirmButton,
+                (isLoading || confirmDisabled) && styles.buttonDisabled,
+              ]}
               onPress={onConfirmPress}
               disabled={isLoading || confirmDisabled}
               isLoading={isLoading}

@@ -1,6 +1,7 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { Text, View } from 'react-native';
 
+import { GoogleMapsLinkButton } from '@/components/commons/buttons/google-maps-link-button';
 import {
   ATTENDANCE_MODE,
   ATTENDANCE_RECORD_STATUS,
@@ -27,7 +28,8 @@ export function AttendanceRecordCard({
   organizationTimezone,
   now,
 }: AttendanceRecordCardProps) {
-  const { mode, status, checkInAt, checkOutAt, location, note } = attendanceRecord;
+  const { mode, status, checkInAt, checkOutAt, location, note, latitude, longitude } =
+    attendanceRecord;
 
   const isOpen = status === ATTENDANCE_RECORD_STATUS.OPEN;
   const isCheckInOnly = mode === ATTENDANCE_MODE.CHECK_IN;
@@ -81,11 +83,10 @@ export function AttendanceRecordCard({
           <View style={styles.detailContainer}>
             {!!location && (
               <View style={styles.detailRow}>
-                <FontAwesome5
-                  name="map-marker-alt"
-                  iconStyle="solid"
-                  size={ICON_SIZES.sm}
-                  color={COLORS.teal700}
+                <GoogleMapsLinkButton
+                  latitude={latitude}
+                  longitude={longitude}
+                  size={ICON_SIZES.lg}
                 />
                 <Text style={styles.detailText}>{location}</Text>
               </View>

@@ -20,7 +20,7 @@ export function PressableOpacity({
         // So we need to check the style prop passing to PressableOpacity,
         // if it's a function, we call it with the state, otherwise we use it directly
         typeof style === 'function' ? style(state) : style,
-        { opacity: state.pressed ? activeOpacity : 1 },
+        state.pressed && { opacity: activeOpacity },
       ]}
     >
       {children}

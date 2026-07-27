@@ -7,6 +7,7 @@ import { AllOrganizationsProvider } from '@/providers/auth/all-organizations-pro
 import { useAuthContext } from '@/providers/auth/auth-provider';
 import { OrganizationProvider } from '@/providers/auth/organization-provider';
 import { AppNotificationCheckerProvider } from '@/providers/commons/app-notification-checker-provider';
+import { AppPermissionFromOsProvider } from '@/providers/commons/app-permission-from-os-provider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -32,16 +33,18 @@ export default function ProtectedLayout() {
       <Suspense fallback={<IndexShellSkeleton />}>
         <AllOrganizationsProvider>
           <OrganizationProvider>
-            <AppNotificationCheckerProvider>
-              <Stack>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="personal/(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="organization/[organizationId]"
-                  options={{ headerShown: false }}
-                />
-              </Stack>
-            </AppNotificationCheckerProvider>
+            <AppPermissionFromOsProvider>
+              <AppNotificationCheckerProvider>
+                <Stack>
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen name="personal/(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="organization/[organizationId]"
+                    options={{ headerShown: false }}
+                  />
+                </Stack>
+              </AppNotificationCheckerProvider>
+            </AppPermissionFromOsProvider>
           </OrganizationProvider>
         </AllOrganizationsProvider>
       </Suspense>
