@@ -133,7 +133,11 @@ export const getTourImplementationAssignmentRippleTags = (): string[] => [
   FETCH_TAG.tourImplementationAssignmentList,
 ];
 
-export const getTripRippleTags = (): string[] => [FETCH_TAG.tripList, FETCH_TAG.tripAssignmentList];
+export const getTripRippleTags = (): string[] => [
+  FETCH_TAG.tripList,
+  FETCH_TAG.tripAssignmentList,
+  FETCH_TAG.carList,
+];
 
 export const getBookingRippleTags = (tourImplementationId?: string | null): string[] => [
   FETCH_TAG.bookingList,

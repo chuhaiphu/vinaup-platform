@@ -12,57 +12,69 @@ import { OrganizationNotFoundException } from 'src/_common/exceptions/organizati
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
 
-import { carQueryArgs, type CarResponse, type CarWithMeta } from '../dtos/car.response.dto';
+import {
+  carQueryArgs,
+  carTripAssignmentQueryArgs,
+  type CarResponse,
+  type CarWithMeta,
+} from '../dtos/car.response.dto';
 
 @Injectable()
 export class CarService {
   constructor(private readonly prismaService: PrismaService) {}
 
-  async findCarsByOrganizationId(organizationId: string, filter?: CarFilterRequestInterface): Promise<CarWithMeta[]> {
-    const dateFilterClause = (() => {
-      if (!filter?.startDate || !filter?.endDate) return {};
-      // ─── Filter by trip usage in the period, not by car.createdAt ─────
-      // Return a car in at least one trip assignment whose trip's [startDate, endDate] overlaps the filter range.
-      return {
-        tripAssignments: {
-          some: {
-            trip: generateDateOverlapClause(filter),
+  private buildCarIncludeClause(filter?: CarFilterRequestInterface) {
+    const nowIso = new Date().toISOString();
+    const selectedDate =
+      filter?.startDate && filter?.endDate
+        ? { startDate: filter.startDate, endDate: filter.endDate }
+        : { startDate: nowIso, endDate: nowIso };
+
+    return {
+      ...carQueryArgs.include,
+      tripAssignments: {
+        ...carTripAssignmentQueryArgs,
+        where: {
+          trip: {
+            status: { not: TRIP_STATUS.CANCELLED }, // a cancelled trip freed its car
+            ...generateDateOverlapClause(selectedDate),
           },
         },
-      };
-    })();
+        orderBy: { trip: { startDate: 'asc' as const } },
+      },
+    };
+  }
 
+  async findCarsByOrganizationId(organizationId: string, filter?: CarFilterRequestInterface): Promise<CarWithMeta[]> {
     const whereClause = {
       organizationId,
       ...(filter?.name && { name: { contains: filter.name, mode: 'insensitive' as const } }),
       ...(filter?.status && { status: filter.status }),
       ...(filter?.category && { category: filter.category }),
       ...(filter?.fuelType && { fuelType: filter.fuelType }),
-      ...dateFilterClause,
     };
 
     const cars = await this.prismaService.car.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      ...carQueryArgs,
+      include: this.buildCarIncludeClause(filter),
     });
 
-    const assignedCarIdSet = await this.findAssignedCarIdSet(cars.map((car) => car.id));
-    return cars.map((car) => this.attachMeta(car, assignedCarIdSet));
+    return cars.map((car) => this.attachMeta(car));
   }
 
   async findCarById(id: string): Promise<CarWithMeta> {
     const car = await this.prismaService.car.findUnique({
       where: { id },
-      ...carQueryArgs,
+      // No day to view on a detail screen, so the lens falls back to right now.
+      include: this.buildCarIncludeClause(),
     });
 
     if (!car) {
       throw new CarNotFoundException();
     }
 
-    const assignedCarIdSet = await this.findAssignedCarIdSet([car.id]);
-    return this.attachMeta(car, assignedCarIdSet);
+    return this.attachMeta(car);
   }
 
   private async assertOrganizationExists(organizationId: string): Promise<void> {
@@ -88,11 +100,10 @@ export class CarService {
           create: {},
         },
       },
-      ...carQueryArgs,
+      include: this.buildCarIncludeClause(),
     });
 
-    // A brand-new car has no trip assignments yet, so it is always RESTING — skip the query.
-    return this.attachMeta(car, new Set());
+    return this.attachMeta(car);
   }
 
   async updateCar(id: string, updateCarReq: UpdateCarRequestInterface): Promise<CarWithMeta> {
@@ -109,11 +120,10 @@ export class CarService {
       data: {
         ...updateCarReq,
       },
-      ...carQueryArgs,
+      include: this.buildCarIncludeClause(),
     });
 
-    const assignedCarIdSet = await this.findAssignedCarIdSet([car.id]);
-    return this.attachMeta(car, assignedCarIdSet);
+    return this.attachMeta(car);
   }
 
   async deleteCarById(id: string): Promise<void> {
@@ -147,46 +157,18 @@ export class CarService {
         ],
       },
       orderBy: { createdAt: 'desc' },
-      ...carQueryArgs,
+      include: this.buildCarIncludeClause(),
     });
 
-    const assignedCarIdSet = await this.findAssignedCarIdSet(cars.map((car) => car.id));
-    return cars.map((car) => this.attachMeta(car, assignedCarIdSet));
+    return cars.map((car) => this.attachMeta(car));
   }
 
-  // Batched into one query (returns only the running ids) to avoid an N+1 per car.
-  // Returns a Set, not an array, because Set.has is O(1),
-  // so N cars cost O(N) lookup total instead of O(N·M) with Array.includes.
-  private async findAssignedCarIdSet(carIdList: string[]): Promise<Set<string>> {
-    if (!carIdList.length) return new Set();
-
-    const runningTripAssignments = await this.prismaService.tripAssignment.findMany({
-      where: {
-        carId: { in: carIdList },
-        trip: {
-          status: { not: TRIP_STATUS.CANCELLED }, // a cancelled trip freed its car
-          ...generateDateOverlapClause({
-            startDate: new Date().toISOString(),
-            endDate: new Date().toISOString(),
-          }),
-        },
-      },
-      select: { carId: true },
-    });
-
-    return new Set(
-      runningTripAssignments
-        .map((tripAssignment) => tripAssignment.carId)
-        .filter((carId) => carId !== null),
-    );
-  }
-
-  private attachMeta(currentCar: CarResponse, assignedCarIdSet: Set<string>): CarWithMeta {
+  private attachMeta(currentCar: CarResponse): CarWithMeta {
     return {
       ...currentCar,
       meta: {
         canEdit: true, // no per-record edit lock; authorization is the route guard's job
-        operationalStatus: assignedCarIdSet.has(currentCar.id)
+        operationalStatus: currentCar.tripAssignments.length
           ? CAR_OPERATIONAL_STATUS.OPERATING
           : CAR_OPERATIONAL_STATUS.RESTING,
       },

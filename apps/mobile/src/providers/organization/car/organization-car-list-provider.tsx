@@ -31,15 +31,11 @@ export function OrganizationCarListProvider({
   children,
 }: {
   organizationId: string;
-  // Omit the date to fetch the full roster (e.g. the maintenance-log car picker); pass it
-  // to scope the list to cars active in the picked period.
   selectedDate?: dayjs.Dayjs;
   filterMode?: DatePickerMode;
   children: React.ReactNode;
 }) {
   // ─── Convert the picked month/day into an overlap range ─────
-  // Mirrors OrganizationTripListProvider: the backend scopes cars to those on a trip
-  // whose [startDate, endDate] overlaps this range, so both lists agree on "this period".
   const dateFilter = selectedDate
     ? {
         startDate:

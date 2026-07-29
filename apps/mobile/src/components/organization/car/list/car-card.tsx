@@ -19,6 +19,7 @@ import {
   SPACING,
 } from '@/constants/style-constants';
 import { CarResponse } from '@/interfaces/car-interfaces';
+import { generateDateRange } from '@/utils/generator/string-generator/generate-date-range';
 
 interface CarCardProps {
   car?: CarResponse;
@@ -50,14 +51,16 @@ export function CarCard({ car }: CarCardProps) {
   const operationalStatus = car.meta?.operationalStatus ?? CAR_OPERATIONAL_STATUS.RESTING;
   const operationLabel = CarOperationalStatusDisplay[operationalStatus];
 
-  // ─── Content bottom: the drivers currently assigned to this car ─────
+  // ─── Content bottom: drivers, then the trips of the picked period ─────
   // carAssignments is current-state (active pairings only), so a simple join is enough.
-  // Hide the whole bottom section when no driver is assigned.
   const driverNames = (car.carAssignments ?? [])
     .map((assignment) => assignment.organizationMember?.name)
     .filter(Boolean)
     .join('; ');
-  const showContentBottom = driverNames.length > 0;
+  const showDriverRow = driverNames.length > 0;
+
+  const tripAssignments = car.tripAssignments ?? [];
+  const showContentBottom = showDriverRow || tripAssignments.length > 0;
 
   return (
     <View style={styles.container}>
@@ -110,12 +113,37 @@ export function CarCard({ car }: CarCardProps) {
 
       {showContentBottom && (
         <View style={styles.contentBottom}>
-          <View style={styles.bottomLeftColumn}>
-            <VinaupUserCouple width={20} height={20} />
-          </View>
-          <View style={styles.bottomRightColumn}>
-            <Text style={styles.driverNamesText}>{driverNames}</Text>
-          </View>
+          {showDriverRow && (
+            <View style={styles.bottomRow}>
+              <View style={styles.bottomLeftColumn}>
+                <VinaupUserCouple width={16} height={16} />
+              </View>
+              <View style={styles.bottomRightColumn}>
+                <Text style={styles.bottomText}>{driverNames}</Text>
+              </View>
+            </View>
+          )}
+          {tripAssignments.map((tripAssignment) => (
+            <View key={tripAssignment.id} style={styles.bottomRow}>
+              <View style={styles.bottomLeftColumn}>
+                <FontAwesome5
+                  iconStyle="solid"
+                  name="route"
+                  size={ICON_SIZES.sm}
+                  color={COLORS.teal700}
+                />
+              </View>
+              <View style={styles.bottomRightColumn}>
+                <Text style={styles.bottomText} numberOfLines={1} ellipsizeMode="tail">
+                  <Text style={styles.tripDateText}>
+                    {generateDateRange(tripAssignment.trip.startDate, tripAssignment.trip.endDate)}
+                  </Text>
+                  {'  '}
+                  {tripAssignment.trip.description || 'Chuyến chưa đặt tên'}
+                </Text>
+              </View>
+            </View>
+          ))}
         </View>
       )}
     </View>
@@ -155,9 +183,7 @@ const styles = StyleSheet.create({
     gap: SPACING.sm,
   },
   contentBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.sm,
+    gap: SPACING.xs,
     backgroundColor: COLORS.white,
     paddingHorizontal: SPACING.sm,
     paddingVertical: SPACING.sm,
@@ -165,6 +191,11 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 8,
     borderWidth: 0.5,
     borderTopWidth: 0,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   bottomLeftColumn: {
     width: 48,
@@ -199,8 +230,12 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray700,
   },
-  driverNamesText: {
+  bottomText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray700,
+  },
+  // Muted like DateRangeText's hour part, so the trip name stays the row's focus.
+  tripDateText: {
+    color: COLORS.gray400,
   },
 });

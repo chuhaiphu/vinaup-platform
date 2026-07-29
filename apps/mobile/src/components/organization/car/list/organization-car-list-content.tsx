@@ -39,15 +39,12 @@ export function OrganizationCarListContent({
 
   const [pickerVisible, setPickerVisible] = useState(false);
 
-  // ─── Client-side filters over the date-scoped list ─────
-  // The date filter (server-side) already narrowed `cars` to those active this period,
-  // so these three refine that set without a refetch. State lives here because the
-  // provider remounts on a date change, resetting them to "Tất cả" for the new period.
+  // ─── Client-side filters over the fetched list ─────
   const [seatCountFilter, setSeatCountFilter] = useState('');
   const [operationalStatusFilter, setOperationalStatusFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  // Seat-count options mirror the seat counts that truly exist in this period's cars.
+  // Seat-count options mirror the seat counts that truly exist in the org's fleet.
   const seatCountOptions = useMemo(() => getCarSeatCountFilterOptions(cars), [cars]);
 
   const filteredCars = useMemo(
@@ -65,6 +62,11 @@ export function OrganizationCarListContent({
       }),
     [cars, seatCountFilter, operationalStatusFilter, statusFilter],
   );
+
+  const dateLabel =
+    filterMode === 'month'
+      ? selectedDate.format(MM_YYYY_DATE_FORMAT)
+      : selectedDate.format(DD_MM_YYYY_DATE_FORMAT);
 
   const navigateToDetailScreen = async (id?: string) => {
     if (!id) return;
@@ -85,19 +87,20 @@ export function OrganizationCarListContent({
     <View style={styles.container}>
       <View style={styles.filterBar}>
         <View style={styles.filterRow}>
-          <PressableOpacity onPress={() => setPickerVisible(true)} style={styles.datePickerTrigger}>
-            <FontAwesome5
-              name="calendar-alt"
-              size={ICON_SIZES.sm}
-              color={COLORS.teal700}
-              style={styles.dateIcon}
-            />
-            <Text style={styles.dateText}>
-              {filterMode === 'month'
-                ? selectedDate.format(MM_YYYY_DATE_FORMAT)
-                : selectedDate.format(DD_MM_YYYY_DATE_FORMAT)}
-            </Text>
-          </PressableOpacity>
+          <View style={styles.dateFilter}>
+            <PressableOpacity
+              onPress={() => setPickerVisible(true)}
+              style={styles.datePickerTrigger}
+            >
+              <FontAwesome5
+                name="calendar-alt"
+                size={ICON_SIZES.sm}
+                color={COLORS.teal700}
+                style={styles.dateIcon}
+              />
+              <Text style={styles.dateText}>{dateLabel}</Text>
+            </PressableOpacity>
+          </View>
           <FilterSelect
             placeholder="Hoạt động"
             options={CarOperationalStatusFilterOptions}
@@ -166,6 +169,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  dateFilter: {
+    flexShrink: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
   },
   datePickerTrigger: {
     flexShrink: 1,

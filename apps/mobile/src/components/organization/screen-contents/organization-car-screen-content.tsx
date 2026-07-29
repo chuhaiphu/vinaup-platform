@@ -35,7 +35,9 @@ export function OrganizationCarScreenContent() {
   // Shared by both views so the picked period survives toggling cars ↔ trips.
   const filterMode = day ? 'day' : 'month';
 
-  const selectedDate = day ? dayjs(day, 'YYYY-MM-DD') : month ? dayjs(month, 'YYYY-MM') : dayjs();
+  // Both views are always looking at some day — neither param present just means "today".
+  // There is no "no period" state: the day is a lens on the fleet, not a filter over it.
+  const viewedDate = day ? dayjs(day, 'YYYY-MM-DD') : month ? dayjs(month, 'YYYY-MM') : dayjs();
 
   const handleDateChange = (date: dayjs.Dayjs, mode: DatePickerMode) => {
     if (mode === 'month') {
@@ -44,6 +46,9 @@ export function OrganizationCarScreenContent() {
       router.setParams({ day: date.format('YYYY-MM-DD'), month: undefined });
     }
   };
+
+  const formatDateSuffix = (date: dayjs.Dayjs) =>
+    filterMode === 'month' ? date.format('YYYY-MM') : date.format('YYYY-MM-DD');
 
   const dateHeader = (
     <>
@@ -57,15 +62,15 @@ export function OrganizationCarScreenContent() {
           />
           <Text style={styles.dateText}>
             {filterMode === 'month'
-              ? selectedDate.format(MM_YYYY_DATE_FORMAT)
-              : selectedDate.format(DD_MM_YYYY_DATE_FORMAT)}
+              ? viewedDate.format(MM_YYYY_DATE_FORMAT)
+              : viewedDate.format(DD_MM_YYYY_DATE_FORMAT)}
           </Text>
         </PressableOpacity>
       </View>
       <UnifiedDatePicker
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
-        value={selectedDate}
+        value={viewedDate}
         currentMode={filterMode}
         modes={['day', 'month']}
         onChange={handleDateChange}
@@ -73,11 +78,8 @@ export function OrganizationCarScreenContent() {
     </>
   );
 
-  const dateSuffix =
-    filterMode === 'month' ? selectedDate.format('YYYY-MM') : selectedDate.format('YYYY-MM-DD');
-
   if (carView === 'trips') {
-    const suspenseKey = `org-trip-list-${organizationId}-${filterMode}-${dateSuffix}`;
+    const suspenseKey = `org-trip-list-${organizationId}-${filterMode}-${formatDateSuffix(viewedDate)}`;
 
     return (
       <View style={styles.container}>
@@ -86,7 +88,7 @@ export function OrganizationCarScreenContent() {
           <OrganizationTripListProvider
             key={suspenseKey}
             organizationId={organizationId}
-            selectedDate={selectedDate}
+            selectedDate={viewedDate}
             filterMode={filterMode}
           >
             <OrganizationTripListSection />
@@ -96,7 +98,7 @@ export function OrganizationCarScreenContent() {
     );
   }
 
-  const suspenseKey = `org-car-list-${organizationId}-${filterMode}-${dateSuffix}`;
+  const suspenseKey = `org-car-list-${organizationId}-${filterMode}-${formatDateSuffix(viewedDate)}`;
 
   return (
     <View style={styles.container}>
@@ -104,11 +106,11 @@ export function OrganizationCarScreenContent() {
         <OrganizationCarListProvider
           key={suspenseKey}
           organizationId={organizationId}
-          selectedDate={selectedDate}
+          selectedDate={viewedDate}
           filterMode={filterMode}
         >
           <OrganizationCarListContent
-            selectedDate={selectedDate}
+            selectedDate={viewedDate}
             filterMode={filterMode}
             onDateChange={handleDateChange}
           />

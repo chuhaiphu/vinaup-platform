@@ -47,7 +47,21 @@ export interface CarResponse {
   organization: OrganizationResponse;
   carAssignments?: CarAssignmentResponse[];
   carMaintenanceLog?: CarMaintenanceLogResponse | null;
+  // The trips this car runs on the day being viewed. Optional because a car nested inside a
+  // trip/assignment response comes from an endpoint that does not load them.
+  tripAssignments?: CarTripAssignmentResponse[];
   meta?: CarMeta;
+}
+
+export interface CarTripAssignmentResponse {
+  id: string;
+  tripId: string;
+  trip: {
+    id: string;
+    description: string;
+    startDate: string;
+    endDate: string;
+  };
 }
 
 // Current state only: an in-effect (car, member) pairing. The audit trail of who
