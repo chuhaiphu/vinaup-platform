@@ -46,9 +46,7 @@ initWire({
       message?: string;
     };
 
-    // ─── Guard: reject a truly empty OK response ─────────────────────────────
-    // Why: on a flaky network (or a connection loss) can deliver status 200 with an empty body.
-    // fetchwire maps an empty body "" to `{}`, so BOTH `statusCode` and `data` are `undefined`.
+    // ─── Guard: reject an OK response that is not this API's envelope ────────
     // Why we check `statusCode` (not `data`): a valid `void` endpoint (e.g. /auth/logout)
     // legitimately returns `{ statusCode, message }` with no `data`
     if (rawResponse.statusCode === undefined) {

@@ -38,22 +38,13 @@ export function AppPermissionFromOsProvider({ children }: { children: React.Reac
   // rather than "not granted".
   const [isSyncingPermission, setIsSyncingPermission] = useState(true);
 
-  const isMountedRef = useRef(false);
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
   const syncPermissions = useCallback(async () => {
     setIsSyncingPermission(true);
     try {
       const permission = await Location.getForegroundPermissionsAsync();
-      // Logout unmounts the whole protected tree; a read started on the way out lands here.
-      if (isMountedRef.current) setLocationPermission(permission);
+      setLocationPermission(permission);
     } finally {
-      if (isMountedRef.current) setIsSyncingPermission(false);
+      setIsSyncingPermission(false);
     }
   }, []);
 

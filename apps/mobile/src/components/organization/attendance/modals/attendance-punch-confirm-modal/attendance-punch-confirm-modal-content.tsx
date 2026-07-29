@@ -1,11 +1,13 @@
 import { createAttendanceRecordSchema } from '@vinaup-platform/validation';
 import * as Linking from 'expo-linking';
-import { useEffect, useImperativeHandle } from 'react';
+import { useImperativeHandle } from 'react';
 import { ActivityIndicator, Keyboard, StyleSheet, Text, View } from 'react-native';
 
 import { GoogleMapsLinkButton } from '@/components/commons/buttons/google-maps-link-button';
+import VinaupImport from '@/components/icons/vinaup-import.native';
 import { ConfirmSlideSheetContentRef } from '@/components/primitives/confirm-slide-sheet/confirm-slide-sheet';
 import { FlatTextInput } from '@/components/primitives/flat-text-input';
+import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import {
   ATTENDANCE_PUNCH_ACTION,
   AttendanceMode,
@@ -28,6 +30,7 @@ import {
 import { useOrganizationAttendancePunchContext } from '@/providers/organization/attendance/organization-attendance-punch-provider';
 import { generateCoordinateCode } from '@/utils/generator/string-generator/generate-coordinate-code';
 import { generateFormatDateTime } from '@/utils/generator/string-generator/generate-format-date-time';
+import { generateLocaleAddress } from '@/utils/generator/string-generator/generate-locale-address';
 
 export type AttendancePunchFieldValues = {
   location: string;
@@ -77,7 +80,12 @@ export function AttendancePunchConfirmModalContent({
 
   const isCheckOut = punchAction === ATTENDANCE_PUNCH_ACTION.CHECK_OUT;
 
-  const { currentLocation, locationAddress, isPreciseLocationGranted } = currentLocationState;
+  const {
+    currentLocation,
+    isPreciseLocationGranted,
+    isResolvingGeocodedAddress,
+    resolveGeocodedAddress,
+  } = currentLocationState;
 
   const coordinateCode = currentLocation ? generateCoordinateCode(currentLocation.coords) : null;
 
@@ -129,12 +137,21 @@ export function AttendancePunchConfirmModalContent({
     return { success: true, data: { punchAction: ATTENDANCE_PUNCH_ACTION.CHECK_IN, request } };
   };
 
-  const { fieldValues, fieldErrors, setFieldValue, setFieldValues, validateAll } =
-    useValidatedFields(DEFAULT_FIELD_VALUES, validate);
+  const { fieldValues, fieldErrors, setFieldValue, validateAll } = useValidatedFields(
+    DEFAULT_FIELD_VALUES,
+    validate,
+  );
 
-  useEffect(() => {
-    if (locationAddress) setFieldValues({ location: locationAddress });
-  }, [locationAddress, setFieldValues]);
+  // The address is never filled in on its own — the geocode is spent only on this explicit press,
+  // and it overwrites whatever is typed because pressing "import" is the user asking for exactly that.
+  const handleImportLocationAddress = async () => {
+    const geocodedAddress = await resolveGeocodedAddress();
+    if (!geocodedAddress) return;
+
+    const localeAddress = generateLocaleAddress(geocodedAddress);
+    // A geocoder can answer with every selected part empty, which would wipe the field for nothing.
+    if (localeAddress) setFieldValue('location', localeAddress);
+  };
 
   const handleOpenLocationSettings = async () => {
     try {
@@ -218,7 +235,7 @@ export function AttendancePunchConfirmModalContent({
     if (!isPreciseLocationGranted) {
       return (
         <Text style={styles.locationCodeActionText} onPress={handleOpenLocationSettings}>
-          bật vị trí chính xác
+          Bật chia sẻ vị trí chính xác
         </Text>
       );
     }
@@ -232,11 +249,14 @@ export function AttendancePunchConfirmModalContent({
     );
   };
 
+  const isImportLocationAddressDisabled =
+    !currentLocation || isResolvingGeocodedAddress || isLoading || isLocationLoading;
+
   return (
     <View style={styles.container}>
       <View style={styles.locationCodeRow}>
         <Text style={styles.locationCodeText}>
-          <Text style={styles.locationCodeLabelText}>Mã vị trí: </Text>
+          <Text style={styles.locationCodeLabelText}>Vị trí: </Text>
           {renderLocationCodeValue()}
         </Text>
         <GoogleMapsLinkButton
@@ -247,7 +267,8 @@ export function AttendancePunchConfirmModalContent({
       </View>
       <View style={styles.fieldContainer}>
         <FlatTextInput
-          label="Địa điểm"
+          multiline={true}
+          label="Mô tả vị trí"
           value={fieldValues.location}
           onChangeText={(value) => setFieldValue('location', value)}
           alignLabel="left"
@@ -255,9 +276,32 @@ export function AttendancePunchConfirmModalContent({
           error={fieldErrors.location}
           placeholder="..."
           editable={!isLoading}
+          labelRightSection={
+            <PressableOpacity
+              style={styles.importLocationAddressButton}
+              onPress={handleImportLocationAddress}
+              disabled={isImportLocationAddressDisabled}
+              hitSlop={8}
+            >
+              <Text
+                style={[
+                  styles.importLocationAddressText,
+                  isImportLocationAddressDisabled && styles.importLocationAddressTextDisabled,
+                ]}
+              >
+                Gợi ý
+              </Text>
+              <VinaupImport
+                width={ICON_SIZES.sm}
+                height={ICON_SIZES.sm}
+                color={isImportLocationAddressDisabled ? COLORS.gray400 : COLORS.teal700}
+              />
+            </PressableOpacity>
+          }
         />
         <FlatTextInput
-          label="Ghi chú"
+          multiline={true}
+          label="Mục đích"
           value={fieldValues.note}
           onChangeText={(value) => setFieldValue('note', value)}
           alignLabel="left"
@@ -313,6 +357,18 @@ const styles = StyleSheet.create({
     fontWeight: FONT_WEIGHTS.bold,
     color: COLORS.blue600,
     textDecorationLine: 'underline',
+  },
+  importLocationAddressButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  importLocationAddressText: {
+    fontSize: FONT_SIZES.xs,
+    color: COLORS.teal700,
+  },
+  importLocationAddressTextDisabled: {
+    color: COLORS.gray400,
   },
   summaryRow: {
     flexDirection: 'row',

@@ -45,11 +45,26 @@ export async function uploadImage(
     throw new ApiError('Network request failed', 'NETWORK_ERROR', 520);
   }
 
-  const json = result.body ? JSON.parse(result.body) : {};
+  if (!result.body) {
+    throw new ApiError('Empty response body', 'EMPTY_BODY', result.status);
+  }
+
+  let json: unknown;
+  try {
+    json = JSON.parse(result.body);
+  } catch {
+    // Non-JSON with any status — typically a proxy's HTML page.
+    throw new ApiError('Malformed JSON in response body', 'INVALID_JSON', result.status);
+  }
+
   if (result.status < 200 || result.status >= 300) {
-    throw config.transformError
-      ? config.transformError(json)
-      : new ApiError('Upload failed', 'UPLOAD_FAILED', result.status);
+    if (!config.transformError) {
+      throw new ApiError('Upload failed', 'UPLOAD_FAILED', result.status);
+    }
+    const apiError = config.transformError(json);
+    // transformError reads the status off the body and may not find it; the transport knows it.
+    apiError.statusCode ??= result.status;
+    throw apiError;
   }
   return (
     config.transformResponse

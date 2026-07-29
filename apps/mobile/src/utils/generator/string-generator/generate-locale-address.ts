@@ -7,7 +7,7 @@ export interface GenerateLocaleAddressOptions {
   orderedPartList?: AddressPart[];
 }
 
-const DEFAULT_PART_LIST: AddressPart[] = ['street', 'district', 'subregion', 'city'];
+const DEFAULT_PART_LIST: AddressPart[] = ['name', 'street', 'district', 'subregion', 'city'];
 
 const SEPARATOR = ', ';
 

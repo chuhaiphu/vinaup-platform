@@ -23,6 +23,11 @@ export type FlatTextInputProps = {
   placeholder?: string;
   maxLength?: number;
   editable?: boolean;
+  /**
+   * Wraps a value too wide for the field onto further lines instead of scrolling it sideways,
+   * letting the row grow downwards. The field has no line cap — it grows with the value.
+   */
+  multiline?: boolean;
   labelLeftSection?: React.ReactNode;
   labelRightSection?: React.ReactNode;
   valueLeftSection?: React.ReactNode;
@@ -49,6 +54,7 @@ export function FlatTextInput({
   placeholder,
   maxLength,
   editable,
+  multiline = false,
   labelLeftSection,
   labelRightSection,
   valueLeftSection,
@@ -83,6 +89,7 @@ export function FlatTextInput({
         style={[
           styles.inputContainer,
           styles.row,
+          multiline && styles.inputContainerMultiline,
           style?.inputContainer,
           !!error && styles.inputContainerError,
         ]}
@@ -98,6 +105,7 @@ export function FlatTextInput({
           placeholderTextColor={COLORS.gray400}
           maxLength={maxLength}
           editable={editable}
+          multiline={multiline}
         />
         {valueRightSection}
       </View>
@@ -127,6 +135,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     borderBottomWidth: 0.5,
     borderBottomColor: COLORS.gray400,
+  },
+  // Overrides the `alignItems: 'center'` of `row`, which only reads right on a one-line field.
+  inputContainerMultiline: {
+    alignItems: 'flex-start',
   },
   inputContainerError: {
     borderBottomColor: COLORS.red600,

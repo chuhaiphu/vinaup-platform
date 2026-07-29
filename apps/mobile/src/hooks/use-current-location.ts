@@ -1,8 +1,7 @@
 import * as Location from 'expo-location';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { useAppPermissionFromOsContext } from '@/providers/commons/app-permission-from-os-provider';
-import { generateLocaleAddress } from '@/utils/generator/string-generator/generate-locale-address';
 
 export interface UseCurrentLocationOptions {
   /**
@@ -20,26 +19,26 @@ export function useCurrentLocation({ enabled = true }: UseCurrentLocationOptions
     useAppPermissionFromOsContext();
 
   const [currentLocation, setCurrentLocation] = useState<Location.LocationObject | null>(null);
-  const [locationAddress, setLocationAddress] = useState<string | null>(null);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [isResolvingGeocodedAddress, setIsResolvingGeocodedAddress] = useState(false);
 
   // Effect 1 — raise the system dialog the first time a coordinate is needed.
   useEffect(() => {
     if (!enabled) return;
     if (!locationPermission?.canAskAgain) return;
 
-    let isEffectActive = true;
+    let ignore = false;
 
     async function requestForegroundPermission() {
       await Location.requestForegroundPermissionsAsync();
-      if (!isEffectActive) return;
+      if (ignore) return;
       await syncPermissions();
     }
 
     requestForegroundPermission();
 
     return () => {
-      isEffectActive = false;
+      ignore = true;
     };
   }, [enabled, locationPermission?.canAskAgain, syncPermissions]);
 
@@ -47,7 +46,7 @@ export function useCurrentLocation({ enabled = true }: UseCurrentLocationOptions
   useEffect(() => {
     if (!enabled || !isPreciseLocationGranted) return;
 
-    let isEffectActive = true;
+    let ignore = false;
 
     async function loadCurrentLocation() {
       try {
@@ -55,39 +54,57 @@ export function useCurrentLocation({ enabled = true }: UseCurrentLocationOptions
         const location = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.High,
         });
-        if (!isEffectActive) return;
+        if (ignore) return;
         setCurrentLocation(location);
-
-        // The platform geocoders answer with a list, so `reverseGeocodeAsync` forwards their shape.
-        // Android is already narrowed with maxResults 1, so one entry arrives.
-        // iOS can send several, but Apple documents not mention what the extra entries mean,
-        // so the first is taken.
-        const [geocodedAddress] = await Location.reverseGeocodeAsync(location.coords);
-        if (!isEffectActive) return;
-        if (geocodedAddress) setLocationAddress(generateLocaleAddress(geocodedAddress));
       } catch {
-        // Swallowed for now: the coordinate is supplementary, so a failed fix — the device
-        // location switch being off, or no signal indoors — must not block the punch.
+        // Swallowed for now: the coordinate is supplementary, so a failed fix
       } finally {
         // `return` inside the try still runs this block, so it needs the same gate.
-        if (isEffectActive) setIsFetchingLocation(false);
+        if (!ignore) setIsFetchingLocation(false);
       }
     }
 
     loadCurrentLocation();
 
     return () => {
-      isEffectActive = false;
+      ignore = true;
     };
   }, [enabled, isPreciseLocationGranted]);
+
+  /**
+   * Turns the fix already in state into a postal address
+   *
+   * @returns The address, or null when there is no fix yet or the geocoder answered with nothing.
+   */
+  const resolveGeocodedAddress =
+    useCallback(async (): Promise<Location.LocationGeocodedAddress | null> => {
+      if (!currentLocation) return null;
+
+      try {
+        setIsResolvingGeocodedAddress(true);
+        // The platform geocoders answer with a list, so `reverseGeocodeAsync` forwards their shape.
+        // Android is already narrowed with maxResults 1, so one entry arrives.
+        // iOS can send several, but Apple documents not mention what the extra entries mean,
+        // so the first is taken.
+        const [geocodedAddress] = await Location.reverseGeocodeAsync(currentLocation.coords);
+        return geocodedAddress ?? null;
+      } catch {
+        // Swallowed like the fix itself: an address is a convenience on top of the coordinate,
+        // so a failed lookup must leave the caller's own value untouched instead of erroring.
+        return null;
+      } finally {
+        setIsResolvingGeocodedAddress(false);
+      }
+    }, [currentLocation]);
 
   // Two ways: The provider is still reading, or the dialog of effect 1 is on screen waiting to be answered.
   const isResolvingPermission = enabled && isSyncingPermission;
 
   return {
     currentLocation,
-    locationAddress,
     isPreciseLocationGranted,
     isLoading: isResolvingPermission || isFetchingLocation,
+    isResolvingGeocodedAddress,
+    resolveGeocodedAddress,
   };
 }

@@ -1,8 +1,12 @@
-// Unknown codes fall back to `_FALLBACK_`. `NETWORK_ERROR` is synthesized by fetchwire when the
-// request never reaches the server.
+// Unknown codes fall back to `_FALLBACK_`. The first block is synthesized by fetchwire itself,
+// never by our backend — see the errorCode table in the fetchwire README.
 export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   _FALLBACK_: 'Đã xảy ra lỗi, vui lòng thử lại sau.',
+  // No HTTP exchange happened at all: DNS, TLS, refused, timeout, abort.
   NETWORK_ERROR: 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối mạng.',
+  // The exchange completed but the payload is unusable — same user-facing advice: retry.
+  EMPTY_BODY: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
+  INVALID_JSON: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
   EMPTY_RESPONSE: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
   EMPTY_DATA: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
 
