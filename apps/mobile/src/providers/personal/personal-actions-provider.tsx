@@ -59,8 +59,8 @@ export function PersonalActionsProvider({ children }: { children: React.ReactNod
   return (
     <PersonalActionsContext
       value={{
-        createProject: (cb) => execCreateProject(cb),
-        createWage: (cb) => execCreateWage(cb),
+        createProject: (cb) => execCreateProject(undefined, cb),
+        createWage: (cb) => execCreateWage(undefined, cb),
         isCreatingProject,
         isCreatingWage,
       }}

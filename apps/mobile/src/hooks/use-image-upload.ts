@@ -1,5 +1,5 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
-import { useMutationFn, type ApiError, type HttpResponse } from 'fetchwire';
+import { useMutationFn, type ApiError } from 'fetchwire';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
@@ -8,9 +8,9 @@ import { generateErrorMessage } from '@/utils/generator/string-generator/generat
 
 interface UseImageUploadParams {
   /** Upload request, injected by the caller so the hook stays decoupled from any endpoint. */
-  uploadFn: (asset: ImagePickerAsset) => Promise<HttpResponse<UploadImageResponse>>;
+  uploadFn: (asset: ImagePickerAsset) => Promise<UploadImageResponse>;
   /** Storage-delete request keyed by URL. Optional: only callers that own persisted images need it. */
-  deleteFn?: (url: string) => Promise<HttpResponse<void>>;
+  deleteFn?: (url: string) => Promise<void>;
 }
 
 /**
@@ -46,8 +46,8 @@ export function useImageUpload({ uploadFn, deleteFn }: UseImageUploadParams) {
   ): Promise<string | null> => {
     setIsUploading(true);
     try {
-      const response = await performUpload(asset);
-      const url = response?.data?.url ?? null;
+      const uploadedImage = await performUpload(asset);
+      const url = uploadedImage?.url ?? null;
       if (url) await onUploaded?.(url);
       return url;
     } finally {

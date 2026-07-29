@@ -74,7 +74,7 @@ export function TripAssignmentListProvider({
 
   const handleCreateTripAssignment = useCallback(
     (onSuccessCallback?: () => void) => {
-      createTripAssignment({
+      createTripAssignment(undefined, {
         onSuccess: () => onSuccessCallback?.(),
         onError: (error: ApiError) =>
           Alert.alert('Lỗi', generateErrorMessage(error, 'Có lỗi xảy ra khi tạo phân công.')),

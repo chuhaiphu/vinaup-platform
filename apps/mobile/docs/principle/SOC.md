@@ -31,7 +31,7 @@ The codebase is organised into four layers. Dependencies only point **inward** �
 
 #### UI layer — render only
 
-`src/components/` and `src/app/` render. They consume state through context hooks and Zustand selectors. They do not call `wireApi` directly. They do not define business logic.
+`src/components/` and `src/app/` render. They consume state through context hooks and Zustand selectors. They do not call `wireData` directly. They do not define business logic.
 
 ```ts
 // screen consumes context — never imports API functions directly
@@ -118,7 +118,7 @@ Layers enforce a dependency direction that keeps each part of the system indepen
 
 ### Layer import rules
 
-Dependencies point **inward** only (UI → State → API → Core) — a component importing `wireApi`, or an api
+Dependencies point **inward** only (UI → State → API → Core) — a component importing `wireData`, or an api
 importing a provider, is a layering violation. → [Coding Convention §3.3](../CODING-CONVENTION.md)
 
 ---

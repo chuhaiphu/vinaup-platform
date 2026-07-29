@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import { ProjectFilterParam } from '@/interfaces/_query-param-interfaces';
 import { BusyDateRange, BusyDaysByMonth, YearFilterParam } from '@/interfaces/calendar-interfaces';
@@ -11,7 +11,7 @@ import { calculateBusyDaysByMonthInYear } from '@/utils/calculator/calculate-bus
 import { generateFilterQueryString } from '@/utils/generator/string-generator/generate-filter-query-string';
 
 export async function createProject(data: CreateProjectRequest) {
-  return wireApi<ProjectResponse>('/project', {
+  return wireData<ProjectResponse>('/project', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -23,7 +23,7 @@ export async function getProjectsOfCurrentUser(filter?: ProjectFilterParam) {
     status: filter?.status,
     categoryId: filter?.categoryId,
   });
-  return wireApi<ProjectResponse[]>(`/project${filterQueryString}`, {
+  return wireData<ProjectResponse[]>(`/project${filterQueryString}`, {
     method: 'GET',
   });
 }
@@ -37,33 +37,36 @@ export async function getProjectsOfByOrganizationId(
     status: filter?.status,
     categoryId: filter?.categoryId,
   });
-  return wireApi<ProjectResponse[]>(`/project/organization/${organizationId}${filterQueryString}`, {
-    method: 'GET',
-  });
+  return wireData<ProjectResponse[]>(
+    `/project/organization/${organizationId}${filterQueryString}`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function updateProject(id: string, data: UpdateProjectRequest) {
-  return wireApi<ProjectResponse>(`/project/${id}`, {
+  return wireData<ProjectResponse>(`/project/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteProject(id: string) {
-  return wireApi<void>(`/project/${id}`, {
+  return wireData<void>(`/project/${id}`, {
     method: 'DELETE',
   });
 }
 
 export async function getProjectBusyDays(filter: YearFilterParam): Promise<BusyDaysByMonth> {
-  const response = await wireApi<BusyDateRange[]>(`/project/busy-days`, {
+  const busyDateRanges = await wireData<BusyDateRange[]>(`/project/busy-days`, {
     method: 'GET',
   });
-  return calculateBusyDaysByMonthInYear(response.data ?? [], filter.year);
+  return calculateBusyDaysByMonthInYear(busyDateRanges, filter.year);
 }
 
 export async function getProjectById(id: string) {
-  return wireApi<ProjectResponse>(`/project/${id}`, {
+  return wireData<ProjectResponse>(`/project/${id}`, {
     method: 'GET',
   });
 }

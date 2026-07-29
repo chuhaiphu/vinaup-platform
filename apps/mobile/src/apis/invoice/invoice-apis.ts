@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import { InvoiceFilterParam } from '@/interfaces/_query-param-interfaces';
 import {
@@ -9,21 +9,21 @@ import {
 import { generateFilterQueryString } from '@/utils/generator/string-generator/generate-filter-query-string';
 
 export async function createInvoice(data: CreateInvoiceRequest) {
-  return wireApi<InvoiceResponse>(`/invoice`, {
+  return wireData<InvoiceResponse>(`/invoice`, {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function updateInvoice(id: string, data: UpdateInvoiceRequest) {
-  return wireApi<InvoiceResponse>(`/invoice/${id}`, {
+  return wireData<InvoiceResponse>(`/invoice/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function getInvoiceById(id: string) {
-  return wireApi<InvoiceResponse>(`/invoice/${id}`, {
+  return wireData<InvoiceResponse>(`/invoice/${id}`, {
     method: 'GET',
   });
 }
@@ -36,13 +36,16 @@ export async function getInvoicesByOrganizationId(
     type: filter?.type,
     status: filter?.status,
   });
-  return wireApi<InvoiceResponse[]>(`/invoice/organization/${organizationId}${filterQueryString}`, {
-    method: 'GET',
-  });
+  return wireData<InvoiceResponse[]>(
+    `/invoice/organization/${organizationId}${filterQueryString}`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function deleteInvoice(id: string) {
-  return wireApi<void>(`/invoice/${id}`, {
+  return wireData<void>(`/invoice/${id}`, {
     method: 'DELETE',
   });
 }

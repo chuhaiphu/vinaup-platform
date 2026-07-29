@@ -17,7 +17,7 @@ This document serves as the master index of references for the selected technolo
 *   **Expo Router**: [docs.expo.dev/router/introduction](https://docs.expo.dev/router/introduction/)
 *   **React Native StyleSheet**: [reactnative.dev/docs/stylesheet](https://reactnative.dev/docs/stylesheet)
 *   **Zustand**: [github.com/pmndrs/zustand](https://github.com/pmndrs/zustand)
-*   **fetchwire**: [npmjs.com/package/fetchwire](https://www.npmjs.com/package/fetchwire) — HTTP client for the repository layer (`wireApi`)
+*   **fetchwire**: [npmjs.com/package/fetchwire](https://www.npmjs.com/package/fetchwire) — HTTP client for the repository layer (`wireData`)
 
 ---
 

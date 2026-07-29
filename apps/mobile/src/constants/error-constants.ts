@@ -8,7 +8,6 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   EMPTY_BODY: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
   INVALID_JSON: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
   EMPTY_RESPONSE: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
-  EMPTY_DATA: 'Máy chủ phản hồi thiếu dữ liệu. Vui lòng kiểm tra kết nối và thử lại.',
 
   // ─── Auth ────────────────────────────────────────────────────────────────
   TOKEN_INVALID: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.',

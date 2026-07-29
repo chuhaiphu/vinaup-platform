@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import { BookingFilterParam } from '@/interfaces/_query-param-interfaces';
 import {
@@ -10,7 +10,7 @@ import {
 import { generateFilterQueryString } from '@/utils/generator/string-generator/generate-filter-query-string';
 
 export async function createBooking(data: CreateBookingRequest) {
-  return wireApi<BookingResponse>('/booking', {
+  return wireData<BookingResponse>('/booking', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -23,9 +23,12 @@ export async function getBookingsByOrganizationId(
   const filterQueryString = generateFilterQueryString(filter, {
     status: filter?.status,
   });
-  return wireApi<BookingWithMeta[]>(`/booking/organization/${organizationId}${filterQueryString}`, {
-    method: 'GET',
-  });
+  return wireData<BookingWithMeta[]>(
+    `/booking/organization/${organizationId}${filterQueryString}`,
+    {
+      method: 'GET',
+    },
+  );
 }
 
 export async function getBookingsByOrganizationCustomerOrganizationId(
@@ -35,27 +38,27 @@ export async function getBookingsByOrganizationCustomerOrganizationId(
   const filterQueryString = generateFilterQueryString(filter, {
     status: filter?.status,
   });
-  return wireApi<BookingWithMeta[]>(
+  return wireData<BookingWithMeta[]>(
     `/booking/by-organization-customer/organization/${organizationId}${filterQueryString}`,
     { method: 'GET' },
   );
 }
 
 export async function getBookingById(id: string) {
-  return wireApi<BookingWithMeta>(`/booking/${id}`, {
+  return wireData<BookingWithMeta>(`/booking/${id}`, {
     method: 'GET',
   });
 }
 
 export async function updateBooking(id: string, data: UpdateBookingRequest) {
-  return wireApi<BookingResponse>(`/booking/${id}`, {
+  return wireData<BookingResponse>(`/booking/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteBooking(id: string) {
-  return wireApi<void>(`/booking/${id}`, {
+  return wireData<void>(`/booking/${id}`, {
     method: 'DELETE',
   });
 }
@@ -67,7 +70,7 @@ export async function getBookingsByTourImplementationId(
   const filterQueryString = generateFilterQueryString(filter, {
     status: filter?.status,
   });
-  return wireApi<BookingResponse[]>(
+  return wireData<BookingResponse[]>(
     `/booking/tour-implementation/${tourImplementationId}${filterQueryString}`,
     { method: 'GET' },
   );

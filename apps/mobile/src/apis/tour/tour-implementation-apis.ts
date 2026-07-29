@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import {
   TourImplementationResponse,
@@ -15,7 +15,7 @@ import {
 } from '@/interfaces/tour-implementation-interfaces';
 
 export async function getTourImplementationByTourId(tourId: string) {
-  return wireApi<TourImplementationWithMeta>(`/tour-implementation/by-tour/${tourId}`, {
+  return wireData<TourImplementationWithMeta>(`/tour-implementation/by-tour/${tourId}`, {
     method: 'GET',
   });
 }
@@ -24,7 +24,7 @@ export async function updateTourImplementation(
   tourImplementationId: string,
   data: UpdateTourImplementationRequest,
 ) {
-  return wireApi<TourImplementationResponse>(`/tour-implementation/${tourImplementationId}`, {
+  return wireData<TourImplementationResponse>(`/tour-implementation/${tourImplementationId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
@@ -32,7 +32,7 @@ export async function updateTourImplementation(
 
 // Members Assigned APIs
 export async function getMembersAssignedByTourImplementationId(tourImplementationId: string) {
-  return wireApi<MemberAssignedTourImplementationWithMeta[]>(
+  return wireData<MemberAssignedTourImplementationWithMeta[]>(
     `/tour-implementation/${tourImplementationId}/members-assigned`,
     {
       method: 'GET',
@@ -44,7 +44,7 @@ export async function manageMembersAssigned(
   tourImplementationId: string,
   data: ManageMembersAssignedRequest,
 ) {
-  return wireApi<MemberAssignedTourImplementationResponse[]>(
+  return wireData<MemberAssignedTourImplementationResponse[]>(
     `/tour-implementation/${tourImplementationId}/members-assigned`,
     {
       method: 'POST',
@@ -55,7 +55,7 @@ export async function manageMembersAssigned(
 
 // User Assigned APIs
 export async function addUserAssigned(data: CreateUserAssignedRequest) {
-  return wireApi<UserAssignedTourImplementationResponse>(
+  return wireData<UserAssignedTourImplementationResponse>(
     `/tour-implementation-assignment/users-assigned`,
     {
       method: 'POST',
@@ -65,7 +65,7 @@ export async function addUserAssigned(data: CreateUserAssignedRequest) {
 }
 
 export async function updateUserAssigned(userAssignedId: string, data: UpdateUserAssignedRequest) {
-  return wireApi<UserAssignedTourImplementationResponse>(
+  return wireData<UserAssignedTourImplementationResponse>(
     `/tour-implementation-assignment/users-assigned/${userAssignedId}`,
     {
       method: 'PUT',
@@ -76,7 +76,7 @@ export async function updateUserAssigned(userAssignedId: string, data: UpdateUse
 
 // Assignment APIs
 export async function getAssignmentsByTourImplementationId(tourImplementationId: string) {
-  return wireApi<TourImplementationAssignmentWithMeta[]>(
+  return wireData<TourImplementationAssignmentWithMeta[]>(
     `/tour-implementation-assignment/tour-implementation/${tourImplementationId}`,
     {
       method: 'GET',
@@ -85,7 +85,7 @@ export async function getAssignmentsByTourImplementationId(tourImplementationId:
 }
 
 export async function createAssignment(tourImplementationId: string) {
-  return wireApi<TourImplementationAssignmentWithMeta>(
+  return wireData<TourImplementationAssignmentWithMeta>(
     `/tour-implementation-assignment/tour-implementation/${tourImplementationId}`,
     { method: 'POST' },
   );
@@ -95,7 +95,7 @@ export async function updateAssignment(
   assignmentId: string,
   data: UpdateTourImplementationAssignmentRequest,
 ) {
-  return wireApi<TourImplementationAssignmentWithMeta>(
+  return wireData<TourImplementationAssignmentWithMeta>(
     `/tour-implementation-assignment/${assignmentId}`,
     {
       method: 'PUT',
@@ -105,13 +105,13 @@ export async function updateAssignment(
 }
 
 export async function deleteAssignment(assignmentId: string) {
-  return wireApi<void>(`/tour-implementation-assignment/${assignmentId}`, {
+  return wireData<void>(`/tour-implementation-assignment/${assignmentId}`, {
     method: 'DELETE',
   });
 }
 
 export async function removeUserAssigned(userAssignedId: string) {
-  return wireApi<void>(`/tour-implementation-assignment/users-assigned/${userAssignedId}`, {
+  return wireData<void>(`/tour-implementation-assignment/users-assigned/${userAssignedId}`, {
     method: 'DELETE',
   });
 }

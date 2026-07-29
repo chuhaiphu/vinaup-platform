@@ -56,17 +56,16 @@ export function OrganizationProjectListProvider({
   const fetchKey = `organization-project-list-${organizationId}-${filterMode}-${selectedDate.format(dateFormat)}-${statusFilter}`;
 
   const fetchFn = async () => {
-    const projectsRes = await getProjectsOfByOrganizationId(organizationId, {
+    const projects: ProjectResponse[] = await getProjectsOfByOrganizationId(organizationId, {
       status: statusFilter || undefined,
       startDate,
       endDate,
     });
 
-    const projects: ProjectResponse[] = projectsRes.data ?? [];
     const projectIds = projects.map((p) => p.id);
 
     const allReceiptPayments: ReceiptPaymentResponse[] =
-      projectIds.length > 0 ? ((await getReceiptPaymentsByProjectIds(projectIds)).data ?? []) : [];
+      projectIds.length > 0 ? await getReceiptPaymentsByProjectIds(projectIds) : [];
 
     return { projects, allReceiptPayments };
   };

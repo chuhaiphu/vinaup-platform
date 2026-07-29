@@ -46,7 +46,7 @@ export function FuelPriceProvider({ children }: { children: React.ReactNode }) {
 
   const handleSyncFuelPrice = useCallback(
     (onSuccessCallback?: () => void) => {
-      syncFuelPrice({
+      syncFuelPrice(undefined, {
         onSuccess: () => {
           onSuccessCallback?.();
         },

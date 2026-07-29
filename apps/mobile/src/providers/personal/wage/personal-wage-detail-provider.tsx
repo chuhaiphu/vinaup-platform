@@ -88,7 +88,7 @@ export function PersonalWageDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteWage({
+            deleteWage(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

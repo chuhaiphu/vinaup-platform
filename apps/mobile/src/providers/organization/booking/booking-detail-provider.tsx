@@ -149,7 +149,7 @@ export function BookingDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteBooking({
+            deleteBooking(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

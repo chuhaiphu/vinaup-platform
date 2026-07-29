@@ -177,7 +177,7 @@ export function TourImplementationProvider({
   const createAssignment = (callbacks?: {
     onSuccess?: (item: TourImplementationAssignmentWithMeta | null) => void;
     onError?: (e: ApiError) => void;
-  }) => execCreateAssignment(callbacks);
+  }) => execCreateAssignment(undefined, callbacks);
 
   const updateAssignment = (
     params: { id: string; data: UpdateTourImplementationAssignmentRequest },

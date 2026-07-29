@@ -74,8 +74,8 @@ class TokenManager {
       await this.clearAuthTokens();
       return null;
     }
-    const response = await refreshAccessToken(refreshToken);
-    const nextAccessToken = response.data?.accessToken;
+    const refreshResult = await refreshAccessToken(refreshToken);
+    const nextAccessToken = refreshResult.accessToken;
     if (!nextAccessToken) {
       await this.clearAuthTokens();
       return null;

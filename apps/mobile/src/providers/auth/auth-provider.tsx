@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const response = await signIn(
+      const authResult = await signIn(
         { email, password },
         {
           onError: (error) => {
@@ -57,8 +57,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       );
 
-      if (response && response.status === 200 && response.data?.user) {
-        const { user, accessToken, refreshToken } = response.data;
+      if (authResult?.user) {
+        const { user, accessToken, refreshToken } = authResult;
         await AsyncStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
         await tokenManager.storeAuthTokens({ accessToken, refreshToken });
         // wait for storage to complete before updating state to avoid race conditions

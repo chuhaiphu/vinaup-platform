@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useFetch, useFetchFn, useMutationFn, type ApiError, type HttpResponse } from 'fetchwire';
+import { useFetch, useFetchFn, useMutationFn, type ApiError } from 'fetchwire';
 import { createContext, useContext } from 'react';
 import { Alert } from 'react-native';
 
@@ -28,7 +28,7 @@ interface CarDetailContextType {
   handleUpdateCar: (
     fields: UpdateCarRequest,
     onSuccess?: () => void,
-  ) => Promise<HttpResponse<CarResponse> | null>;
+  ) => Promise<CarResponse | null>;
   handleDelete: (onStart?: () => void, onFinish?: () => void) => void;
   isAssigningMembers: boolean;
   handleAssignMembers: (organizationMemberIds: string[], onSuccess?: () => void) => void;
@@ -131,7 +131,7 @@ export function CarDetailProvider({
         style: 'destructive',
         onPress: () => {
           onStart?.();
-          deleteCar({
+          deleteCar(undefined, {
             onSuccess: () => {
               onFinish?.();
               router.back();

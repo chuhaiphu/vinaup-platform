@@ -86,7 +86,7 @@ export function InvoiceDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteInvoice({
+            deleteInvoice(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

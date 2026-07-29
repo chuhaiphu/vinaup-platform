@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import { CarFilterParam } from '@/interfaces/_query-param-interfaces';
 import {
@@ -21,41 +21,41 @@ export async function getCarsByOrganizationId(organizationId: string, filter?: C
     category: filter?.category,
     fuelType: filter?.fuelType,
   });
-  return wireApi<CarResponse[]>(`/car/organization/${organizationId}${filterQueryString}`, {
+  return wireData<CarResponse[]>(`/car/organization/${organizationId}${filterQueryString}`, {
     method: 'GET',
   });
 }
 
 export async function getCarById(id: string) {
-  return wireApi<CarResponse>(`/car/${id}`, { method: 'GET' });
+  return wireData<CarResponse>(`/car/${id}`, { method: 'GET' });
 }
 
 export async function createCar(data: CreateCarRequest) {
-  return wireApi<CarResponse>('/car', {
+  return wireData<CarResponse>('/car', {
     method: 'POST',
     body: JSON.stringify(data),
   });
 }
 
 export async function updateCar(id: string, data: UpdateCarRequest) {
-  return wireApi<CarResponse>(`/car/${id}`, {
+  return wireData<CarResponse>(`/car/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteCarById(id: string) {
-  return wireApi<null>(`/car/${id}`, { method: 'DELETE' });
+  return wireData<null>(`/car/${id}`, { method: 'DELETE' });
 }
 
 // ─── Car Assignment (current state) ─────────────────────────────────────────────
 
 export async function getCarAssignmentsByCarId(carId: string) {
-  return wireApi<CarAssignmentResponse[]>(`/car-assignment/car/${carId}`, { method: 'GET' });
+  return wireData<CarAssignmentResponse[]>(`/car-assignment/car/${carId}`, { method: 'GET' });
 }
 
 export async function getCarAssignmentsByOrganizationMemberId(organizationMemberId: string) {
-  return wireApi<CarAssignmentResponse[]>(`/car-assignment/member/${organizationMemberId}`, {
+  return wireData<CarAssignmentResponse[]>(`/car-assignment/member/${organizationMemberId}`, {
     method: 'GET',
   });
 }
@@ -63,7 +63,7 @@ export async function getCarAssignmentsByOrganizationMemberId(organizationMember
 // Reconcile: send the FULL desired active member set; the API diffs it against the
 // current state and records the resulting assign/unassign events as history.
 export async function createCarAssignment(data: CreateCarAssignmentRequest) {
-  return wireApi<CarAssignmentResponse[]>('/car-assignment', {
+  return wireData<CarAssignmentResponse[]>('/car-assignment', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -72,7 +72,7 @@ export async function createCarAssignment(data: CreateCarAssignmentRequest) {
 // ─── Car Assignment History (append-only audit trail) ───────────────────────────
 
 export async function getCarAssignmentHistoryByCarId(carId: string) {
-  return wireApi<CarAssignmentEventResponse[]>(`/car-assignment/history/car/${carId}`, {
+  return wireData<CarAssignmentEventResponse[]>(`/car-assignment/history/car/${carId}`, {
     method: 'GET',
   });
 }
@@ -80,13 +80,13 @@ export async function getCarAssignmentHistoryByCarId(carId: string) {
 // ─── Car Maintenance Log ──────────────────────────────────────────────────────
 
 export async function getCarMaintenanceLogById(id: string) {
-  return wireApi<CarMaintenanceLogResponse>(`/car-maintenance-log/${id}`, {
+  return wireData<CarMaintenanceLogResponse>(`/car-maintenance-log/${id}`, {
     method: 'GET',
   });
 }
 
 export async function getCarMaintenanceLogByCarId(carId: string) {
-  return wireApi<CarMaintenanceLogResponse>(`/car-maintenance-log/car/${carId}`, {
+  return wireData<CarMaintenanceLogResponse>(`/car-maintenance-log/car/${carId}`, {
     method: 'GET',
   });
 }
@@ -94,7 +94,7 @@ export async function getCarMaintenanceLogByCarId(carId: string) {
 // ─── Car Expiry check ──────────────────────────────────────────────────────────
 
 export async function getExpiringCars(organizationId: string) {
-  return wireApi<CarResponse[]>(`/car/organization/${organizationId}/expiring`, {
+  return wireData<CarResponse[]>(`/car/organization/${organizationId}/expiring`, {
     method: 'GET',
   });
 }

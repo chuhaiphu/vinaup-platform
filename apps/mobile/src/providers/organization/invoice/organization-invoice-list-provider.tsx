@@ -59,18 +59,17 @@ export function OrganizationInvoiceListProvider({
   const fetchKey = `organization-invoice-list-${organizationId}-${invoiceType}-${filterMode}-${selectedDate.format(dateFormat)}-${statusFilter}`;
 
   const fetchFn = async () => {
-    const invoicesRes = await getInvoicesByOrganizationId(organizationId, {
+    const invoices: InvoiceResponse[] = await getInvoicesByOrganizationId(organizationId, {
       type: invoiceType,
       status: statusFilter || undefined,
       startDate,
       endDate,
     });
 
-    const invoices: InvoiceResponse[] = invoicesRes.data ?? [];
     const invoiceIds = invoices.map((inv) => inv.id);
 
     const allReceiptPayments: ReceiptPaymentResponse[] =
-      invoiceIds.length > 0 ? ((await getReceiptPaymentsByInvoiceIds(invoiceIds)).data ?? []) : [];
+      invoiceIds.length > 0 ? await getReceiptPaymentsByInvoiceIds(invoiceIds) : [];
 
     return { invoices, allReceiptPayments };
   };

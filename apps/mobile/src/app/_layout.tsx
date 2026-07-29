@@ -39,25 +39,12 @@ initWire({
     },
   },
   getToken: () => tokenManager.getValidAccessToken(),
-  transformResponse(res) {
-    const rawResponse = res as {
-      statusCode?: number;
-      data?: object;
-      message?: string;
+  transformResponse(json) {
+    const rawResponse = json as {
+      data?: unknown;
     };
 
-    // ─── Guard: reject an OK response that is not this API's envelope ────────
-    // Why we check `statusCode` (not `data`): a valid `void` endpoint (e.g. /auth/logout)
-    // legitimately returns `{ statusCode, message }` with no `data`
-    if (rawResponse.statusCode === undefined) {
-      throw new ApiError('Empty server response', 'EMPTY_RESPONSE', 520);
-    }
-
-    return {
-      status: rawResponse.statusCode,
-      data: rawResponse.data,
-      message: rawResponse.message || '',
-    };
+    return rawResponse.data;
   },
   transformError: (error) => {
     const raw = error as { statusCode?: number; message?: string | string[]; error?: string };

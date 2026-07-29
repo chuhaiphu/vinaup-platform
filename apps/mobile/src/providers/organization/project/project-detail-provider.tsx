@@ -86,7 +86,7 @@ export function ProjectDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteProject({
+            deleteProject(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

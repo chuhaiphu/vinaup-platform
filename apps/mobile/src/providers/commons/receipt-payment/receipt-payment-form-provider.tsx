@@ -87,7 +87,7 @@ export function ReceiptPaymentFormProvider({
   const deleteReceiptPayment = (callbacks?: {
     onSuccess?: () => void;
     onError?: (e: ApiError) => void;
-  }) => execDelete(callbacks);
+  }) => execDelete(undefined, callbacks);
 
   return (
     <ReceiptPaymentFormContext

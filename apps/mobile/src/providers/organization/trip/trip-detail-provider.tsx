@@ -87,7 +87,7 @@ export function TripDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteTrip({
+            deleteTrip(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

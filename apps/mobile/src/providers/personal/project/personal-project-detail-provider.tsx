@@ -92,7 +92,7 @@ export function PersonalProjectDetailProvider({
           style: 'destructive',
           onPress: () => {
             onStart?.();
-            deleteProject({
+            deleteProject(undefined, {
               onSuccess: () => {
                 onFinish?.();
                 router.back();

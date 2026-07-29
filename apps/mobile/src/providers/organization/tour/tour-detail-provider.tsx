@@ -79,7 +79,7 @@ export function TourDetailProvider({
         isUpdatingTour,
         handleUpdateTour,
         refreshTour,
-        deleteTour: (cb) => execDeleteTour(cb),
+        deleteTour: (cb) => execDeleteTour(undefined, cb),
         isDeleting,
       }}
     >

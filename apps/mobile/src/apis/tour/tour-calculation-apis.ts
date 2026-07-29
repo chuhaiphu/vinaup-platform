@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import {
   TourCalculationCancelLogResponse,
@@ -8,13 +8,13 @@ import {
 } from '@/interfaces/tour-calculation-interfaces';
 
 export async function getTourCalculationByTourId(tourId: string) {
-  return wireApi<TourCalculationWithMeta>(`/tour-calculation/by-tour/${tourId}`, {
+  return wireData<TourCalculationWithMeta>(`/tour-calculation/by-tour/${tourId}`, {
     method: 'GET',
   });
 }
 
 export async function getTourCalculationLogsByTourCalculationId(tourCalculationId: string) {
-  return wireApi<TourCalculationCancelLogResponse[]>(
+  return wireData<TourCalculationCancelLogResponse[]>(
     `/tour-calculation/${tourCalculationId}/cancel-logs`,
     {
       method: 'GET',
@@ -23,7 +23,7 @@ export async function getTourCalculationLogsByTourCalculationId(tourCalculationI
 }
 
 export async function getTourCalculationCancelLogById(id: string) {
-  return wireApi<TourCalculationCancelLogResponse>(`/tour-calculation/cancel-logs/${id}`, {
+  return wireData<TourCalculationCancelLogResponse>(`/tour-calculation/cancel-logs/${id}`, {
     method: 'GET',
   });
 }
@@ -32,7 +32,7 @@ export async function updateTourCalculation(
   tourCalculationId: string,
   data: UpdateTourCalculationRequest,
 ) {
-  return wireApi<TourCalculationResponse>(`/tour-calculation/${tourCalculationId}`, {
+  return wireData<TourCalculationResponse>(`/tour-calculation/${tourCalculationId}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });

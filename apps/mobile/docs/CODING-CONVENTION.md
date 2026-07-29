@@ -154,7 +154,7 @@ Dependencies point **inward** only (UI → State → API → Core). → [SoC](pr
 | `components` | interfaces, constants, utils, providers, hooks, components      |
 | `app`        | interfaces, constants, utils, providers, hooks, components, app |
 
-A component importing `wireApi` directly, or an api importing a provider, is a layering violation.
+A component importing `wireData` directly, or an api importing a provider, is a layering violation.
 
 ---
 
@@ -176,7 +176,7 @@ Owned entirely by Prettier (`.prettierrc`). Current settings:
 
 → [Repository Pattern](pattern/REPOSITORY-PATTERN.md)
 
-- **Never call `wireApi` outside `src/apis/`.** Providers/hooks/screens import named functions only.
+- **Never call `wireData` outside `src/apis/`.** Providers/hooks/screens import named functions only.
 - **Verb table** — name a function by the action:
 
   | Verb        | HTTP      | Use                      |
@@ -189,8 +189,8 @@ Owned entirely by Prettier (`.prettierrc`). Current settings:
   | domain verb | POST      | non-CRUD business action |
 
 - **Filtered list endpoints always use `generateFilterQueryString`** — never hand-roll `URLSearchParams`.
-- **Empty responses** → `wireApi<void>` (prefer for new code) or `<null>` (legacy).
-- **Metadata responses** → `wireApi<ResponseWithMeta<Data, Meta>>`.
+- **Empty responses** → `wireData<void>` (prefer for new code) or `<null>` (legacy).
+- **Metadata responses** → `wireData<XxxWithMeta>`, with `XxxWithMeta` declared in `src/interfaces/`.
 
 ---
 

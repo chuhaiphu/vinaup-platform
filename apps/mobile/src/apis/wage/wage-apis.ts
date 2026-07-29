@@ -1,4 +1,4 @@
-import { wireApi } from 'fetchwire';
+import { wireData } from 'fetchwire';
 
 import { WageFilterParam } from '@/interfaces/_query-param-interfaces';
 import { BusyDateRange, BusyDaysByMonth, YearFilterParam } from '@/interfaces/calendar-interfaces';
@@ -7,7 +7,7 @@ import { calculateBusyDaysByMonthInYear } from '@/utils/calculator/calculate-bus
 import { generateFilterQueryString } from '@/utils/generator/string-generator/generate-filter-query-string';
 
 export async function createWage(data: CreateWageRequest) {
-  return wireApi<WageResponse>('/wage', {
+  return wireData<WageResponse>('/wage', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -17,33 +17,33 @@ export async function getWagesOfCurrentUser(filter?: WageFilterParam) {
   const filterQueryString = generateFilterQueryString(filter, {
     status: filter?.status,
   });
-  return wireApi<WageResponse[]>(`/wage${filterQueryString}`, {
+  return wireData<WageResponse[]>(`/wage${filterQueryString}`, {
     method: 'GET',
   });
 }
 
 export async function getWageBusyDays(filter: YearFilterParam): Promise<BusyDaysByMonth> {
-  const response = await wireApi<BusyDateRange[]>(`/wage/busy-days`, {
+  const busyDateRanges = await wireData<BusyDateRange[]>(`/wage/busy-days`, {
     method: 'GET',
   });
-  return calculateBusyDaysByMonthInYear(response.data ?? [], filter.year);
+  return calculateBusyDaysByMonthInYear(busyDateRanges, filter.year);
 }
 
 export async function getWageById(id: string) {
-  return wireApi<WageResponse>(`/wage/${id}`, {
+  return wireData<WageResponse>(`/wage/${id}`, {
     method: 'GET',
   });
 }
 
 export async function updateWage(id: string, data: UpdateWageRequest) {
-  return wireApi<WageResponse>(`/wage/${id}`, {
+  return wireData<WageResponse>(`/wage/${id}`, {
     method: 'PUT',
     body: JSON.stringify(data),
   });
 }
 
 export async function deleteWage(id: string) {
-  return wireApi<void>(`/wage/${id}`, {
+  return wireData<void>(`/wage/${id}`, {
     method: 'DELETE',
   });
 }
