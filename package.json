@@ -6,10 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:api": "npm run start:dev --workspace=apps/api",
-    "dev:mobile": "npm run android --workspace=apps/mobile",
+    "build:packages": "npm run build --workspace=packages/validation --workspace=packages/permission",
+    "dev:api": "npm run build:packages && npm run start:dev --workspace=apps/api",
+    "dev:mobile": "npm run build:packages && npm run android --workspace=apps/mobile",
     "build": "npm run build --workspaces --if-present",
-    "postinstall": "npm run build --workspace=packages/permission --workspace=packages/validation",
     "lint": "npm run lint --workspaces --if-present"
   },
   "version": "1.0.0",

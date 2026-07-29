@@ -44,6 +44,13 @@ This document serves as the master index of references for the selected technolo
 ## 6. Deployment & CI/CD Lifecycle
 
 *   **Self-hosted Docker**: API + PostgreSQL run as a Docker Compose stack co-located with `apps/api`, behind an external reverse-proxy network.
+*   **Shared packages are compiled.** `packages/*` publish `dist/` 
+
+    | Consumer | Where the build is declared |
+    | --- | --- |
+    | API image | `RUN npm run build --workspace=...` in `apps/api/Dockerfile`, after `COPY packages` |
+    | Mobile (EAS Build, cloud or `--local`) | `eas-build-post-install` in `apps/mobile/package.json` — an EAS-only hook npm never invokes on its own |
+    | Local dev | `npm run build:packages`, chained into root `dev:api` / `dev:mobile` |
 
 ---
 
