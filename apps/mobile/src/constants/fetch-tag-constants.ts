@@ -16,6 +16,7 @@ export const FETCH_TAG = {
   customerList: 'organization-customer-list',
   memberList: 'organization-member-list',
   attendanceRecordList: 'organization-attendance-record-list',
+  attendanceConclusionList: 'organization-attendance-conclusion-list',
   tripAssignmentList: 'organization-trip-assignment-list',
   tourImplementationAssignmentList: 'tour-implementation-assignment-list',
 
@@ -144,6 +145,11 @@ export const getBookingRippleTags = (tourImplementationId?: string | null): stri
   ...(tourImplementationId
     ? [FETCH_TAG.bookingListInTourImplementationByTourImplementationId(tourImplementationId)]
     : []),
+];
+
+export const getAttendanceConclusionRippleTags = (): string[] => [
+  FETCH_TAG.attendanceConclusionList,
+  FETCH_TAG.attendanceRecordList,
 ];
 
 export const getPersonalProjectRippleTags = (): string[] => [

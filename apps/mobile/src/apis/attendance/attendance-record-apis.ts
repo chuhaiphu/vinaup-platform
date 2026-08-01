@@ -37,6 +37,21 @@ export async function getMyAttendanceRecords(filter?: AttendanceRecordFilterPara
   });
 }
 
+export async function getAttendanceRecordsByOrganizationId(
+  organizationId: string,
+  filter?: AttendanceRecordFilterParam,
+) {
+  const filterQueryString = generateFilterQueryString(undefined, {
+    status: filter?.status,
+    workDateFrom: filter?.workDateFrom,
+    workDateTo: filter?.workDateTo,
+  });
+  return wireData<AttendanceRecordResponse[]>(
+    `/attendance-record/organization/${organizationId}${filterQueryString}`,
+    { method: 'GET' },
+  );
+}
+
 export async function updateAttendanceRecord(id: string, data: UpdateAttendanceRecordRequest) {
   return wireData<AttendanceRecordResponse>(`/attendance-record/${id}`, {
     method: 'PUT',

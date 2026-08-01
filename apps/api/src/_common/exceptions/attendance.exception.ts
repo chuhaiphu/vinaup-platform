@@ -49,6 +49,6 @@ export class AttendanceConclusionAlreadyExistsException extends ConflictExceptio
 
 export class AttendanceConclusionLockedException extends ConflictException {
   constructor() {
-    super({ error: 'ATTENDANCE_CONCLUSION_LOCKED', message: 'A completed conclusion must be reopened before it can be changed', statusCode: HttpStatus.CONFLICT });
+    super({ error: 'ATTENDANCE_CONCLUSION_LOCKED', message: 'A completed conclusion must be reopened before it can be deleted', statusCode: HttpStatus.CONFLICT });
   }
 }

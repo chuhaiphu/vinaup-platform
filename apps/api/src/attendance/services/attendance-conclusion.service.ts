@@ -80,17 +80,11 @@ export class AttendanceConclusionService {
   ): Promise<AttendanceConclusionResponse> {
     const existing = await this.prismaService.attendanceConclusion.findUnique({
       where: { id: attendanceConclusionId },
-      select: { status: true, organizationMemberId: true, workDate: true },
+      select: { organizationMemberId: true, workDate: true },
     });
     if (!existing) {
       throw new AttendanceConclusionNotFoundException();
     }
-    const isReopening = input.status === ATTENDANCE_CONCLUSION_STATUS.DRAFT;
-    if (existing.status === ATTENDANCE_CONCLUSION_STATUS.COMPLETED && !isReopening) {
-      throw new AttendanceConclusionLockedException();
-    }
-
-    const isCompleting = input.status === ATTENDANCE_CONCLUSION_STATUS.COMPLETED;
 
     return this.prismaService.$transaction(async (tx) => {
       const attendanceConclusion = await tx.attendanceConclusion.update({
@@ -100,7 +94,8 @@ export class AttendanceConclusionService {
         ...attendanceConclusionQueryArgs,
       });
 
-      if (isCompleting) {
+      // A no-op when the day was already completed: it has no open record left to close.
+      if (input.status === ATTENDANCE_CONCLUSION_STATUS.COMPLETED) {
         await this.closeOpenAttendanceRecords(tx, existing.organizationMemberId, existing.workDate);
       }
 

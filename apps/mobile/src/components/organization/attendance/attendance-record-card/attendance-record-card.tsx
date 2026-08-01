@@ -9,7 +9,8 @@ import {
 } from '@/constants/attendance-constants';
 import { COLORS, ICON_SIZES } from '@/constants/style-constants';
 import { AttendanceRecordResponse } from '@/interfaces/attendance-interfaces';
-import { calculateAttendanceDuration } from '@/utils/calculator/calculate-attendance-duration';
+import { calculateDurationInMinutes } from '@/utils/calculator/calculate-duration-in-minutes';
+import { generateDurationText } from '@/utils/generator/string-generator/generate-duration-text';
 import { generateZonedTime } from '@/utils/generator/string-generator/generate-zoned-time';
 
 import { styles } from './attendance-record-card.styles';
@@ -44,7 +45,7 @@ export function AttendanceRecordCard({
 
   const durationEndInstant = isOpen ? now : checkOutInstant;
   const duration = durationEndInstant
-    ? calculateAttendanceDuration(checkInAt, durationEndInstant)
+    ? generateDurationText(calculateDurationInMinutes(new Date(checkInAt), durationEndInstant))
     : EMPTY_TIME_PLACEHOLDER;
 
   const showDetail = Boolean(location) || Boolean(note);

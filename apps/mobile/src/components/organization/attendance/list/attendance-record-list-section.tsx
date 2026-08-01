@@ -3,18 +3,21 @@ import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { AttendanceRecordCard } from '@/components/organization/attendance/attendance-record-card';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
-import { useOrganizationAttendanceRecordListContext } from '@/providers/organization/attendance/organization-attendance-record-list-provider';
+import { AttendanceRecordResponse } from '@/interfaces/attendance-interfaces';
 
 interface AttendanceRecordListSectionProps {
+  attendanceRecords: AttendanceRecordResponse[];
   organizationTimezone: string;
+  isRefreshing: boolean;
+  onRefresh: () => void;
 }
 
 export function AttendanceRecordListSection({
+  attendanceRecords,
   organizationTimezone,
+  isRefreshing,
+  onRefresh,
 }: AttendanceRecordListSectionProps) {
-  const { attendanceRecords, isRefreshing, refreshFetch } =
-    useOrganizationAttendanceRecordListContext();
-
   // One timer here drives every open card's running total.
   const now = useCurrentMinute();
 
@@ -40,7 +43,7 @@ export function AttendanceRecordListSection({
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
-            onRefresh={refreshFetch}
+            onRefresh={onRefresh}
             colors={[COLORS.teal700]}
           />
         }

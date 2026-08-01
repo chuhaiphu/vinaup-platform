@@ -110,7 +110,7 @@ export const ERROR_MESSAGES_MAP_VN: Record<string, string> = {
   ATTENDANCE_DAY_LOCKED: 'Ngày công này đã được chốt nên không thể thay đổi.',
   ATTENDANCE_CONCLUSION_NOT_FOUND: 'Không tìm thấy bảng chốt công.',
   ATTENDANCE_CONCLUSION_ALREADY_EXISTS: 'Ngày công này đã có bảng chốt công.',
-  ATTENDANCE_CONCLUSION_LOCKED: 'Bảng chốt công đã hoàn tất, cần mở lại trước khi thay đổi.',
+  ATTENDANCE_CONCLUSION_LOCKED: 'Bảng chốt công đã hoàn tất, cần mở lại trước khi xoá.',
 
   // ─── Document (signing lock) ─────────────────────────────────────────────
   DOCUMENT_LOCKED_AFTER_SIGN: 'Tài liệu đã có chữ ký nên không thể chỉnh sửa hoặc xoá.',

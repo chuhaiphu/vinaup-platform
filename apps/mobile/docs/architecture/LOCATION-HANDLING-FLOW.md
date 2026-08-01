@@ -20,7 +20,7 @@ API.
 
 - [1 · Mental model](#1--mental-model)
   - [1.1 · How a coordinate is produced](#11--how-a-coordinate-is-produced)
-  - [1.2 · Accuracy — the uncertainty attached to every fix](#12--accuracy--the-uncertainty-attached-to-every-fix)
+  - [1.2 · Accuracy](#12--accuracy--the-uncertainty-attached-to-every-fix)
   - [1.3 · The location object](#13--the-location-object)
 - [2 · Expo Location](#2--expo-location)
   - [2.1 · What it is and how it works](#21--what-it-is-and-how-it-works)
@@ -30,7 +30,6 @@ API.
   - [3.1 · Authorization scope](#31--authorization-scope)
   - [3.2 · Accuracy authorization — how precise the location may be](#32--accuracy-authorization--how-precise-the-location-may-be)
   - [3.3 · Build-time declarations](#33--build-time-declarations)
-  - [3.4 · What this app does with all of it](#34--what-this-app-does-with-all-of-it)
 - [4 · References](#4--references)
 
 ---
@@ -120,7 +119,7 @@ jump from 10 m to 500 m and back.
 
 <br/>
 
-### 1.2 · Accuracy — attached to every fix
+### 1.2 · Accuracy
 
 A coordinate is an estimate, so the device **cannot** claim the **exact location** — it claims the
 user is **somewhere around** it. The word _accuracy_ appears in two places with two different meanings.
@@ -647,171 +646,9 @@ declarations through **two mechanisms**.
 // app.json → expo.plugins
 [
   "expo-location",
-  { "locationWhenInUsePermission": "Vinaup uses your location to verify attendance punches." },
+  { "locationWhenInUsePermission": "<one sentence stating why this app reads location>" },
 ]
 ```
-
----
-
-<br/>
-
-### 3.4 · What this app does with all of it
-
-Sections 1–3 describe what the platforms do. This section is the decision the app makes on top of
-them, for the one feature that reads a coordinate: the attendance punch.
-
-**Precise authorization is required.** Approximate authorization resolves without any error while
-degrading the fix to a kilometre scale ([§3.2](#32--accuracy-authorization--how-precise-the-location-may-be)),
-which cannot say where someone punched in. So the app treats _granted but approximate_ the same as
-_not granted_: it does not power the sensor up for it, and it shows the way out instead of a
-coordinate.
-
-**The three responsibilities live in three places.**
-
-| Responsibility                    | Where                                                                                                                                                                 | Why there                                                                                                                                                                                                                                                              |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Read** the stored authorization | [`AppPermissionFromOsProvider`](../../src/providers/commons/app-permission-from-os-provider.tsx)                                                                      | `get…` never prompts, so it is safe at app start; one `AppState` listener keeps it fresh for the whole app → [Provider Pattern — OS-state variant](../pattern/PROVIDER-PATTERN.md#the-os-state-variant)                                                                |
-| **Ask** for it                    | [`useCurrentLocation`](../../src/hooks/use-current-location.ts)                                                                                                       | The dialog must appear where the user can see why — the punch sheet they just opened, and only once that sheet has finished opening ([Keyboard & Modal Pattern — Rule 6](../pattern/KEYBOARD-MODAL-PATTERN.md#rule-6--raise-an-os-surface-only-after-onopencompleted)) |
-| **Escalate** to Settings          | [`AttendancePunchConfirmModalContent`](../../src/components/organization/attendance/modals/attendance-punch-confirm-modal/attendance-punch-confirm-modal-content.tsx) | It is a UI action on the row that states the problem                                                                                                                                                                                                                   |
-
-**The predicate reads both axes.** `granted` answers the scope axis only, so it stays `true` for an
-Approximate grant. iOS additionally reports `full` accuracy _before_ any answer exists, so its
-accuracy field is only meaningful once the scope axis is granted.
-
-```ts
-if (!permission?.granted) return false;
-if (Platform.OS === 'ios') return permission.ios?.accuracy === 'full';
-return permission.android?.accuracy === 'fine';
-```
-
-**Escalation is one-way: dialog first, then Settings.** The dialog can only appear while the status
-is `undetermined`, so it is raised once, automatically, when the sheet opens. After that the system
-gives the app nothing more:
-
-- **iOS** — the request methods are a no-op once the status is determined, and `expo-location`
-  short-circuits them before they reach CoreLocation
-  (`ios/Requesters/EXBaseLocationRequester.m` — _"since permissions are already determined, the iOS
-  request methods will be no-ops"_). CoreLocation's temporary-full-accuracy API is **not exposed**
-  by `expo-location`, so raising the Precise toggle from inside the app would require a custom
-  native module.
-- **Android** — re-requesting `ACCESS_FINE_LOCATION` _can_ still raise the "Change to precise
-  location" dialog, but nothing tells the app in advance whether it will:
-  `getForegroundPermissionsAsync()` returns the `ACCESS_COARSE_LOCATION` response
-  (`android/…/LocationModule.kt`), so `canAskAgain` describes the coarse permission and stays `true`
-  while fine is blocked.
-
-Because neither platform lets the app predict the outcome, the row escalates straight to
-`Linking.openSettings()` rather than guessing.
-
-**The device location switch is not handled here.** On Android `getCurrentPositionAsync()` already
-raises the system "turn on location" resolution dialog by itself — `mayShowUserSettingsDialog`
-defaults to `true` (`android/…/records/LocationArguments.kt`). On iOS it rejects with
-`ERR_LOCATION_SERVICES_DISABLED`, which is an error path, not an authorization path.
-
-#### Flow — one punch sheet
-
-```mermaid
-sequenceDiagram
-    autonumber
-    participant U as User
-    participant S as Punch sheet
-    participant H as useCurrentLocation
-    participant P as AppPermissionFromOsProvider
-    participant OS as L3 · OS authorization store
-
-    U->>S: open the punch sheet
-    Note over S: the row reads "đang lấy vị trí..." — nothing asked yet
-    S->>S: open animation finishes — onOpenCompleted
-    S->>H: enabled = true
-    H->>P: read isPreciseLocationGranted
-    alt status = undetermined
-        H->>OS: requestForegroundPermissionsAsync — the one dialog
-        OS-->>H: the user's answer
-        H->>P: syncPermissions
-    end
-    alt Precise
-        H->>OS: getCurrentPositionAsync
-        OS-->>S: coordinate code
-        opt user taps the import button on the "Địa điểm" label
-            S->>H: resolveGeocodedAddress
-            H->>OS: reverseGeocodeAsync on the fix already held
-            OS-->>S: LocationGeocodedAddress → generateLocaleAddress
-        end
-    else Not precise
-        S->>U: "Mã vị trí: bật vị trí chính xác"
-        U->>S: tap
-        S->>OS: Linking.openSettings
-        U->>OS: switch Precise on
-        U->>P: return to the app — AppState 'active'
-        P->>OS: getForegroundPermissionsAsync
-        OS-->>P: precise now granted
-        P-->>H: isPreciseLocationGranted flips
-        H->>OS: getCurrentPositionAsync — no reopen needed
-    end
-```
-
-**The three states of the row, in priority order.** Missing authorization is checked **before** the
-coordinate, because no coordinate is ever read without it — testing the coordinate first would
-swallow the case and hide the way out of it.
-
-| Order | Condition                                                                                 | Shown                                                                 |
-| ----- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| 1     | Sheet still opening, or permission not read yet, or `undetermined`, or a fix is in flight | `đang lấy vị trí...`                                                  |
-| 2     | Not precise                                                                               | `bật vị trí chính xác` — tappable, opens Settings                     |
-| 3     | Precise, fix obtained                                                                     | `21.028511,105.804817 (±8 m)`                                         |
-| 4     | Precise, no fix                                                                           | `không có` — indoors, no signal, or the device location switch is off |
-
-**State 1 also disables the confirm button.** A punch confirmed mid-read would store whatever the
-reading happened to settle on afterwards — or nothing — while the person was still being shown
-`đang lấy vị trí...`, so the sheet does not accept a confirmation until the row can answer. Only
-state 1 gates it: states 2 and 4 are settled answers of "no coordinate", and a bare punch is allowed.
-
-That is why the reading lives in the sheet shell (`attendance-punch-confirm-modal.tsx`) rather than
-in its content — the footer's confirm button and the content's row are two consumers of one
-`useCurrentLocation` call, and a second call would let them disagree about when the wait is over.
-Check-out passes `enabled: false` and is never gated, because it measures nothing.
-
-#### What the punch stores
-
-The row above only _displays_ the fix. Confirming the sheet is what writes it, and the payload
-separates the two kinds of location the record carries:
-
-| Wire field               | Source                                                                                   | Editable afterwards                                                                            |
-| ------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `location`               | The `Địa điểm` input, typed by hand or filled on demand by its import button — see below | Yes — it is the person's own label                                                             |
-| `latitude` · `longitude` | `LocationObject.coords`, raw degrees (never the rounded display code)                    | No — a rewritable coordinate would just be self-declared text, which `location` already covers |
-| `locationAccuracy`       | `LocationObject.coords.accuracy`, metres                                                 | No                                                                                             |
-
-Two rules the payload has to satisfy, both enforced by `createAttendanceRecordSchema` in
-`@vinaup-platform/validation`:
-
-- **Both coordinates or neither.** A lone latitude is not half a position, and since coordinates are
-  never editable afterwards it could never be repaired. The sheet builds all three device fields
-  from one `currentLocation` object and spreads them together, so half a position is unrepresentable
-  rather than merely rejected.
-- **No fix must never block a punch.** All three fields are nullish on the wire, so states 2 and 4 of
-  the row above submit with the keys simply absent — a bare punch.
-
-Check-out sends neither: `checkOutAttendanceRecordSchema` has no coordinate fields at all, because
-the position that matters is the one the session was opened at.
-
-#### Reading the stored fix back
-
-Everything above is the write path. Once written, `latitude` · `longitude` come back on every
-`AttendanceRecordResponse`, and two surfaces read them — neither of them measures anything:
-
-| Surface                              | Where the pair comes from                         | Shown                                                                                                                                               |
-| ------------------------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Check-out sheet, `Mã vị trí` row     | `openAttendanceRecord` — the session being closed | The stored code and its accuracy, so the person sees where the session was opened rather than where they are now                                    |
-| Attendance record card, location row | The listed record                                 | The map button in place of the former marker icon — the row already reads as a place, so the icon slot carries the action instead of repeating that |
-
-Both render [`GoogleMapsLinkButton`](../../src/components/commons/buttons/google-maps-link-button.tsx),
-which owns the whole coordinate → link step: it re-derives the display code through
-`generateCoordinateCode`, hands it to `generateGoogleMapsUrl`, and opens it with `Linking.openURL`.
-The button is **disabled, not hidden**, when either half of the pair is missing — a bare punch is a
-normal outcome (states 2 and 4 of the row above), so the row must keep its shape without it. The
-check-in sheet uses the same button against the live `currentLocation`, which is what keeps the
-displayed code and the link from drifting apart across the three call sites.
 
 ---
 

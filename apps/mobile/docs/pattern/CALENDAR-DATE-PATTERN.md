@@ -90,7 +90,9 @@ placeholder rather than a fabricated one:
 
 ```ts
 // AttendanceRecordCard — CLOSED stops at checkOutAt, OPEN keeps counting
-calculateAttendanceDuration(checkInAt, checkOutAt ? new Date(checkOutAt) : now); // → "3h21"
+generateDurationText(
+  calculateDurationInMinutes(new Date(checkInAt), checkOutAt ? new Date(checkOutAt) : now),
+); // → "3h21"
 ```
 
 `now` is passed **in** from the list (`useCurrentMinute()` called once in
@@ -145,6 +147,46 @@ getMyAttendanceRecords({ organizationId, status: ATTENDANCE_RECORD_STATUS.OPEN }
 ```
 
 Both carry `FETCH_TAG.attendanceRecordList`, so either punch refreshes both.
+
+### Rule 6 — A concluded day is frozen, and its total stops coming from the punches
+
+One `(member, workDate)` may carry an `AttendanceConclusion` — the manager's hand-entered verdict.
+Its `status` is not a label; `COMPLETED` changes what the day *is*:
+
+- Every still-`OPEN` record of that member and day is force-closed, and its **`checkOutAt` is set to
+  `null`** — the running session loses its end instant rather than gaining one.
+- The API then refuses every check-in, check-out, edit and delete on that `(member, workDate)` with
+  `ATTENDANCE_DAY_LOCKED`.
+- Deleting a `COMPLETED` conclusion is refused with `ATTENDANCE_CONCLUSION_LOCKED`, because deleting
+  it would silently unfreeze the day.
+
+**What `COMPLETED` freezes is the workday, not the verdict.** The conclusion itself stays editable:
+`assertDayNotLocked` reads `status` straight off the conclusion, so the freeze holds without the
+conclusion having to lock itself. Refusing the update as well would only force a correction to a
+single metric to travel as `status: DRAFT`, which unlocks the whole day as a side effect — the
+manager fixes a typo and the day silently becomes punchable again. So a metric may be corrected in
+place, and only an explicit move back to `DRAFT` reopens the day.
+
+Two consequences for the device:
+
+**A `CLOSED` record with no `checkOutAt` has no span.** It is either a lone `CHECK_IN` punch (an
+instant) or a force-closed session. Neither may be totalled up to `now` — that would invent an end
+the server deliberately erased. `calculateAttendanceTotalMinutes` counts only a real `checkOutAt`,
+plus `OPEN` records up to `now`.
+
+**Once concluded, the punches stop being the answer.** The card and the conclusion bar show the
+manager's figures instead of the punch total. Those figures stay in **their own units** — the
+conclusion has no total-hours column, and none can be derived, because `workdayUnit` is measured in
+days and nothing in the domain states how many hours a workday is:
+
+```ts
+attendanceConclusion
+  ? generateAttendanceConclusionSummary(attendanceConclusion)          // "1 công - 2h TC"
+  : generateDurationText(calculateAttendanceTotalMinutes(records, now)) // "7h30"
+```
+
+A conclusion write therefore invalidates the record list too (`getAttendanceConclusionRippleTags`),
+since completing one rewrites records the device is already showing.
 
 ### End-to-end round trip
 

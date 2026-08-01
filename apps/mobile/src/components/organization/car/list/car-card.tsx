@@ -1,9 +1,14 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import MaterialIcons from '@react-native-vector-icons/material-icons/static';
+import { useRouter } from 'expo-router';
+import { prefetch } from 'fetchwire';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { getTripById } from '@/apis/trip/trip-apis';
 import VinaupUserCouple from '@/components/icons/vinaup-user-couple.native';
 import VinaupVan from '@/components/icons/vinaup-van.native';
 import { Avatar } from '@/components/primitives/avatar';
+import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import {
   CAR_OPERATIONAL_STATUS,
   CarOperationalStatusDisplay,
@@ -18,6 +23,7 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
+import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { CarResponse } from '@/interfaces/car-interfaces';
 import { generateDateRange } from '@/utils/generator/string-generator/generate-date-range';
 
@@ -26,6 +32,23 @@ interface CarCardProps {
 }
 
 export function CarCard({ car }: CarCardProps) {
+  const router = useRouter();
+  const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
+
+  const navigateToTripDetail = async (id: string) => {
+    setIsNavigating(true);
+    try {
+      await prefetch(() => getTripById(id), { fetchKey: `organization-trip-${id}` });
+    } catch {
+      // Fallback to normal navigation if prefetch fails.
+    }
+    router.push({
+      pathname: '/(protected)/trip-detail/[tripId]',
+      params: { tripId: id },
+    });
+    setIsNavigating(false);
+  };
+
   if (!car) {
     return (
       <View style={styles.container}>
@@ -126,21 +149,21 @@ export function CarCard({ car }: CarCardProps) {
           {tripAssignments.map((tripAssignment) => (
             <View key={tripAssignment.id} style={styles.bottomRow}>
               <View style={styles.bottomLeftColumn}>
-                <FontAwesome5
-                  iconStyle="solid"
-                  name="route"
-                  size={ICON_SIZES.sm}
-                  color={COLORS.teal700}
-                />
+                <MaterialIcons name="tour" size={16} color={COLORS.teal700} />
               </View>
               <View style={styles.bottomRightColumn}>
-                <Text style={styles.bottomText} numberOfLines={1} ellipsizeMode="tail">
-                  <Text style={styles.tripDateText}>
-                    {generateDateRange(tripAssignment.trip.startDate, tripAssignment.trip.endDate)}
+                <PressableOpacity onPress={() => navigateToTripDetail(tripAssignment.trip.id)}>
+                  <Text style={styles.tripText} numberOfLines={1} ellipsizeMode="tail">
+                    <Text style={styles.tripDateText}>
+                      {generateDateRange(
+                        tripAssignment.trip.startDate,
+                        tripAssignment.trip.endDate,
+                      )}
+                    </Text>
+                    {'  '}
+                    {tripAssignment.trip.description || 'Chuyến chưa đặt tên'}
                   </Text>
-                  {'  '}
-                  {tripAssignment.trip.description || 'Chuyến chưa đặt tên'}
-                </Text>
+                </PressableOpacity>
               </View>
             </View>
           ))}
@@ -234,8 +257,13 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray700,
   },
-  // Muted like DateRangeText's hour part, so the trip name stays the row's focus.
+  // Blue marks the row as a link to the trip, matching the conflict popover's trip titles.
+  tripText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.blue600,
+  },
+  // The date is context, not part of the link target's name — it stays neutral.
   tripDateText: {
-    color: COLORS.gray400,
+    color: COLORS.gray700,
   },
 });

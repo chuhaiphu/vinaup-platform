@@ -5,27 +5,30 @@ import { Suspense, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
-import { AttendanceModeToggler } from '@/components/organization/attendance/attendance-mode-toggler';
-import { AttendancePunchBar } from '@/components/organization/attendance/attendance-punch-bar';
-import { OrganizationAttendanceRecordListSection } from '@/components/organization/attendance/list/organization-attendance-record-list-section';
+import { AttendanceConclusionBar } from '@/components/organization/attendance/bars/attendance-conclusion-bar';
+import { AttendanceMemberRecordListSection } from '@/components/organization/attendance/list/attendance-member-record-list-section';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { UnifiedDatePicker } from '@/components/primitives/unified-date-picker';
 import { DD_MM_DATE_FORMAT_SHORT, YYYY_MM_DD_DATE_FORMAT } from '@/constants/app-constants';
 import { DEFAULT_ORGANIZATION_TIMEZONE } from '@/constants/organization-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
+import { useScreenHeader } from '@/hooks/use-screen-header';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
-import { OrganizationAttendancePunchProvider } from '@/providers/organization/attendance/organization-attendance-punch-provider';
-import { OrganizationAttendanceRecordListProvider } from '@/providers/organization/attendance/organization-attendance-record-list-provider';
+import { AttendanceRecordListInOrganizationProvider } from '@/providers/organization/attendance/attendance-record-list-in-organization-provider';
+import { OrganizationAttendanceConclusionListProvider } from '@/providers/organization/attendance/organization-attendance-conclusion-list-provider';
 import { generateCalendarDate } from '@/utils/generator/string-generator/generate-calendar-date';
-import { generateZonedTime } from '@/utils/generator/string-generator/generate-zoned-time';
 
-export function OrganizationAttendanceScreenContent() {
+export function AttendanceMemberDetailScreenContent() {
   const router = useRouter();
-  const { organizationId, workDate } = useLocalSearchParams<{
-    organizationId: string;
-    workDate?: string;
-  }>();
+
+  const { organizationId, organizationMemberId, organizationMemberName, workDate } =
+    useLocalSearchParams<{
+      organizationId: string;
+      organizationMemberId: string;
+      organizationMemberName?: string;
+      workDate?: string;
+    }>();
   const { organizations } = useOrganizationContext();
 
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -39,46 +42,48 @@ export function OrganizationAttendanceScreenContent() {
   const selectedWorkDate = workDate ?? todayWorkDate;
   const isLiveWorkDate = selectedWorkDate === todayWorkDate;
 
+  useScreenHeader({ title: organizationMemberName || 'Chấm công' });
+
   const handleWorkDateChange = (date: dayjs.Dayjs) => {
     router.setParams({ workDate: date.format(YYYY_MM_DD_DATE_FORMAT) });
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.topContainer}>
+        <PressableOpacity onPress={() => setPickerVisible(true)} style={styles.datePickerTrigger}>
+          <FontAwesome5 name="calendar-alt" size={ICON_SIZES.sm} color={COLORS.teal700} />
+          {isLiveWorkDate && <Text style={styles.todayText}>Hôm nay</Text>}
+          <Text style={styles.dateText}>
+            {dayjs(selectedWorkDate, YYYY_MM_DD_DATE_FORMAT).format(DD_MM_DATE_FORMAT_SHORT)}
+          </Text>
+        </PressableOpacity>
+      </View>
+
       <Suspense fallback={<EntityListSectionSkeleton />}>
-        <OrganizationAttendancePunchProvider organizationId={organizationId}>
-          <View style={styles.topContainer}>
-            <View style={styles.leftContainer}>
-              <PressableOpacity
-                onPress={() => setPickerVisible(true)}
-                style={styles.datePickerTrigger}
-              >
-                <FontAwesome5 name="calendar-alt" size={ICON_SIZES.sm} color={COLORS.teal700} />
-                {isLiveWorkDate && <Text style={styles.todayText}>Hôm nay</Text>}
-                <Text style={styles.dateText}>
-                  {dayjs(selectedWorkDate, YYYY_MM_DD_DATE_FORMAT).format(DD_MM_DATE_FORMAT_SHORT)}
-                </Text>
-              </PressableOpacity>
-              {isLiveWorkDate && (
-                <Text style={styles.clockText}>{generateZonedTime(now, organizationTimezone)}</Text>
-              )}
-            </View>
-            {isLiveWorkDate && <AttendanceModeToggler />}
-          </View>
-          {isLiveWorkDate && <AttendancePunchBar organizationId={organizationId} />}
-          <Suspense fallback={<EntityListSectionSkeleton />}>
-            <OrganizationAttendanceRecordListProvider
-              key={`organization-attendance-record-list-${organizationId}-${selectedWorkDate}`}
+        <AttendanceRecordListInOrganizationProvider
+          key={`organization-attendance-record-list-in-organization-${organizationId}-${selectedWorkDate}`}
+          organizationId={organizationId}
+          workDate={selectedWorkDate}
+        >
+          <OrganizationAttendanceConclusionListProvider
+            key={`organization-attendance-conclusion-list-${organizationId}-${selectedWorkDate}`}
+            organizationId={organizationId}
+            workDate={selectedWorkDate}
+          >
+            <AttendanceMemberRecordListSection
+              organizationMemberId={organizationMemberId}
+              organizationTimezone={organizationTimezone}
+            />
+            <AttendanceConclusionBar
               organizationId={organizationId}
+              organizationMemberId={organizationMemberId}
               workDate={selectedWorkDate}
-            >
-              <OrganizationAttendanceRecordListSection
-                organizationTimezone={organizationTimezone}
-              />
-            </OrganizationAttendanceRecordListProvider>
-          </Suspense>
-        </OrganizationAttendancePunchProvider>
+            />
+          </OrganizationAttendanceConclusionListProvider>
+        </AttendanceRecordListInOrganizationProvider>
       </Suspense>
+
       <UnifiedDatePicker
         visible={pickerVisible}
         onClose={() => setPickerVisible(false)}
@@ -100,11 +105,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  leftContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   datePickerTrigger: {
     flexDirection: 'row',
@@ -119,11 +119,5 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.teal700,
-  },
-  clockText: {
-    fontSize: FONT_SIZES.sm,
-    fontWeight: FONT_WEIGHTS.bold,
-    color: COLORS.teal900,
-    marginLeft: SPACING.sm,
   },
 });

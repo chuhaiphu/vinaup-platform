@@ -1,10 +1,15 @@
+import { useRouter } from 'expo-router';
+import { prefetch } from 'fetchwire';
+import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { getCarById } from '@/apis/car/car-apis';
 import { DateRangeText } from '@/components/commons/texts/date-range-text';
 import VinaupUserCouple from '@/components/icons/vinaup-user-couple.native';
 import VinaupVan from '@/components/icons/vinaup-van.native';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
 import { TripStatusDisplay } from '@/constants/trip-constants';
+import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { TripResponse } from '@/interfaces/trip-interfaces';
 
 interface TripCardProps {
@@ -12,6 +17,23 @@ interface TripCardProps {
 }
 
 export function TripCard({ trip }: TripCardProps) {
+  const router = useRouter();
+  const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
+
+  const navigateToCarDetail = async (id: string) => {
+    setIsNavigating(true);
+    try {
+      await prefetch(() => getCarById(id), { fetchKey: `organization-car-${id}` });
+    } catch {
+      // Fallback to normal navigation if prefetch fails.
+    }
+    router.push({
+      pathname: '/(protected)/car-detail/[carId]',
+      params: { carId: id },
+    });
+    setIsNavigating(false);
+  };
+
   if (!trip) {
     return (
       <View style={styles.container}>
@@ -47,10 +69,11 @@ export function TripCard({ trip }: TripCardProps) {
       carNameByIdMap.set(assignment.car.id, assignment.car.name || 'Xe chưa đặt tên');
     }
   }
-  const carNames = [...carNameByIdMap.values()].join('; ');
+  // Kept as entries, not a joined string: each name is its own link to that car's detail.
+  const carEntryList = [...carNameByIdMap.entries()];
 
   const showDriverRow = driverNames.length > 0;
-  const showCarRow = carNames.length > 0;
+  const showCarRow = carEntryList.length > 0;
   const showContentBottom = showDriverRow || showCarRow;
 
   return (
@@ -82,7 +105,16 @@ export function TripCard({ trip }: TripCardProps) {
                 <VinaupVan width={18} height={18} color={COLORS.teal700} />
               </View>
               <View style={styles.bottomRightColumn}>
-                <Text style={styles.bottomText}>{carNames}</Text>
+                <Text style={styles.bottomText}>
+                  {carEntryList.map(([carId, carName], index) => (
+                    <Fragment key={carId}>
+                      {index > 0 && '; '}
+                      <Text style={styles.linkText} onPress={() => navigateToCarDetail(carId)}>
+                        {carName}
+                      </Text>
+                    </Fragment>
+                  ))}
+                </Text>
               </View>
             </View>
           )}
@@ -171,5 +203,10 @@ const styles = StyleSheet.create({
   bottomText: {
     fontSize: FONT_SIZES.sm,
     color: COLORS.gray700,
+  },
+  // Blue marks a tappable name, matching the conflict popover's trip titles.
+  linkText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.blue600,
   },
 });

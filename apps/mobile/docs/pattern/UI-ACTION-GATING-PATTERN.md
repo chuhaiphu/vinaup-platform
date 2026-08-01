@@ -146,4 +146,13 @@ Every `action` / `resource` value is a constant from `PERMISSION_ACTION` / `PERM
 `@vinaup-platform/permission` ([§1.3](../CODING-CONVENTION.md)) — never a string literal at a call
 site. Resources in use: `BOOKING` `INVOICE` `PROJECT` `TOUR` `CAR` `TRIP`; directory
 `ORGANIZATION_MEMBER` `ORGANIZATION_CUSTOMER` `ORGANIZATION_ROLE`; `PROJECT_CATEGORY`
-`RECEIPT_PAYMENT_CATEGORY` `RECEIPT_PAYMENT` `SOCIAL_LINK`.
+`RECEIPT_PAYMENT_CATEGORY` `RECEIPT_PAYMENT` `SOCIAL_LINK`; attendance `ATTENDANCE_RECORD`
+`ATTENDANCE_CONCLUSION`.
+
+### Gate a manager-only entry on the action, not on READ
+
+The factory-default matrix grants the `MEMBER` role `READ` on **every** non-wildcard resource
+([`DEFAULT_ROLE_PERMISSIONS`](../../../../packages/permission/src/rbac/default-role-permissions.ts)),
+so `can(READ, X)` is true for the whole organization on a fresh org and cannot separate a manager
+from a staff member. An entry point that only managers should see gates on the action that defines
+the role instead — the attendance "Quản lý" entry uses `can(CREATE, ATTENDANCE_CONCLUSION)`.

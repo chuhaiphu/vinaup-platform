@@ -314,17 +314,23 @@ Folder layout for a split modal is in [§2.3](#23-components--modals).
 
 Pick the simplest mechanism that works. → [KISS](principle/KISS.md)
 
-| Need                                 | Mechanism                                                             |
-| ------------------------------------ | --------------------------------------------------------------------- |
-| Pure display                         | props, no state                                                       |
-| Toggle / transient UI                | `useState`                                                            |
-| Small form (<4 fields, validation)   | `useValidatedFields` hook                                             |
-| Complex form (≥4 fields, validation) | Zustand store                                                         |
-| Server data shared across screens    | Context provider + `useFetch` (Suspense) / `useFetchFn` (conditional) |
+| Need                                | Mechanism                                                             |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| Pure display                        | props, no state                                                       |
+| Toggle / transient UI               | `useState`                                                            |
+| Form with validation, any size      | `useValidatedFields` hook                                             |
+| UI state shared across the app      | Zustand store (`useNavigationStore`, `useToastStore`, utility stores) |
+| Server data shared across screens   | Context provider + `useFetch` (Suspense) / `useFetchFn` (conditional) |
 
 > `useValidatedFields` (`src/hooks/`) owns value + per-field error state and the reward-early/punish-late
 > timing; the caller passes an agnostic validator that wraps the shared Zod schema (§6). A hybrid field
 > with side concerns stays outside the hook as its own `useState`.
+
+**Field count does not change the mechanism.** One `useValidatedFields` call holds a nine-field form
+(`attendance-conclusion-modal-content.tsx`) as readily as a two-field one, because the hook is generic
+over the value shape. Reaching for Zustand instead would put a server entity's fields in a global store
+— which §8 forbids — and force a manual reset every time the modal is opened on a different record;
+remounting the content on a `key` does that for free.
 
 ---
 
