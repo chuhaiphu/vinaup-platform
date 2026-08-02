@@ -1,4 +1,4 @@
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import Ionicons from '@react-native-vector-icons/ionicons/static';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
@@ -34,12 +34,7 @@ const OrganizationAttendanceHeaderBottom = () => {
             })
           }
         >
-          <FontAwesome5
-            iconStyle="solid"
-            name="clipboard-check"
-            size={ICON_SIZES.md}
-            color={COLORS.teal700}
-          />
+          <Ionicons name="options" size={ICON_SIZES.lg} color={COLORS.teal700} />
           <Text style={styles.manageText}>Quản lý</Text>
         </PressableOpacity>
       )}

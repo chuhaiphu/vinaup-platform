@@ -10,6 +10,7 @@ import {
 import { COLORS, ICON_SIZES } from '@/constants/style-constants';
 import { AttendanceRecordResponse } from '@/interfaces/attendance-interfaces';
 import { calculateDurationInMinutes } from '@/utils/calculator/calculate-duration-in-minutes';
+import { generateCoordinateCode } from '@/utils/generator/string-generator/generate-coordinate-code';
 import { generateDurationText } from '@/utils/generator/string-generator/generate-duration-text';
 import { generateZonedTime } from '@/utils/generator/string-generator/generate-zoned-time';
 
@@ -29,8 +30,17 @@ export function AttendanceRecordCard({
   organizationTimezone,
   now,
 }: AttendanceRecordCardProps) {
-  const { mode, status, checkInAt, checkOutAt, location, note, latitude, longitude } =
-    attendanceRecord;
+  const {
+    mode,
+    status,
+    checkInAt,
+    checkOutAt,
+    location,
+    note,
+    latitude,
+    longitude,
+    locationAccuracy,
+  } = attendanceRecord;
 
   const isOpen = status === ATTENDANCE_RECORD_STATUS.OPEN;
   const isCheckInOnly = mode === ATTENDANCE_MODE.CHECK_IN;
@@ -48,7 +58,16 @@ export function AttendanceRecordCard({
     ? generateDurationText(calculateDurationInMinutes(new Date(checkInAt), durationEndInstant))
     : EMPTY_TIME_PLACEHOLDER;
 
-  const showDetail = Boolean(location) || Boolean(note);
+  // Latitude 0 is a valid coordinate, so only null/undefined leaves the record without a fix.
+  const coordinateCode =
+    latitude != null && longitude != null ? generateCoordinateCode({ latitude, longitude }) : null;
+
+  // The fix and its error margin read as one value, the same shape the punch sheet shows.
+  const coordinateText = coordinateCode
+    ? `${coordinateCode}${locationAccuracy != null ? ` (±${Math.round(locationAccuracy)} m)` : ''}`
+    : null;
+
+  const showDetail = Boolean(coordinateText) || Boolean(location) || Boolean(note);
 
   return (
     <View style={styles.container}>
@@ -82,14 +101,25 @@ export function AttendanceRecordCard({
 
         {showDetail && (
           <View style={styles.detailContainer}>
-            {!!location && (
+            {!!coordinateText && (
               <View style={styles.detailRow}>
+                <Text style={styles.detailText}>
+                  <Text style={styles.detailLabelText}>Vị trí: </Text>
+                  {coordinateText}
+                </Text>
                 <GoogleMapsLinkButton
                   latitude={latitude}
                   longitude={longitude}
                   size={ICON_SIZES.lg}
                 />
-                <Text style={styles.detailText}>{location}</Text>
+              </View>
+            )}
+            {!!location && (
+              <View style={styles.detailRow}>
+                <Text style={styles.detailText}>
+                  <Text style={styles.detailLabelText}>Địa điểm: </Text>
+                  {location}
+                </Text>
               </View>
             )}
             {!!note && (

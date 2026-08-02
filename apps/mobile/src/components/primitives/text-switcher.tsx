@@ -1,3 +1,4 @@
+import React from 'react';
 import { StyleProp, StyleSheet, Text, TextStyle, ViewStyle } from 'react-native';
 
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
@@ -14,6 +15,8 @@ interface TextSwitcherProps<T extends string | number> {
   value: T;
   onChange: (value: T) => void;
   disabled?: boolean;
+  leftSection?: React.ReactNode;
+  rightSection?: React.ReactNode;
   style?: {
     container?: StyleProp<ViewStyle>;
     text?: StyleProp<TextStyle>;
@@ -29,6 +32,8 @@ export function TextSwitcher<T extends string | number>({
   value,
   onChange,
   disabled,
+  leftSection,
+  rightSection,
   style,
 }: TextSwitcherProps<T>) {
   const currentIndex = options.findIndex((option) => option.value === value);
@@ -50,30 +55,36 @@ export function TextSwitcher<T extends string | number>({
     <PressableOpacity
       onPress={handlePress}
       disabled={disabled}
-      style={[styles.container, style?.container, disabled && styles.containerDisabled]}
+      style={[styles.row, style?.container, disabled && styles.rowDisabled]}
     >
+      {leftSection}
       <Text style={[styles.text, style?.text, disabled && styles.textDisabled]}>
         {options[currentIndex]?.label ?? ''}
       </Text>
+      {rightSection}
     </PressableOpacity>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  // Mirrors `OutlinedTextInput`'s row so a switcher can sit in the same column as a real input.
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-end',
     borderWidth: 1,
     borderColor: COLORS.teal700,
     borderRadius: RADIUS.md,
     paddingHorizontal: SPACING.sm,
-    paddingVertical: SPACING.xs,
+    gap: SPACING.xs,
   },
-  containerDisabled: {
+  rowDisabled: {
     backgroundColor: COLORS.gray100,
     borderColor: COLORS.gray300,
   },
   text: {
+    height: 32,
+    lineHeight: 32,
     fontSize: FONT_SIZES.base,
     fontWeight: FONT_WEIGHTS.medium,
     color: COLORS.teal700,

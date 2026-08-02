@@ -3,9 +3,9 @@ import { Tabs, useLocalSearchParams } from 'expo-router';
 
 import { TabBarButton } from '@/components/commons/bars/tab-bar-button/tab-bar-button';
 import { HomeHeader } from '@/components/commons/headers/home-header/home-header';
+import VinaupCheckIn from '@/components/icons/vinaup-check-in.native';
 import VinaupCircleHorizontalHalfArrow from '@/components/icons/vinaup-circle-horizontal-half-arrow.native';
 import VinaupHome from '@/components/icons/vinaup-home.native';
-import VinaupLocation from '@/components/icons/vinaup-location.native';
 import VinaupPlusMinusMultiplyEqual from '@/components/icons/vinaup-plus-minus-multiply-equal.native';
 import VinaupPlusMinus from '@/components/icons/vinaup-plus-minus.native';
 import VinaupSigningPenWithFrame from '@/components/icons/vinaup-signing-pen-with-frame.native';
@@ -103,7 +103,7 @@ export default function OrganizationTabsLayout() {
           options={{
             title: 'Chấm công',
             tabBarIcon: ({ color, size }) => (
-              <VinaupLocation width={size} height={size} color={color} />
+              <VinaupCheckIn width={size} height={size} color={color} />
             ),
           }}
         />

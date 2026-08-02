@@ -52,7 +52,7 @@ export function useCurrentLocation({ enabled = true }: UseCurrentLocationOptions
       try {
         setIsFetchingLocation(true);
         const location = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.High,
+          accuracy: Location.Accuracy.Highest,
         });
         if (ignore) return;
         setCurrentLocation(location);

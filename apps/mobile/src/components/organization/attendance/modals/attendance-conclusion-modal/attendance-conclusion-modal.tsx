@@ -14,14 +14,19 @@ import {
 
 interface AttendanceConclusionModalProps {
   modalRef: React.RefObject<SlideSheetRef | null>;
+  /** Who the verdict is about — absent only when the screen was reached without the member's name. */
+  organizationMemberName?: string;
   attendanceConclusion: AttendanceConclusionResponse | null;
+  totalText: string;
   isLoading?: boolean;
   onConfirm?: (value: AttendanceConclusionSubmitValue, closeModal: () => void) => void;
 }
 
 export function AttendanceConclusionModal({
   modalRef,
+  organizationMemberName,
   attendanceConclusion,
+  totalText,
   isLoading,
   onConfirm,
 }: AttendanceConclusionModalProps) {
@@ -37,7 +42,9 @@ export function AttendanceConclusionModal({
     >
       <AttendanceConclusionModalContent
         ref={modalContentRef}
+        organizationMemberName={organizationMemberName}
         attendanceConclusion={attendanceConclusion}
+        totalText={totalText}
         isLoading={isLoading}
         onSubmit={(value) => onConfirm?.(value, closeModal)}
       />

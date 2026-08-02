@@ -29,6 +29,12 @@ interface OrganizationAttendanceConclusionListContextType {
     fields: UpdateAttendanceConclusionRequest,
     onSuccess?: () => void,
   ) => void;
+  /** One verdict per (member, workDate): writes the member's first one, or revises the one on file. */
+  handleSubmitAttendanceConclusion: (
+    organizationMemberId: string,
+    fields: UpdateAttendanceConclusionRequest,
+    onSuccess?: () => void,
+  ) => void;
 }
 
 const OrganizationAttendanceConclusionListContext =
@@ -125,6 +131,40 @@ export function OrganizationAttendanceConclusionListProvider({
     [updateAttendanceConclusionFn],
   );
 
+  const handleSubmitAttendanceConclusion = useCallback(
+    (
+      organizationMemberId: string,
+      fields: UpdateAttendanceConclusionRequest,
+      onSuccessCallback?: () => void,
+    ) => {
+      const existingAttendanceConclusion = (data ?? []).find(
+        (attendanceConclusion) =>
+          attendanceConclusion.organizationMemberId === organizationMemberId,
+      );
+
+      if (existingAttendanceConclusion) {
+        handleUpdateAttendanceConclusion(
+          existingAttendanceConclusion.id,
+          fields,
+          onSuccessCallback,
+        );
+        return;
+      }
+
+      handleCreateAttendanceConclusion(
+        { organizationId, organizationMemberId, workDate, ...fields },
+        onSuccessCallback,
+      );
+    },
+    [
+      data,
+      organizationId,
+      workDate,
+      handleCreateAttendanceConclusion,
+      handleUpdateAttendanceConclusion,
+    ],
+  );
+
   return (
     <OrganizationAttendanceConclusionListContext
       value={{
@@ -135,6 +175,7 @@ export function OrganizationAttendanceConclusionListProvider({
         refreshFetch,
         handleCreateAttendanceConclusion,
         handleUpdateAttendanceConclusion,
+        handleSubmitAttendanceConclusion,
       }}
     >
       {children}

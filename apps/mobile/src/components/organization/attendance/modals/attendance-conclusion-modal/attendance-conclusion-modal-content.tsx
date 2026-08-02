@@ -2,6 +2,7 @@ import { updateAttendanceConclusionSchema } from '@vinaup-platform/validation';
 import { useImperativeHandle } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 
+import VinaupCheckIn from '@/components/icons/vinaup-check-in.native';
 import { ConfirmSlideSheetContentRef } from '@/components/primitives/confirm-slide-sheet/confirm-slide-sheet';
 import { FlatTextInput } from '@/components/primitives/flat-text-input';
 import { OutlinedTextInput } from '@/components/primitives/outlined-text-input';
@@ -13,7 +14,14 @@ import {
   AttendanceConclusionStatus,
   AttendanceConclusionStatusDisplay,
 } from '@/constants/attendance-constants';
-import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  ICON_SIZES,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 import { useFormatDecimalInput } from '@/hooks/use-format-decimal-input';
 import { useFormatIntegerInput } from '@/hooks/use-format-integer-input';
 import { FieldErrors, FieldValidator, useValidatedFields } from '@/hooks/use-validated-fields';
@@ -51,14 +59,19 @@ const STATUS_ITEMS: SegmentedControlItem<AttendanceConclusionStatus>[] = [
 const generateNumericFieldValue = (value: number): string => (value ? String(value) : '');
 
 interface AttendanceConclusionModalContentProps {
+  /** Who the verdict is about — absent only when the screen was reached without the member's name. */
+  organizationMemberName?: string;
   attendanceConclusion: AttendanceConclusionResponse | null;
+  totalText: string;
   isLoading?: boolean;
   onSubmit?: (value: AttendanceConclusionSubmitValue) => void;
   ref?: React.RefObject<ConfirmSlideSheetContentRef | null>;
 }
 
 export function AttendanceConclusionModalContent({
+  organizationMemberName,
   attendanceConclusion,
+  totalText,
   isLoading = false,
   onSubmit,
   ref,
@@ -67,6 +80,8 @@ export function AttendanceConclusionModalContent({
     status: attendanceConclusion?.status ?? ATTENDANCE_CONCLUSION_STATUS.DRAFT,
     workdayUnit: attendanceConclusion?.workdayUnit ?? 0,
     authorizedLeaveDayUnit: attendanceConclusion?.authorizedLeaveDayUnit ?? 0,
+    // No input of its own for now — carried through untouched so hiding the row cannot wipe a
+    // value that is already on the record.
     unauthorizedLeaveDayUnit: attendanceConclusion?.unauthorizedLeaveDayUnit ?? 0,
     seasonalHours: generateNumericFieldValue(attendanceConclusion?.seasonalHours ?? 0),
     overtimeHours: generateNumericFieldValue(attendanceConclusion?.overtimeHours ?? 0),
@@ -146,22 +161,29 @@ export function AttendanceConclusionModalContent({
 
   useImperativeHandle(ref, () => ({ submit: handleConfirm }));
 
+  const renderFieldLabel = (label: string) => (
+    <Text style={styles.fieldLabelText} numberOfLines={1}>
+      {label}
+    </Text>
+  );
+
+  const renderFieldUnit = (unit: string) => (
+    <Text style={[styles.fieldUnitText, isLoading && styles.fieldUnitDisabledText]}>{unit}</Text>
+  );
+
   const renderDayUnitRow = (
     label: string,
     field: 'workdayUnit' | 'authorizedLeaveDayUnit' | 'unauthorizedLeaveDayUnit',
   ) => (
-    <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabelText}>{label}</Text>
-      <View style={styles.dayUnitContainer}>
-        <TextSwitcher
-          options={ATTENDANCE_DAY_UNIT_OPTIONS}
-          value={fieldValues[field]}
-          onChange={(value) => setFieldValue(field, value)}
-          disabled={isLoading}
-          style={{ container: styles.dayUnitSwitcher, text: styles.dayUnitSwitcherText }}
-        />
-      </View>
-    </View>
+    <TextSwitcher
+      options={ATTENDANCE_DAY_UNIT_OPTIONS}
+      value={fieldValues[field]}
+      onChange={(value) => setFieldValue(field, value)}
+      disabled={isLoading}
+      leftSection={renderFieldLabel(label)}
+      rightSection={renderFieldUnit('ngày')}
+      style={{ container: styles.fieldRow, text: styles.fieldValueText }}
+    />
   );
 
   const renderNumericRow = (
@@ -171,52 +193,56 @@ export function AttendanceConclusionModalContent({
     onChangeText: (text: string) => void,
     error?: string,
   ) => (
-    <View style={styles.fieldRow}>
-      <Text style={styles.fieldLabelText}>{label}</Text>
-      <View style={styles.numericContainer}>
-        <OutlinedTextInput
-          style={{ container: styles.numericInputContainer, input: styles.numericInput }}
-          value={value}
-          onChangeText={onChangeText}
-          keyboardType="numeric"
-          placeholder="0"
-          isDisabled={isLoading}
-          error={error}
-          rightSection={
-            <Text style={[styles.unitText, isLoading && styles.unitDisabledText]}>{unit}</Text>
-          }
-        />
-      </View>
-    </View>
+    <OutlinedTextInput
+      style={{ container: styles.fieldRow, input: styles.fieldValueText }}
+      value={value}
+      onChangeText={onChangeText}
+      keyboardType="numeric"
+      placeholder="0"
+      isDisabled={isLoading}
+      error={error}
+      leftSection={renderFieldLabel(label)}
+      rightSection={renderFieldUnit(unit)}
+    />
   );
 
   return (
     <View style={styles.container}>
-      <SegmentedControl
-        items={STATUS_ITEMS}
-        value={fieldValues.status}
-        onChange={(value) => setFieldValue('status', value)}
-        style={{
-          track: styles.statusTrack,
-          pill: styles.statusPill,
-          activeLabel: styles.statusActiveLabel,
-        }}
-      />
+      {!!organizationMemberName && (
+        <View style={styles.memberRow}>
+          <VinaupCheckIn width={ICON_SIZES.md} height={ICON_SIZES.md} color={COLORS.yellow400} />
+          <Text style={styles.memberNameText} numberOfLines={1} ellipsizeMode="tail">
+            {organizationMemberName}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.statusRow}>
+        <View style={styles.statusControlContainer}>
+          <SegmentedControl
+            items={STATUS_ITEMS}
+            value={fieldValues.status}
+            onChange={(value) => setFieldValue('status', value)}
+            style={{
+              track: styles.statusTrack,
+              pill: styles.statusPill,
+              activeLabel: styles.statusActiveLabel,
+            }}
+          />
+        </View>
+        <Text style={styles.statusTotalText}>Tổng: {totalText}</Text>
+      </View>
 
       {showCompletingWarning && (
         <Text style={styles.warningText}>
-          Khi hoàn thành: ngày công của thành viên bị khoá (không thể chấm công, sửa hoặc xoá lượt
-          nào nữa), và lượt đang mở sẽ bị đóng lại kèm mất giờ check out.
+          Khi kết luận <Text style={styles.warningEmphasisText}>Hoàn thành</Text>, toàn bộ thành
+          viên sẽ không thể chấm công hay cập nhật nội dung chấm công được nữa.
         </Text>
       )}
 
       <View style={styles.fieldContainer}>
         {renderDayUnitRow('Ngày công', 'workdayUnit')}
         {renderDayUnitRow('Nghỉ có phép', 'authorizedLeaveDayUnit')}
-        {renderDayUnitRow('Nghỉ không phép', 'unauthorizedLeaveDayUnit')}
-      </View>
-
-      <View style={styles.fieldContainer}>
         {renderNumericRow(
           'Giờ công thời vụ',
           'h',
@@ -266,6 +292,32 @@ const styles = StyleSheet.create({
   container: {
     gap: SPACING.md,
   },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  memberNameText: {
+    flex: 1,
+    fontSize: FONT_SIZES.base,
+    fontWeight: FONT_WEIGHTS.bold,
+    color: COLORS.teal700,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  // Bounds the track so its two segments split an equal, known width instead of hugging their labels.
+  statusControlContainer: {
+    flex: 1,
+  },
+  statusTotalText: {
+    fontSize: FONT_SIZES.sm,
+    fontWeight: FONT_WEIGHTS.bold,
+    color: COLORS.teal900,
+  },
   statusTrack: {
     borderWidth: 1,
     borderColor: COLORS.teal700,
@@ -283,56 +335,33 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.xs,
     color: COLORS.orange700,
   },
+  warningEmphasisText: {
+    fontWeight: FONT_WEIGHTS.bold,
+  },
   fieldContainer: {
     gap: SPACING.sm,
-    borderWidth: 1,
-    borderColor: COLORS.teal700,
-    borderRadius: RADIUS.md,
-    padding: SPACING.sm,
   },
   fieldRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: SPACING.sm,
+    height: 40,
+    borderColor: COLORS.gray300,
+    backgroundColor: COLORS.gray50,
   },
   fieldLabelText: {
     flex: 1,
     fontSize: FONT_SIZES.sm,
     color: COLORS.teal700,
   },
-  // Fixed share of the row so every switcher and input lines up down the column.
-  dayUnitContainer: {
-    width: 150,
+  // A floor under the value so the caret stays reachable once the label has taken the free space.
+  fieldValueText: {
+    minWidth: 32,
+    textAlign: 'right',
+    fontWeight: FONT_WEIGHTS.bold,
   },
-  // Matched to the numeric inputs below so both halves of the column read as one control set.
-  dayUnitSwitcher: {
-    height: 30,
-    paddingVertical: 0,
-  },
-  dayUnitSwitcherText: {
+  fieldUnitText: {
     fontSize: FONT_SIZES.sm,
+    color: COLORS.gray900,
   },
-  numericContainer: {
-    width: 150,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-  },
-  numericInputContainer: {
-    flex: 1,
-    paddingHorizontal: SPACING.xs,
-    backgroundColor: COLORS.white,
-  },
-  numericInput: {
-    flex: 1,
-    height: 28,
-    fontSize: FONT_SIZES.sm,
-  },
-  unitText: {
-    fontSize: FONT_SIZES.sm,
-    color: COLORS.teal700,
-  },
-  unitDisabledText: {
+  fieldUnitDisabledText: {
     color: COLORS.gray300,
   },
 });

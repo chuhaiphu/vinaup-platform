@@ -6,15 +6,15 @@ import { generateLocaleFormatString } from './generate-locale-format-string';
  * Renders a conclusion's worked total the way the manager entered it.
  *
  * @param attendanceConclusion - The conclusion to summarise.
- * @returns e.g. `1 công - 2h TC`, `0,5 công`, `Nghỉ P`, or `—` when nothing was entered.
+ * @returns e.g. `0,5 công + 3h`, `1 công`, `Nghỉ P 1`, or `null` when every metric is still zero.
  *
  * @example
- * generateAttendanceConclusionSummary({ workdayUnit: 1, overtimeHours: 2, ... });
- * // → "1 công - 2h TC"
+ * generateAttendanceConclusionSummary({ workdayUnit: 0.5, seasonalHours: 1, overtimeHours: 2, ... });
+ * // → "0,5 công + 3h"
  */
 export function generateAttendanceConclusionSummary(
   attendanceConclusion: AttendanceConclusionResponse,
-): string {
+): string | null {
   const {
     workdayUnit,
     seasonalHours,
@@ -23,14 +23,14 @@ export function generateAttendanceConclusionSummary(
     unauthorizedLeaveDayUnit,
   } = attendanceConclusion;
 
+  const paidHours = seasonalHours + overtimeHours;
+
   const partList = [
     workdayUnit > 0 ? `${generateLocaleFormatString(workdayUnit, 'vi-VN', 2)} công` : null,
-    seasonalHours > 0 ? `${generateLocaleFormatString(seasonalHours, 'vi-VN', 2)}h TV` : null,
-    // "TC" (tăng ca) rather than a leading "+", which would read as "- +2h" next to the separator.
-    overtimeHours > 0 ? `${generateLocaleFormatString(overtimeHours, 'vi-VN', 2)}h TC` : null,
+    paidHours > 0 ? `${generateLocaleFormatString(paidHours, 'vi-VN', 2)}h` : null,
   ].filter(Boolean);
 
-  if (partList.length > 0) return partList.join(' - ');
+  if (partList.length > 0) return partList.join(' + ');
 
   const leavePartList = [
     authorizedLeaveDayUnit > 0
@@ -41,5 +41,5 @@ export function generateAttendanceConclusionSummary(
       : null,
   ].filter(Boolean);
 
-  return leavePartList.length > 0 ? leavePartList.join(' - ') : '—';
+  return leavePartList.length > 0 ? leavePartList.join(' + ') : null;
 }

@@ -2,7 +2,7 @@ import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permiss
 import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import VinaupLocation from '@/components/icons/vinaup-location.native';
+import VinaupCheckIn from '@/components/icons/vinaup-check-in.native';
 import { AttendancePunchConfirmModal } from '@/components/organization/attendance/modals/attendance-punch-confirm-modal/attendance-punch-confirm-modal';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
@@ -59,7 +59,7 @@ export function AttendancePunchBar({ organizationId }: AttendancePunchBarProps) 
         style={[styles.punchButton, !isCheckingIn && styles.punchCheckOutButton]}
         onPress={() => modalRef.current?.open()}
       >
-        <VinaupLocation
+        <VinaupCheckIn
           width={ICON_SIZES.xxl}
           height={ICON_SIZES.xxl}
           color={isCheckingIn ? COLORS.yellow400 : COLORS.teal700}

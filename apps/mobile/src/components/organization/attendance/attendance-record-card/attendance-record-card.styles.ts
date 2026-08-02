@@ -83,4 +83,7 @@ export const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.teal900,
   },
+  detailLabelText: {
+    color: COLORS.teal700,
+  },
 });

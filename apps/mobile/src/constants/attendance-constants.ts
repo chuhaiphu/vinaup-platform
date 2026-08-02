@@ -1,7 +1,8 @@
+import type { MaterialDesignIconsIconName } from '@react-native-vector-icons/material-design-icons/static';
 import { ATTENDANCE_CONCLUSION_STATUS, ATTENDANCE_MODE } from '@vinaup-platform/validation';
 import type { AttendanceConclusionStatus, AttendanceMode } from '@vinaup-platform/validation';
 
-import { BADGE_VARIANT, BadgeVariant } from './style-constants';
+import { COLORS } from './style-constants';
 
 // Wire enums referenced by shared Zod schemas live in the package (§1.3).
 export {
@@ -25,13 +26,25 @@ export const AttendanceConclusionStatusDisplay: Record<AttendanceConclusionStatu
   [ATTENDANCE_CONCLUSION_STATUS.COMPLETED]: 'Hoàn thành',
 };
 
-export const AttendanceConclusionStatusVariant: Record<AttendanceConclusionStatus, BadgeVariant> = {
-  [ATTENDANCE_CONCLUSION_STATUS.DRAFT]: BADGE_VARIANT.ORANGE,
-  [ATTENDANCE_CONCLUSION_STATUS.COMPLETED]: BADGE_VARIANT.GREEN,
+// A checkbox drawn at three fill levels: empty, part-filled, ticked — the verdict's own progress.
+export const AttendanceConclusionStatusIcon: Record<
+  AttendanceConclusionStatus,
+  MaterialDesignIconsIconName
+> = {
+  [ATTENDANCE_CONCLUSION_STATUS.DRAFT]: 'checkbox-intermediate',
+  [ATTENDANCE_CONCLUSION_STATUS.COMPLETED]: 'checkbox-marked-outline',
 };
 
+export const AttendanceConclusionStatusIconColor: Record<AttendanceConclusionStatus, string> = {
+  [ATTENDANCE_CONCLUSION_STATUS.DRAFT]: COLORS.orange700,
+  [ATTENDANCE_CONCLUSION_STATUS.COMPLETED]: COLORS.teal700,
+};
+
+// A workday with no conclusion row at all — the third state, which the status enum cannot express.
 export const ATTENDANCE_CONCLUSION_UNSET_LABEL = 'Chưa chốt';
-export const ATTENDANCE_CONCLUSION_UNSET_VARIANT: BadgeVariant = BADGE_VARIANT.GRAY;
+export const ATTENDANCE_CONCLUSION_UNSET_ICON: MaterialDesignIconsIconName =
+  'checkbox-blank-outline';
+export const ATTENDANCE_CONCLUSION_UNSET_ICON_COLOR = COLORS.gray500;
 
 export const ATTENDANCE_DAY_UNIT_OPTIONS: readonly { value: number; label: string }[] = [
   { value: 0, label: '0' },

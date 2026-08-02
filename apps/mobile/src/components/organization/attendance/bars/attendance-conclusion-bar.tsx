@@ -1,31 +1,28 @@
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import VinaupVerticalOk from '@/components/icons/vinaup-vertical-ok.native';
 import { AttendanceConclusionModal } from '@/components/organization/attendance/modals/attendance-conclusion-modal/attendance-conclusion-modal';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
+import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
 import { useAttendanceRecordListInOrganizationContext } from '@/providers/organization/attendance/attendance-record-list-in-organization-provider';
 import { useOrganizationAttendanceConclusionListContext } from '@/providers/organization/attendance/organization-attendance-conclusion-list-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
-import { calculateAttendanceTotalMinutes } from '@/utils/calculator/calculate-attendance-total-minutes';
-import { generateAttendanceConclusionSummary } from '@/utils/generator/string-generator/generate-attendance-conclusion-summary';
-import { generateDurationText } from '@/utils/generator/string-generator/generate-duration-text';
+import { generateAttendanceTotalText } from '@/utils/generator/string-generator/generate-attendance-total-text';
 
 interface AttendanceConclusionBarProps {
-  organizationId: string;
   organizationMemberId: string;
-  workDate: string;
+  /** Who the verdict is about — absent only when the screen was reached without the member's name. */
+  organizationMemberName?: string;
 }
 
 export function AttendanceConclusionBar({
-  organizationId,
   organizationMemberId,
-  workDate,
+  organizationMemberName,
 }: AttendanceConclusionBarProps) {
   const insets = useSafeAreaInsets();
   const { can } = useOrganizationAbility();
@@ -35,8 +32,7 @@ export function AttendanceConclusionBar({
   const {
     attendanceConclusions,
     isMutatingAttendanceConclusion,
-    handleCreateAttendanceConclusion,
-    handleUpdateAttendanceConclusion,
+    handleSubmitAttendanceConclusion,
   } = useOrganizationAttendanceConclusionListContext();
 
   const now = useCurrentMinute();
@@ -49,9 +45,7 @@ export function AttendanceConclusionBar({
   const memberAttendanceRecords = attendanceRecords.filter(
     (attendanceRecord) => attendanceRecord.organizationMemberId === organizationMemberId,
   );
-  const totalText = attendanceConclusion
-    ? generateAttendanceConclusionSummary(attendanceConclusion)
-    : generateDurationText(calculateAttendanceTotalMinutes(memberAttendanceRecords, now));
+  const totalText = generateAttendanceTotalText(memberAttendanceRecords, attendanceConclusion, now);
 
   // A member with no punch at all still needs the bar — that is the leave-day case.
   if (!can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.ATTENDANCE_CONCLUSION)) return null;
@@ -60,12 +54,7 @@ export function AttendanceConclusionBar({
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <PressableOpacity style={styles.barRow} onPress={() => modalRef.current?.open()}>
         <View style={styles.leftContainer}>
-          <FontAwesome5
-            iconStyle="solid"
-            name="clipboard-check"
-            size={ICON_SIZES.md}
-            color={COLORS.teal700}
-          />
+          <VinaupVerticalOk color={COLORS.teal700} />
           <Text style={styles.titleText}>Kết luận</Text>
         </View>
         <Text style={styles.totalText}>{totalText}</Text>
@@ -73,20 +62,13 @@ export function AttendanceConclusionBar({
 
       <AttendanceConclusionModal
         modalRef={modalRef}
+        organizationMemberName={organizationMemberName}
         attendanceConclusion={attendanceConclusion}
+        totalText={totalText}
         isLoading={isMutatingAttendanceConclusion}
-        onConfirm={(value, closeModal) => {
-          // The form only ever edits the metrics; the identity of the workday is the bar's to add,
-          // and it is what decides whether this is the first verdict or a revision of one.
-          if (attendanceConclusion) {
-            handleUpdateAttendanceConclusion(attendanceConclusion.id, value, closeModal);
-            return;
-          }
-          handleCreateAttendanceConclusion(
-            { organizationId, organizationMemberId, workDate, ...value },
-            closeModal,
-          );
-        }}
+        onConfirm={(value, closeModal) =>
+          handleSubmitAttendanceConclusion(organizationMemberId, value, closeModal)
+        }
       />
     </View>
   );

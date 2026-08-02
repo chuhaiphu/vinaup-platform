@@ -1,73 +1,124 @@
+import MaterialCommunityIcons, {
+  type MaterialDesignIconsIconName,
+} from '@react-native-vector-icons/material-design-icons/static';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Badge } from '@/components/primitives/badge';
+import VinaupCheckIn from '@/components/icons/vinaup-check-in.native';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import {
+  ATTENDANCE_CONCLUSION_UNSET_ICON,
+  ATTENDANCE_CONCLUSION_UNSET_ICON_COLOR,
   ATTENDANCE_CONCLUSION_UNSET_LABEL,
-  ATTENDANCE_CONCLUSION_UNSET_VARIANT,
   ATTENDANCE_RECORD_STATUS,
   AttendanceConclusionStatusDisplay,
-  AttendanceConclusionStatusVariant,
+  AttendanceConclusionStatusIcon,
+  AttendanceConclusionStatusIconColor,
 } from '@/constants/attendance-constants';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, RADIUS, SPACING } from '@/constants/style-constants';
+import {
+  COLORS,
+  FONT_SIZES,
+  FONT_WEIGHTS,
+  ICON_SIZES,
+  RADIUS,
+  SPACING,
+} from '@/constants/style-constants';
 import {
   AttendanceConclusionResponse,
   AttendanceRecordResponse,
 } from '@/interfaces/attendance-interfaces';
 import { OrganizationMemberResponse } from '@/interfaces/organization-member-interfaces';
-import { calculateAttendanceTotalMinutes } from '@/utils/calculator/calculate-attendance-total-minutes';
-import { generateAttendanceConclusionSummary } from '@/utils/generator/string-generator/generate-attendance-conclusion-summary';
-import { generateDurationText } from '@/utils/generator/string-generator/generate-duration-text';
 
 interface AttendanceMemberCardProps {
   organizationMember: OrganizationMemberResponse;
   attendanceRecords: AttendanceRecordResponse[];
   attendanceConclusion: AttendanceConclusionResponse | null;
-  /** "Now", supplied by the list so one timer drives every still-open total. */
-  now: Date;
+  /** The day's worked total, already resolved by the list against the conclusion. */
+  totalText: string;
+  canConcludeAttendance: boolean;
   onPress: () => void;
+  onConclusionPress: () => void;
 }
 
 export function AttendanceMemberCard({
   organizationMember,
   attendanceRecords,
   attendanceConclusion,
-  now,
+  totalText,
+  canConcludeAttendance,
   onPress,
+  onConclusionPress,
 }: AttendanceMemberCardProps) {
-  const totalText = attendanceConclusion
-    ? generateAttendanceConclusionSummary(attendanceConclusion)
-    : generateDurationText(calculateAttendanceTotalMinutes(attendanceRecords, now));
-
   const statusLabel = attendanceConclusion
     ? AttendanceConclusionStatusDisplay[attendanceConclusion.status]
     : ATTENDANCE_CONCLUSION_UNSET_LABEL;
-  const statusVariant = attendanceConclusion
-    ? AttendanceConclusionStatusVariant[attendanceConclusion.status]
-    : ATTENDANCE_CONCLUSION_UNSET_VARIANT;
+  const statusIcon = attendanceConclusion
+    ? AttendanceConclusionStatusIcon[attendanceConclusion.status]
+    : ATTENDANCE_CONCLUSION_UNSET_ICON;
+  const statusIconColor = attendanceConclusion
+    ? AttendanceConclusionStatusIconColor[attendanceConclusion.status]
+    : ATTENDANCE_CONCLUSION_UNSET_ICON_COLOR;
 
   const hasOpenAttendanceRecord = attendanceRecords.some(
     (attendanceRecord) => attendanceRecord.status === ATTENDANCE_RECORD_STATUS.OPEN,
   );
-  const punchCountText = `${attendanceRecords.length} lượt`;
+
+  // Both are penalties the manager counted, so a zero is nothing to report — the row stays away.
+  const lateArrivalCount = attendanceConclusion?.lateArrivalCount ?? 0;
+  const earlyDepartureCount = attendanceConclusion?.earlyDepartureCount ?? 0;
+  const showContentBottom = lateArrivalCount > 0 || earlyDepartureCount > 0;
+
+  const renderPenaltyRow = (icon: MaterialDesignIconsIconName, label: string, count: number) => (
+    <View style={styles.bottomRow}>
+      <View style={styles.bottomLeftColumn}>
+        <MaterialCommunityIcons name={icon} size={ICON_SIZES.xs} color={COLORS.orange700} />
+      </View>
+      <View style={styles.bottomRightColumn}>
+        <Text style={styles.bottomText}>{label}</Text>
+        <Text style={styles.bottomText}>{count} lần</Text>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      <PressableOpacity style={styles.content} onPress={onPress}>
+      <PressableOpacity
+        style={[styles.content, showContentBottom && styles.contentAttached]}
+        onPress={onPress}
+      >
         <View style={styles.row}>
-          <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
-            {organizationMember.name}
-          </Text>
+          <View style={styles.nameContainer}>
+            <VinaupCheckIn width={ICON_SIZES.md} height={ICON_SIZES.md} color={COLORS.yellow400} />
+            <Text style={styles.nameText} numberOfLines={1} ellipsizeMode="tail">
+              {organizationMember.name}
+            </Text>
+          </View>
           <Text style={styles.totalText}>{totalText}</Text>
         </View>
         <View style={styles.row}>
-          <Badge variant={statusVariant}>{statusLabel}</Badge>
-          <Text style={styles.punchText}>
-            {punchCountText}
-            {hasOpenAttendanceRecord && <Text style={styles.openText}> - đang mở</Text>}
-          </Text>
+          <PressableOpacity
+            style={styles.statusContainer}
+            onPress={onConclusionPress}
+            disabled={!canConcludeAttendance}
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons
+              name={statusIcon}
+              size={ICON_SIZES.md}
+              color={statusIconColor}
+            />
+            <Text style={styles.statusText}>{statusLabel}</Text>
+          </PressableOpacity>
+          {hasOpenAttendanceRecord && <Text style={styles.openText}>Chưa checkout</Text>}
         </View>
       </PressableOpacity>
+
+      {showContentBottom && (
+        <View style={styles.contentBottom}>
+          {lateArrivalCount > 0 &&
+            renderPenaltyRow('clock-alert-outline', 'Đi trễ', lateArrivalCount)}
+          {earlyDepartureCount > 0 && renderPenaltyRow('exit-run', 'Về sớm', earlyDepartureCount)}
+        </View>
+      )}
     </View>
   );
 }
@@ -83,11 +134,52 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     padding: SPACING.sm,
   },
+  contentAttached: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  contentBottom: {
+    gap: SPACING.xs,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: SPACING.sm,
+    paddingVertical: SPACING.sm,
+    borderBottomLeftRadius: RADIUS.md,
+    borderBottomRightRadius: RADIUS.md,
+    borderWidth: 0.5,
+    borderTopWidth: 0,
+  },
+  bottomRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+  },
+  bottomLeftColumn: {
+    width: 48,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  bottomRightColumn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: SPACING.sm,
+  },
+  bottomText: {
+    fontSize: FONT_SIZES.sm,
+    color: COLORS.gray700,
+  },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: SPACING.sm,
+  },
+  nameContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
   },
   nameText: {
     flex: 1,
@@ -99,11 +191,17 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.base,
     color: COLORS.teal900,
   },
-  punchText: {
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+  },
+  statusText: {
     fontSize: FONT_SIZES.sm,
-    color: COLORS.gray700,
+    color: COLORS.gray900,
   },
   openText: {
+    fontSize: FONT_SIZES.sm,
     color: COLORS.yellow700,
   },
 });

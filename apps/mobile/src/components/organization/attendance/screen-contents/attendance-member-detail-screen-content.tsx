@@ -76,9 +76,8 @@ export function AttendanceMemberDetailScreenContent() {
               organizationTimezone={organizationTimezone}
             />
             <AttendanceConclusionBar
-              organizationId={organizationId}
               organizationMemberId={organizationMemberId}
-              workDate={selectedWorkDate}
+              organizationMemberName={organizationMemberName}
             />
           </OrganizationAttendanceConclusionListProvider>
         </AttendanceRecordListInOrganizationProvider>

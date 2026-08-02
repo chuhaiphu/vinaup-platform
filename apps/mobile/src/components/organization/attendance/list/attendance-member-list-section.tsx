@@ -1,13 +1,31 @@
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { AttendanceMemberCard } from '@/components/organization/attendance/list/attendance-member-card';
+import { AttendanceConclusionModal } from '@/components/organization/attendance/modals/attendance-conclusion-modal/attendance-conclusion-modal';
+import { SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
+import {
+  AttendanceConclusionResponse,
+  AttendanceRecordResponse,
+} from '@/interfaces/attendance-interfaces';
+import { OrganizationMemberResponse } from '@/interfaces/organization-member-interfaces';
 import { useAttendanceRecordListInOrganizationContext } from '@/providers/organization/attendance/attendance-record-list-in-organization-provider';
 import { useOrganizationAttendanceConclusionListContext } from '@/providers/organization/attendance/organization-attendance-conclusion-list-provider';
 import { useOrganizationMemberListContext } from '@/providers/organization/member/organization-member-list-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
+import { generateAttendanceTotalText } from '@/utils/generator/string-generator/generate-attendance-total-text';
+
+// One member's whole workday: who, what they punched, and the verdict standing over it.
+interface AttendanceDayRow {
+  organizationMember: OrganizationMemberResponse;
+  attendanceRecords: AttendanceRecordResponse[];
+  attendanceConclusion: AttendanceConclusionResponse | null;
+  totalText: string;
+}
 
 interface AttendanceMemberListSectionProps {
   organizationId: string;
@@ -19,6 +37,11 @@ export function AttendanceMemberListSection({
   workDate,
 }: AttendanceMemberListSectionProps) {
   const router = useRouter();
+  const { can } = useOrganizationAbility();
+  const conclusionModalRef = useRef<SlideSheetRef | null>(null);
+  const [selectedOrganizationMemberId, setSelectedOrganizationMemberId] = useState<string | null>(
+    null,
+  );
 
   const {
     organizationMembers,
@@ -33,7 +56,9 @@ export function AttendanceMemberListSection({
   const {
     attendanceConclusions,
     isRefreshing: isRefreshingAttendanceConclusions,
+    isMutatingAttendanceConclusion,
     refreshFetch: refreshAttendanceConclusions,
+    handleSubmitAttendanceConclusion,
   } = useOrganizationAttendanceConclusionListContext();
 
   useEffect(() => {
@@ -43,17 +68,39 @@ export function AttendanceMemberListSection({
   // One timer here drives every card's running total.
   const now = useCurrentMinute();
 
-  const attendanceDayRowList = (organizationMembers ?? []).map((organizationMember) => ({
-    organizationMember,
-    attendanceRecords: attendanceRecords.filter(
-      (attendanceRecord) => attendanceRecord.organizationMemberId === organizationMember.id,
-    ),
-    attendanceConclusion:
-      attendanceConclusions.find(
-        (attendanceConclusion) =>
-          attendanceConclusion.organizationMemberId === organizationMember.id,
-      ) ?? null,
-  }));
+  const attendanceDayRowList: AttendanceDayRow[] = (organizationMembers ?? []).map(
+    (organizationMember) => {
+      const memberAttendanceRecords = attendanceRecords.filter(
+        (attendanceRecord) => attendanceRecord.organizationMemberId === organizationMember.id,
+      );
+      const attendanceConclusion =
+        attendanceConclusions.find(
+          (conclusion) => conclusion.organizationMemberId === organizationMember.id,
+        ) ?? null;
+
+      return {
+        organizationMember,
+        attendanceRecords: memberAttendanceRecords,
+        attendanceConclusion,
+        totalText: generateAttendanceTotalText(memberAttendanceRecords, attendanceConclusion, now),
+      };
+    },
+  );
+
+  const canConcludeAttendance = can(
+    PERMISSION_ACTION.CREATE,
+    PERMISSION_RESOURCE.ATTENDANCE_CONCLUSION,
+  );
+
+  const selectedAttendanceMember =
+    attendanceDayRowList.find(
+      (attendanceDayRow) => attendanceDayRow.organizationMember.id === selectedOrganizationMemberId,
+    ) ?? null;
+
+  const handleConclusionPress = (organizationMemberId: string) => {
+    setSelectedOrganizationMemberId(organizationMemberId);
+    conclusionModalRef.current?.open();
+  };
 
   const handleRefresh = () => {
     fetchMembers();
@@ -73,7 +120,9 @@ export function AttendanceMemberListSection({
             organizationMember={item.organizationMember}
             attendanceRecords={item.attendanceRecords}
             attendanceConclusion={item.attendanceConclusion}
-            now={now}
+            totalText={item.totalText}
+            canConcludeAttendance={canConcludeAttendance}
+            onConclusionPress={() => handleConclusionPress(item.organizationMember.id)}
             onPress={() =>
               router.push({
                 pathname: '/(protected)/attendance-management/[organizationMemberId]',
@@ -101,6 +150,22 @@ export function AttendanceMemberListSection({
             colors={[COLORS.teal700]}
           />
         }
+      />
+
+      <AttendanceConclusionModal
+        modalRef={conclusionModalRef}
+        organizationMemberName={selectedAttendanceMember?.organizationMember.name}
+        attendanceConclusion={selectedAttendanceMember?.attendanceConclusion ?? null}
+        totalText={selectedAttendanceMember?.totalText ?? ''}
+        isLoading={isMutatingAttendanceConclusion}
+        onConfirm={(value, closeModal) => {
+          if (!selectedAttendanceMember) return;
+          handleSubmitAttendanceConclusion(
+            selectedAttendanceMember.organizationMember.id,
+            value,
+            closeModal,
+          );
+        }}
       />
     </View>
   );
