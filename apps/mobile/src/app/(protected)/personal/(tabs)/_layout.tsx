@@ -3,10 +3,10 @@ import Octicons from '@react-native-vector-icons/octicons/static';
 import { Tabs } from 'expo-router';
 
 import { TabBarButton } from '@/components/commons/bars/tab-bar-button/tab-bar-button';
-import { HomeHeader } from '@/components/commons/headers/home-header/home-header';
 import VinaupCalendarIcon from '@/components/icons/vinaup-calendar-icon';
 import VinaupHome from '@/components/icons/vinaup-home.native';
 import VinaupPlusMinusMultiplyEqual from '@/components/icons/vinaup-plus-minus-multiply-equal.native';
+import { SCREEN_TITLES } from '@/constants/app-constants';
 import { COLORS, FONT_SIZES } from '@/constants/style-constants';
 import { PersonalActionsProvider } from '@/providers/personal/personal-actions-provider';
 
@@ -15,7 +15,7 @@ export default function PersonalTabsLayout() {
     <PersonalActionsProvider>
       <Tabs
         screenOptions={{
-          header: () => <HomeHeader />,
+          headerShown: false,
           tabBarButton: (props) => <TabBarButton {...props} />,
           tabBarActiveTintColor: COLORS.yellow400,
           tabBarInactiveTintColor: COLORS.teal700,
@@ -25,9 +25,9 @@ export default function PersonalTabsLayout() {
         }}
       >
         <Tabs.Screen
-          name="index"
+          name="(home)"
           options={{
-            title: 'Home',
+            title: SCREEN_TITLES.PERSONAL_HOME,
             tabBarIcon: ({ color, size }) => (
               <VinaupHome width={size} height={size} color={color} />
             ),
@@ -44,7 +44,7 @@ export default function PersonalTabsLayout() {
         <Tabs.Screen
           name="wage"
           options={{
-            title: 'Tiền công',
+            title: SCREEN_TITLES.PERSONAL_WAGE,
             tabBarIcon: ({ color, size }) => (
               <VinaupCalendarIcon width={size} height={size} color={color} />
             ),
@@ -53,7 +53,7 @@ export default function PersonalTabsLayout() {
         <Tabs.Screen
           name="project"
           options={{
-            title: 'Dự án',
+            title: SCREEN_TITLES.PERSONAL_PROJECT,
             tabBarIcon: ({ color, size }) => (
               <VinaupPlusMinusMultiplyEqual width={size} height={size} color={color} />
             ),
@@ -62,7 +62,7 @@ export default function PersonalTabsLayout() {
         <Tabs.Screen
           name="calendar"
           options={{
-            title: 'Lịch',
+            title: SCREEN_TITLES.PERSONAL_CALENDAR,
             tabBarIcon: ({ color, size }) => (
               <FontAwesome5 name="calendar-alt" size={size} color={color} />
             ),
@@ -71,7 +71,7 @@ export default function PersonalTabsLayout() {
         <Tabs.Screen
           name="profile"
           options={{
-            title: 'Cá nhân',
+            title: SCREEN_TITLES.PERSONAL_PROFILE,
             tabBarIcon: ({ color, size }) => <Octicons name="person" size={size} color={color} />,
           }}
         />

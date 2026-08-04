@@ -1,5 +1,5 @@
 import MaterialIcons from '@react-native-vector-icons/material-icons/static';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import React, { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -20,17 +20,19 @@ import {
 import { useAuthContext } from '@/providers/auth/auth-provider';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
 
-export const OwnerSelector = () => {
+/**
+ * Switches the app between the personal owner and an organisation owner.
+ *
+ * @param organizationId - the organisation being viewed, omitted in personal mode.
+ */
+export const OwnerSelector = ({ organizationId }: { organizationId?: string }) => {
   const router = useRouter();
-  const { organizationId: currentOrgId } = useLocalSearchParams<{
-    organizationId: string;
-  }>();
   const { currentUser } = useAuthContext();
   const { organizations } = useOrganizationContext();
   const sheetRef = useRef<SlideSheetRef>(null);
   const insets = useSafeAreaInsets();
 
-  const isOrganizationMode = !!currentOrgId;
+  const isOrganizationMode = !!organizationId;
 
   const getSortedOwners = () => {
     if (!currentUser) return [];
@@ -41,14 +43,14 @@ export const OwnerSelector = () => {
 
     // If the current owner is organization,
     // place the active organization on top, then the user, then the rest of organizations
-    const activeOrg = organizations.find((org) => org.id === currentOrgId);
+    const activeOrg = organizations.find((org) => org.id === organizationId);
     const otherOrgs = organizations.filter((org) => org.id !== activeOrg?.id);
     return [activeOrg, currentUser, ...otherOrgs];
   };
 
   const getCurrentValue = () => {
     if (!isOrganizationMode) return 'personal';
-    return `organization-${currentOrgId}`;
+    return `organization-${organizationId}`;
   };
   const profileOptions: SingleSelectOption[] = getSortedOwners().map((owner) => {
     if (!owner) return { label: null, value: null };

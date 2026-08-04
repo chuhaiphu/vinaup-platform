@@ -4,7 +4,7 @@
     "slug": "vinaup-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/images/vinaup-app-icon-ios.png",
+    "icon": "./src/assets/images/app_icon.png",
     "scheme": "vinaup-mobile",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/images/vinaup-app-icon-android.png",
+        "foregroundImage": "./src/assets/images/app_icon_adaptive_foreground.png",
         "backgroundColor": "#005c62"
       },
       "predictiveBackGestureEnabled": false,
@@ -21,14 +21,14 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./src/assets/images/logo-vinaup.png"
+      "favicon": "./src/assets/images/vinaup_logo_primary.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./src/assets/images/splash-screen-vinaup.png",
+          "image": "./src/assets/images/splash_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
@@ -37,7 +37,10 @@
       [
         "expo-asset",
         {
-          "assets": ["./src/assets/images/"]
+          "assets": [
+            "./src/assets/images/vinaup_logo_secondary.png",
+            "./src/assets/images/vinaup_loader.gif"
+          ]
         }
       ],
       "@react-native-community/datetimepicker",

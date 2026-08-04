@@ -1,7 +1,8 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import Entypo from '@react-native-vector-icons/entypo/static';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -10,6 +11,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,10 +26,14 @@ import {
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SingleSelect } from '@/components/primitives/single-select';
 import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { InvoiceStatus, InvoiceStatusOptions, InvoiceTypeDisplay } from '@/constants/invoice-constants';
+import {
+  InvoiceStatus,
+  InvoiceStatusOptions,
+  InvoiceTypeDisplay,
+} from '@/constants/invoice-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInInvoiceProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-invoice-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
 import { useInvoiceDetailContext } from '@/providers/organization/invoice/invoice-detail-provider';
@@ -69,19 +75,26 @@ export function InvoiceDetailScreenContent() {
     refreshInvoice();
   }, [refreshInvoice]);
 
-  useScreenHeader({
-    title: 'Chi tiết' + ' ' + InvoiceTypeDisplay[invoice.type],
-    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE)
-      ? handleDeleteInvoice
-      : undefined,
-    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.INVOICE)
-      ? handleSaveAndExit
-      : undefined,
-    isDeleting: isDeletingInvoice,
-  });
-
   return (
     <OrganizationCustomerProvider organizationId={invoice.organization?.id}>
+      <Stack.Title>{`Chi tiết ${InvoiceTypeDisplay[invoice.type]}`}</Stack.Title>
+      <Stack.Toolbar placement="right">
+        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE) && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeletingInvoice}
+            accessibilityLabel="Xoá"
+            onPress={handleDeleteInvoice}
+          />
+        )}
+        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.INVOICE) && (
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/save_and_exit.png')}
+            accessibilityLabel="Lưu & thoát"
+            onPress={handleSaveAndExit}
+          />
+        )}
+      </Stack.Toolbar>
       <ScrollView
         style={styles.container}
         refreshControl={

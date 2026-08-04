@@ -3,13 +3,13 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useImperativeHandle } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ReceiptPaymentSectionListHeader } from '@/components/commons/headers/receipt-payment-section-list-header';
 import { ReceiptPaymentCard } from '@/components/commons/receipt-payment/receipt-payment-card';
+import { ReceiptPaymentSectionListHeader } from '@/components/commons/receipt-payment/receipt-payment-section-list-header';
 import { DD_MM_DATE_FORMAT_SHORT } from '@/constants/app-constants';
+import { INVOICE_TYPE, type InvoiceType } from '@/constants/invoice-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 import { useReceiptPaymentListInInvoiceContext } from '@/providers/commons/receipt-payment/receipt-payment-list-in-invoice-provider';
-import { INVOICE_TYPE, type InvoiceType } from '@/constants/invoice-constants';
 import { generateDayJsDateChain } from '@/utils/generator/string-generator/generate-day-js-date-chain';
 
 export interface ReceiptPaymentListInInvoiceRef {

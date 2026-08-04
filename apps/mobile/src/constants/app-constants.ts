@@ -1,3 +1,5 @@
+import { COLORS, FONT_SIZES } from './style-constants';
+
 export const DD_MM_DATE_FORMAT_SHORT = 'DD/MM';
 export const HH_MM_DATE_FORMAT_SHORT = 'HH:mm';
 export const YYYY_DATE_FORMAT = 'YYYY';
@@ -44,3 +46,33 @@ export const ORGANIZATION_UTILITY_KEYS = {
 
 export type OrganizationUtilityKey =
   (typeof ORGANIZATION_UTILITY_KEYS)[keyof typeof ORGANIZATION_UTILITY_KEYS];
+
+/**
+ * Chrome shared by every native Stack header.
+ */
+export const STACK_SCREEN_OPTIONS = {
+  headerStyle: { backgroundColor: COLORS.white },
+  headerTintColor: COLORS.teal700,
+  headerTitleStyle: { fontSize: FONT_SIZES.lg, color: COLORS.teal900 },
+  // A no-op on iOS, the only way Android centres.
+  headerTitleAlign: 'center',
+  headerShadowVisible: false,
+  // iOS: chevron only, matching the bar this replaced.
+  headerBackButtonDisplayMode: 'minimal',
+} as const;
+
+export const SCREEN_TITLES = {
+  PERSONAL_HOME: 'Trang chủ',
+  PERSONAL_WAGE: 'Tiền công',
+  PERSONAL_PROJECT: 'Dự án',
+  PERSONAL_CALENDAR: 'Lịch',
+  PERSONAL_PROFILE: 'Cá nhân',
+  ORGANIZATION_HOME: 'Trang chủ',
+  ORGANIZATION_INVOICE: 'Hoá đơn',
+  ORGANIZATION_PROJECT: 'Dự án',
+  ORGANIZATION_TOUR: 'Tour',
+  ORGANIZATION_BOOKING: 'Booking',
+  ORGANIZATION_CAR: 'Xe',
+  ORGANIZATION_ATTENDANCE: 'Chấm công',
+  ORGANIZATION_PROFILE: 'Tổ chức',
+} as const;

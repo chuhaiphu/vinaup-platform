@@ -1,15 +1,13 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import Entypo from '@react-native-vector-icons/entypo/static';
-import FontAwesome from '@react-native-vector-icons/fontawesome/static';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
-import Ionicons from '@react-native-vector-icons/ionicons/static';
-import { Slot, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
+import { Slot, Stack, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import { type ApiError } from 'fetchwire';
 import { useRef, Suspense } from 'react';
-import { View, StyleSheet, Alert, Text, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Alert, Text, ActivityIndicator, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EntityDetailSkeleton } from '@/components/commons/skeletons/entity-detail-skeleton';
-import VinaupSaveAndExit from '@/components/icons/vinaup-save-and-exit.native';
 import VinaupVerticalExpandArrow from '@/components/icons/vinaup-vertical-expand-arrow.native';
 import { OrganizationTourDetailTabList } from '@/components/organization/tour/detail/organization-tour-detail-tab-list';
 import { ErrorBoundary } from '@/components/primitives/error-boundary';
@@ -19,7 +17,7 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { TourStatus, TourStatusOptions } from '@/constants/tour-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import {
   TourDetailProvider,
   useTourDetailContext,
@@ -77,23 +75,22 @@ function TourDetailLayoutContent() {
     router.back();
   };
 
-  useScreenHeader({
-    title: 'Quản lý Tour',
-    backIcon: <Ionicons name="chevron-back" size={ICON_SIZES.lg} color={COLORS.teal700} />,
-    deleteIcon: <FontAwesome name="trash-o" size={ICON_SIZES.md} color={COLORS.teal700} />,
-    saveIcon: <VinaupSaveAndExit width={32} height={24} color={COLORS.teal700} />,
-    onDelete: handleDelete,
-    isDeleting,
-    onSave: handleSaveAndExit,
-    styles: {
-      container: styles.headerContainer,
-      title: styles.headerTitle,
-    },
-    extension: <OrganizationTourDetailTabList currentTab={tab} tourId={tourId} />,
-  });
-
   return (
     <>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+          disabled={isDeleting}
+          accessibilityLabel="Xoá"
+          onPress={handleDelete}
+        />
+        <Stack.Toolbar.Button
+          icon={require('@/assets/images/save_and_exit.png')}
+          accessibilityLabel="Lưu & thoát"
+          onPress={handleSaveAndExit}
+        />
+      </Stack.Toolbar>
+      <OrganizationTourDetailTabList currentTab={tab} tourId={tourId} />
       <View style={styles.actionContainer}>
         {isUpdatingTour || isRefreshingTour ? (
           <ActivityIndicator size="small" color={COLORS.teal700} />

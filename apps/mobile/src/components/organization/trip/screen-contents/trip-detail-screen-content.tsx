@@ -1,5 +1,6 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useRef } from 'react';
 import {
   View,
@@ -8,6 +9,7 @@ import {
   ScrollView,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,7 +31,7 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { TripStatus, TripStatusOptions } from '@/constants/trip-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInTripProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-trip-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
@@ -76,17 +78,25 @@ export function TripDetailScreenContent() {
     router.back();
   };
 
-  useScreenHeader({
-    title: 'Chi tiết chuyến',
-    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TRIP)
-      ? handleDeleteTrip
-      : undefined,
-    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TRIP) ? handleSaveAndExit : undefined,
-    isDeleting: isDeletingTrip,
-  });
-
   return (
     <OrganizationCustomerProvider organizationId={trip.organization?.id}>
+      <Stack.Toolbar placement="right">
+        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TRIP) && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeletingTrip}
+            accessibilityLabel="Xoá"
+            onPress={handleDeleteTrip}
+          />
+        )}
+        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TRIP) && (
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/save_and_exit.png')}
+            accessibilityLabel="Lưu & thoát"
+            onPress={handleSaveAndExit}
+          />
+        )}
+      </Stack.Toolbar>
       <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <View style={styles.actionContainer}>
           {isUpdatingTrip || isRefreshingTrip ? (

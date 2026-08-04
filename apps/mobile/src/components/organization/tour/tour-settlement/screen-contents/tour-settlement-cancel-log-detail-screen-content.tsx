@@ -1,8 +1,9 @@
+import PictureAsPdfIcon from '@expo/material-symbols/picture_as_pdf.xml';
+import TableIcon from '@expo/material-symbols/table.xml';
 import Feather from '@react-native-vector-icons/feather/static';
-import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons/static';
 import MaterialIcons from '@react-native-vector-icons/material-icons/static';
 import dayjs from 'dayjs';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -11,11 +12,10 @@ import {
   StyleSheet,
   Text,
   View,
-  Pressable,
+  Platform,
 } from 'react-native';
 
 import { PdfPageSizeModal } from '@/components/commons/modals/pdf-page-size-modal/pdf-page-size-modal';
-import VinaupLeftArrowTwoLayers from '@/components/icons/vinaup-left-arrow-two-layers.native';
 import VinaupUserArrowUpRight from '@/components/icons/vinaup-user-arrow-up-right.native';
 import VinaupUserChecked from '@/components/icons/vinaup-user-checked.native';
 import { Avatar } from '@/components/primitives/avatar';
@@ -32,6 +32,7 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 import { SignatureResponse } from '@/interfaces/signature-interfaces';
 import { TourSettlementCancelLogSnapshot } from '@/interfaces/tour-settlement-interfaces';
@@ -43,7 +44,6 @@ import { generateFormatDateTime } from '@/utils/generator/string-generator/gener
 import { generateLocaleFormatString } from '@/utils/generator/string-generator/generate-locale-format-string';
 
 export function TourSettlementCancelLogDetailScreenContent() {
-  const router = useRouter();
   const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const pageSizeModalRef = useRef<SlideSheetRef | null>(null);
   const { tourSettlementCancelLogId } = useLocalSearchParams<{
@@ -148,46 +148,19 @@ export function TourSettlementCancelLogDetailScreenContent() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerTitle: 'Chi tiết Nhật ký',
-          headerTitleStyle: styles.headerTitleStyle,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-              <VinaupLeftArrowTwoLayers />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <View style={styles.rightActions}>
-              <Pressable
-                style={[
-                  styles.actionBtn,
-                  (isGeneratingPdf || !cancelLog) && styles.actionBtnDisabled,
-                ]}
-                onPress={handlePressPdf}
-                disabled={isGeneratingPdf || !cancelLog}
-              >
-                {isGeneratingPdf ? (
-                  <ActivityIndicator size="small" color={COLORS.teal700} />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="file-pdf-box"
-                    size={ICON_SIZES.lg}
-                    color={COLORS.teal700}
-                  />
-                )}
-              </Pressable>
-              <Pressable style={[styles.actionBtn, styles.actionBtnDisabled]} disabled>
-                <MaterialCommunityIcons
-                  name="microsoft-excel"
-                  size={ICON_SIZES.lg}
-                  color={COLORS.teal700}
-                />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'doc.richtext', android: PictureAsPdfIcon })}
+          disabled={isGeneratingPdf || !cancelLog}
+          accessibilityLabel="Xuất PDF"
+          onPress={handlePressPdf}
+        />
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'tablecells', android: TableIcon })}
+          disabled
+          accessibilityLabel="Xuất Excel"
+        />
+      </Stack.Toolbar>
 
       <PdfPageSizeModal
         modalRef={pageSizeModalRef}

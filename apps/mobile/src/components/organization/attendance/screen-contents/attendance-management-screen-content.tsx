@@ -12,7 +12,6 @@ import { DD_MM_DATE_FORMAT_SHORT, YYYY_MM_DD_DATE_FORMAT } from '@/constants/app
 import { DEFAULT_ORGANIZATION_TIMEZONE } from '@/constants/organization-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
-import { useScreenHeader } from '@/hooks/use-screen-header';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
 import { AttendanceRecordListInOrganizationProvider } from '@/providers/organization/attendance/attendance-record-list-in-organization-provider';
 import { OrganizationAttendanceConclusionListProvider } from '@/providers/organization/attendance/organization-attendance-conclusion-list-provider';
@@ -37,8 +36,6 @@ export function AttendanceManagementScreenContent() {
   const todayWorkDate = generateCalendarDate(now, organizationTimezone);
   const selectedWorkDate = workDate ?? todayWorkDate;
   const isLiveWorkDate = selectedWorkDate === todayWorkDate;
-
-  useScreenHeader({ title: 'Quản lý chấm công' });
 
   const handleWorkDateChange = (date: dayjs.Dayjs) => {
     router.setParams({ workDate: date.format(YYYY_MM_DD_DATE_FORMAT) });

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="src/assets/images/logo-vinaup.png" alt="VinaUp Logo" width="120" />
+  <img src="src/assets/images/vinaup_logo_primary.png" alt="VinaUp Logo" width="120" />
   <h1>VinaUp Mobile</h1>
   <p>Income & expense management app for individuals and organizations.</p>
 

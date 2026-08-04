@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 export const COLORS = {
   white: '#ffffff',
   gray50: '#f9f9f9',
@@ -128,7 +130,8 @@ export const COLORS = {
   red900: '#692615',
 };
 
-export const HEADER_HEIGHT = 56;
+// The native Stack header, below the safe area: 44pt on iOS, 56dp on Android.
+export const HEADER_HEIGHT = Platform.select({ ios: 44, default: 56 });
 
 export const FONT_SIZES = {
   xxs: 10, // micro / tab

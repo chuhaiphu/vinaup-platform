@@ -1,10 +1,13 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import type { TourStatus } from '@vinaup-platform/validation';
 import dayjs from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { prefetch } from 'fetchwire';
 import { Suspense, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { getTourById } from '@/apis/tour/tour-apis';
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
 import { OrganizationTourListSection } from '@/components/organization/tour/list/organization-tour-list-section';
 import { FilterSelect } from '@/components/primitives/filter-select';
@@ -14,12 +17,18 @@ import { DD_MM_YYYY_DATE_FORMAT, MM_YYYY_DATE_FORMAT } from '@/constants/app-con
 import { type DatePickerMode } from '@/constants/date-constants';
 import { COLORS, FONT_SIZES, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { TourStatusOptions } from '@/constants/tour-constants';
+import { useNavigationStore } from '@/hooks/use-navigation-store';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
+import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { OrganizationTourListProvider } from '@/providers/organization/tour/organization-tour-list-provider';
+import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 export function OrganizationTourScreenContent() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ organizationId: string; month?: string; day?: string }>();
-  const { organizationId, month, day } = params;
+  const { month, day } = useLocalSearchParams<{ month?: string; day?: string }>();
+  const { organizationId, can } = useOrganizationAbility();
+  const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
+  const { createTour, isCreatingTour } = useOrganizationActionsContext();
 
   const [statusFilter, setStatusFilter] = useState<TourStatus | ''>('');
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -43,8 +52,44 @@ export function OrganizationTourScreenContent() {
     filterMode === 'month' ? selectedDate.format('YYYY-MM') : selectedDate.format('YYYY-MM-DD')
   }-${statusFilter}`;
 
+  const handleAddNew = () => {
+    createTour(
+      { organizationId },
+      {
+        onSuccess: async (data) => {
+          setIsNavigating(true);
+          try {
+            await prefetch(() => getTourById(data?.id || ''), {
+              fetchKey: `organization-tour-${data?.id}`,
+            });
+          } catch {
+            // Fallback to normal navigation if prefetch fails.
+          }
+          setIsNavigating(false);
+          router.push({
+            pathname: '/(protected)/tour-detail/[tourId]',
+            params: { tourId: data ? data.id : '' },
+          });
+        },
+        onError: (error) =>
+          Alert.alert('Lỗi', generateErrorMessage(error, 'Không thể tạo tour mới')),
+      },
+    );
+  };
+
   return (
     <View style={styles.container}>
+      {can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.TOUR) && (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/add_new.png')}
+            iconRenderingMode="original"
+            disabled={isCreatingTour}
+            accessibilityLabel="Tạo tour"
+            onPress={handleAddNew}
+          />
+        </Stack.Toolbar>
+      )}
       <View style={styles.tourTopContainer}>
         <PressableOpacity onPress={() => setPickerVisible(true)} style={styles.datePickerTrigger}>
           <FontAwesome5

@@ -1,14 +1,13 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import FontAwesome6 from '@react-native-vector-icons/fontawesome6/static';
 import dayjs from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CarSelectModal } from '@/components/commons/modals/car-select-modal/car-select-modal';
 import { ReceiptPaymentListInCarMaintenanceLog } from '@/components/commons/receipt-payment/receipt-payment-list-in-car-maintenance-log';
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
-import VinaupAddNew from '@/components/icons/vinaup-add-new.native';
 import { FilterSelect } from '@/components/primitives/filter-select';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SlideSheetRef } from '@/components/primitives/slide-sheet';
@@ -16,7 +15,6 @@ import { UnifiedDatePicker } from '@/components/primitives/unified-date-picker';
 import { YYYY_DATE_FORMAT } from '@/constants/app-constants';
 import { type DatePickerMode } from '@/constants/date-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
-import { useScreenHeader } from '@/hooks/use-screen-header';
 import { useReceiptPaymentCategoryContext } from '@/providers/commons/receipt-payment/receipt-payment-category-provider';
 import { ReceiptPaymentListInCarMaintenanceLogProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-car-maintenance-log-provider';
 import { useOrganizationCarListContext } from '@/providers/organization/car/organization-car-list-provider';
@@ -62,12 +60,6 @@ export function CarMaintenanceLogScreenContent() {
     });
   };
 
-  useScreenHeader({
-    title: 'Nhật ký bảo trì',
-    onAdd: carMaintenanceLogId ? navigateToCreate : undefined,
-    addIcon: <VinaupAddNew iconColor="white" height={26} width={26} />,
-  });
-
   const categoryOptions = [
     { value: '', label: 'Tất cả' },
     ...categories.map((category) => ({ value: category.id, label: category.name })),
@@ -80,6 +72,16 @@ export function CarMaintenanceLogScreenContent() {
 
   return (
     <View style={styles.container}>
+      {!!carMaintenanceLogId && (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/add_new.png')}
+            iconRenderingMode="original"
+            accessibilityLabel="Tạo bản ghi"
+            onPress={navigateToCreate}
+          />
+        </Stack.Toolbar>
+      )}
       <View style={styles.filterRow}>
         <PressableOpacity
           style={styles.carTrigger}

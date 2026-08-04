@@ -3,8 +3,8 @@ import { useRouter } from 'expo-router';
 import React, { useImperativeHandle } from 'react';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 
-import { ReceiptPaymentSectionListHeader } from '@/components/commons/headers/receipt-payment-section-list-header';
 import { ReceiptPaymentCard } from '@/components/commons/receipt-payment/receipt-payment-card';
+import { ReceiptPaymentSectionListHeader } from '@/components/commons/receipt-payment/receipt-payment-section-list-header';
 import { DD_MM_DATE_FORMAT_SHORT } from '@/constants/app-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';

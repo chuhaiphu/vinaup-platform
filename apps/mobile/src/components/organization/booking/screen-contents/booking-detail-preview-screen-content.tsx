@@ -1,11 +1,10 @@
+import PictureAsPdfIcon from '@expo/material-symbols/picture_as_pdf.xml';
 import Feather from '@react-native-vector-icons/feather/static';
-import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons/static';
 import dayjs from 'dayjs';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import VinaupLeftArrowTwoLayers from '@/components/icons/vinaup-left-arrow-two-layers.native';
 import VinaupSigningPen from '@/components/icons/vinaup-signing-pen.native';
 import VinaupUserArrowUpRight from '@/components/icons/vinaup-user-arrow-up-right.native';
 import VinaupUserChecked from '@/components/icons/vinaup-user-checked.native';
@@ -21,6 +20,7 @@ import {
   RADIUS,
   SPACING,
 } from '@/constants/style-constants';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 import { useReceiptPaymentListInBookingContext } from '@/providers/commons/receipt-payment/receipt-payment-list-in-booking-provider';
 import { useBookingDetailContext } from '@/providers/organization/booking/booking-detail-provider';
@@ -28,7 +28,6 @@ import { generateFormatDateTime } from '@/utils/generator/string-generator/gener
 import { generateLocaleFormatString } from '@/utils/generator/string-generator/generate-locale-format-string';
 
 export function BookingDetailPreviewScreenContent() {
-  const router = useRouter();
   const { bookingId } = useLocalSearchParams<{ bookingId: string }>();
   const { booking, signatures, isLoadingSignatures, fetchSignatures } = useBookingDetailContext();
   const { receiptPayments } = useReceiptPaymentListInBookingContext();
@@ -80,28 +79,13 @@ export function BookingDetailPreviewScreenContent() {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen
-        options={{
-          headerTitle: 'Xem trước Booking',
-          headerTitleStyle: styles.headerTitleStyle,
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-              <VinaupLeftArrowTwoLayers />
-            </Pressable>
-          ),
-          headerRight: () => (
-            <View style={styles.rightActions}>
-              <Pressable style={[styles.actionBtn, styles.actionBtnDisabled]} disabled>
-                <MaterialCommunityIcons
-                  name="file-pdf-box"
-                  size={ICON_SIZES.lg}
-                  color={COLORS.teal700}
-                />
-              </Pressable>
-            </View>
-          ),
-        }}
-      />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'doc.richtext', android: PictureAsPdfIcon })}
+          disabled
+          accessibilityLabel="Xuất PDF"
+        />
+      </Stack.Toolbar>
 
       {isLoading && !booking && (
         <View style={styles.stateContainer}>

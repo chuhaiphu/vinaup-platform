@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ReceiptPaymentSectionListHeader } from '@/components/commons/headers/receipt-payment-section-list-header';
 import { ReceiptPaymentCard } from '@/components/commons/receipt-payment/receipt-payment-card';
+import { ReceiptPaymentSectionListHeader } from '@/components/commons/receipt-payment/receipt-payment-section-list-header';
 import { COLORS, FONT_SIZES, SPACING } from '@/constants/style-constants';
 import { ReceiptPaymentResponse } from '@/interfaces/receipt-payment-interfaces';
 

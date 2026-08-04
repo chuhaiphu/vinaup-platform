@@ -2,11 +2,8 @@ import { StyleSheet, View } from 'react-native';
 
 import { Skeleton } from '@/components/primitives/skeleton';
 import { SPACING } from '@/constants/style-constants';
-import { useScreenHeader } from '@/hooks/use-screen-header';
 
 export function EntityDetailSkeleton() {
-  useScreenHeader({ title: 'Chi tiết' });
-
   return (
     <View>
       <View style={styles.statusContainer}>

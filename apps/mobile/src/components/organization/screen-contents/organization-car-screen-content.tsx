@@ -1,34 +1,53 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons/static';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import dayjs from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { prefetch } from 'fetchwire';
 import { Suspense, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
+import { getCarById } from '@/apis/car/car-apis';
+import { getTripById } from '@/apis/trip/trip-apis';
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
 import VinaupLeftArrowBigHead from '@/components/icons/vinaup-left-arrow-big-head.native';
 import { OrganizationCarListContent } from '@/components/organization/car/list/organization-car-list-content';
 import { OrganizationTripListSection } from '@/components/organization/trip/list/organization-trip-list-section';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
+import { SegmentedControl, SegmentedControlItem } from '@/components/primitives/segmented-control';
 import { UnifiedDatePicker } from '@/components/primitives/unified-date-picker';
 import { DD_MM_YYYY_DATE_FORMAT, MM_YYYY_DATE_FORMAT } from '@/constants/app-constants';
 import { type DatePickerMode } from '@/constants/date-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
+import { useNavigationStore } from '@/hooks/use-navigation-store';
 import { OrganizationCarListProvider } from '@/providers/organization/car/organization-car-list-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
+import { useOrganizationActionsContext } from '@/providers/organization/organization-actions-provider';
 import { OrganizationTripListProvider } from '@/providers/organization/trip/organization-trip-list-provider';
+import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
+
+type CarViewCode = 'cars' | 'trips';
+
+const CAR_VIEW_ITEMS: SegmentedControlItem<CarViewCode>[] = [
+  { value: 'cars', label: 'Tất cả xe' },
+  { value: 'trips', label: 'Chuyến xe' },
+];
 
 export function OrganizationCarScreenContent() {
   const router = useRouter();
   const params = useLocalSearchParams<{
-    organizationId: string;
     carView?: string;
     month?: string;
     day?: string;
   }>();
-  const { organizationId, month, day } = params;
+  const { organizationId, can } = useOrganizationAbility();
+  const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
+  const { createCar, isCreatingCar, createTrip, isCreatingTrip } = useOrganizationActionsContext();
+  const { month, day } = params;
 
-  const carView = params.carView === 'trips' ? 'trips' : 'cars';
+  const carView: CarViewCode = params.carView === 'trips' ? 'trips' : 'cars';
 
+  const [localView, setLocalView] = useState<CarViewCode>(carView);
   const [pickerVisible, setPickerVisible] = useState(false);
 
   // ─── Derive filterMode from URL params ───
@@ -49,6 +68,88 @@ export function OrganizationCarScreenContent() {
 
   const formatDateSuffix = (date: dayjs.Dayjs) =>
     filterMode === 'month' ? date.format('YYYY-MM') : date.format('YYYY-MM-DD');
+
+  const handleAddNewCar = () => {
+    createCar(
+      { organizationId },
+      {
+        onSuccess: async (data) => {
+          setIsNavigating(true);
+          try {
+            await prefetch(() => getCarById(data?.id || ''), {
+              fetchKey: `organization-car-${data?.id}`,
+            });
+          } catch {
+            // Fallback to normal navigation if prefetch fails.
+          }
+          setIsNavigating(false);
+          router.push({
+            pathname: '/(protected)/car-detail/[carId]',
+            params: { carId: data?.id || '' },
+          });
+        },
+        onError: (error) => Alert.alert('Lỗi', generateErrorMessage(error, 'Không thể tạo xe mới')),
+      },
+    );
+  };
+
+  const handleAddNewTrip = () => {
+    createTrip(
+      { organizationId },
+      {
+        onSuccess: async (data) => {
+          setIsNavigating(true);
+          try {
+            await prefetch(() => getTripById(data?.id || ''), {
+              fetchKey: `organization-trip-${data?.id}`,
+            });
+          } catch {
+            // Fallback to normal navigation if prefetch fails.
+          }
+          setIsNavigating(false);
+          router.push({
+            pathname: '/(protected)/trip-detail/[tripId]',
+            params: { tripId: data?.id || '' },
+          });
+        },
+        onError: (error) =>
+          Alert.alert('Lỗi', generateErrorMessage(error, 'Không thể tạo chuyến mới')),
+      },
+    );
+  };
+
+  // The list shown is driven by `carView`, so the "+" creates the entity type on screen.
+  const canAddCurrentView =
+    carView === 'trips'
+      ? can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.TRIP)
+      : can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.CAR);
+
+  const addNewToolbar = canAddCurrentView && (
+    <Stack.Toolbar placement="right">
+      <Stack.Toolbar.Button
+        icon={require('@/assets/images/add_new.png')}
+        iconRenderingMode="original"
+        disabled={isCreatingCar || isCreatingTrip}
+        accessibilityLabel={carView === 'trips' ? 'Tạo chuyến' : 'Tạo xe'}
+        onPress={carView === 'trips' ? handleAddNewTrip : handleAddNewCar}
+      />
+    </Stack.Toolbar>
+  );
+
+  const viewSegment = (
+    <View style={styles.segmentContainer}>
+      <SegmentedControl
+        items={CAR_VIEW_ITEMS}
+        value={localView}
+        onChange={setLocalView}
+        onSettled={(value) => router.setParams({ carView: value })}
+        style={{
+          pill: { backgroundColor: COLORS.white, boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.15)' },
+          label: { fontSize: FONT_SIZES.base },
+        }}
+      />
+    </View>
+  );
 
   const dateHeader = (
     <>
@@ -83,6 +184,8 @@ export function OrganizationCarScreenContent() {
 
     return (
       <View style={styles.container}>
+        {addNewToolbar}
+        {viewSegment}
         {dateHeader}
         <Suspense fallback={<EntityListSectionSkeleton />}>
           <OrganizationTripListProvider
@@ -102,6 +205,8 @@ export function OrganizationCarScreenContent() {
 
   return (
     <View style={styles.container}>
+      {addNewToolbar}
+      {viewSegment}
       <Suspense fallback={<EntityListSectionSkeleton />}>
         <OrganizationCarListProvider
           key={suspenseKey}
@@ -139,6 +244,10 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: SPACING.md,
+  },
+  segmentContainer: {
+    marginBottom: SPACING.md,
+    paddingHorizontal: SPACING.sm,
   },
   dateHeader: {
     marginBottom: SPACING.md,

@@ -1,6 +1,7 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { useRouter } from 'expo-router';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CarAdditionalImagesSection } from '@/components/organization/car/detail/car-additional-images-section';
 import { CarAssignmentSection } from '@/components/organization/car/detail/car-assignment-section';
@@ -12,7 +13,7 @@ import { CarMaintenanceLogSection } from '@/components/organization/car/detail/c
 import { CarStatusBar } from '@/components/organization/car/detail/car-status-bar';
 import { COLORS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { useCarDetailContext } from '@/providers/organization/car/car-detail-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 
@@ -32,15 +33,25 @@ export function CarDetailScreenContent() {
     router.back();
   };
 
-  useScreenHeader({
-    title: 'Chi tiết xe',
-    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.CAR) ? handleDeleteCar : undefined,
-    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.CAR) ? handleSaveAndExit : undefined,
-    isDeleting: isDeletingCar,
-  });
-
   return (
     <View style={styles.container}>
+      <Stack.Toolbar placement="right">
+        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.CAR) && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeletingCar}
+            accessibilityLabel="Xoá"
+            onPress={handleDeleteCar}
+          />
+        )}
+        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.CAR) && (
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/save_and_exit.png')}
+            accessibilityLabel="Lưu & thoát"
+            onPress={handleSaveAndExit}
+          />
+        )}
+      </Stack.Toolbar>
       {/* Status bar sits above the header card and stays fixed while the detail scrolls. */}
       <CarStatusBar />
       <ScrollView

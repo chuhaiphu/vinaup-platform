@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router';
 
 export default function HomeIndexScreen() {
-  return <Redirect href="/(protected)/personal/(tabs)" />;
+  return <Redirect href="/personal" />;
 }

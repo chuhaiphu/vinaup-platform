@@ -10,7 +10,7 @@ export function IndexShellSkeleton() {
   return (
     <View style={styles.container}>
       {/* Mock Header */}
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      <View style={[styles.header, { paddingTop: insets.top, height: insets.top + HEADER_HEIGHT }]}>
         <Skeleton style={styles.headerSkeleton} borderRadius={4} />
       </View>
 
@@ -61,7 +61,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   header: {
-    height: HEADER_HEIGHT + 30,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

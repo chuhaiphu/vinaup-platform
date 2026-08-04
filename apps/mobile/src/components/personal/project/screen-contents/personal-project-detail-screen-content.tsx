@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import DeleteIcon from '@expo/material-symbols/delete.xml';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -7,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,7 +25,7 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { ProjectStatus, ProjectStatusOptions } from '@/constants/project-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInProjectProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-project-provider';
 import { usePersonalProjectDetailContext } from '@/providers/personal/project/personal-project-detail-provider';
 
@@ -64,15 +66,22 @@ export function PersonalProjectDetailScreenContent() {
     refreshProject();
   }, [refreshProject]);
 
-  useScreenHeader({
-    title: `Chi tiết ` + (project.category ? `${project.category.name}` : 'Dự án'),
-    onDelete: handleDeleteProject,
-    isDeleting: isDeletingProject,
-    onSave: handleSaveAndExit,
-  });
-
   return (
     <>
+      <Stack.Title>{`Chi tiết ${project.category ? project.category.name : 'Dự án'}`}</Stack.Title>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+          disabled={isDeletingProject}
+          accessibilityLabel="Xoá"
+          onPress={handleDeleteProject}
+        />
+        <Stack.Toolbar.Button
+          icon={require('@/assets/images/save_and_exit.png')}
+          accessibilityLabel="Lưu & thoát"
+          onPress={handleSaveAndExit}
+        />
+      </Stack.Toolbar>
       <ScrollView
         style={styles.container}
         refreshControl={

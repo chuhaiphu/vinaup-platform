@@ -1,6 +1,6 @@
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import dayjs from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -13,7 +13,6 @@ import { DD_MM_DATE_FORMAT_SHORT, YYYY_MM_DD_DATE_FORMAT } from '@/constants/app
 import { DEFAULT_ORGANIZATION_TIMEZONE } from '@/constants/organization-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
-import { useScreenHeader } from '@/hooks/use-screen-header';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
 import { AttendanceRecordListInOrganizationProvider } from '@/providers/organization/attendance/attendance-record-list-in-organization-provider';
 import { OrganizationAttendanceConclusionListProvider } from '@/providers/organization/attendance/organization-attendance-conclusion-list-provider';
@@ -42,14 +41,13 @@ export function AttendanceMemberDetailScreenContent() {
   const selectedWorkDate = workDate ?? todayWorkDate;
   const isLiveWorkDate = selectedWorkDate === todayWorkDate;
 
-  useScreenHeader({ title: organizationMemberName || 'Chấm công' });
-
   const handleWorkDateChange = (date: dayjs.Dayjs) => {
     router.setParams({ workDate: date.format(YYYY_MM_DD_DATE_FORMAT) });
   };
 
   return (
     <View style={styles.container}>
+      {!!organizationMemberName && <Stack.Title>{organizationMemberName}</Stack.Title>}
       <View style={styles.topContainer}>
         <PressableOpacity onPress={() => setPickerVisible(true)} style={styles.datePickerTrigger}>
           <FontAwesome5 name="calendar-alt" size={ICON_SIZES.sm} color={COLORS.teal700} />

@@ -1,8 +1,10 @@
+import TuneIcon from '@expo/material-symbols/tune.xml';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import dayjs from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { Suspense, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
 import { AttendanceModeToggler } from '@/components/organization/attendance/attendance-mode-toggler';
@@ -14,18 +16,18 @@ import { DD_MM_DATE_FORMAT_SHORT, YYYY_MM_DD_DATE_FORMAT } from '@/constants/app
 import { DEFAULT_ORGANIZATION_TIMEZONE } from '@/constants/organization-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
 import { useCurrentMinute } from '@/hooks/use-current-minute';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { useOrganizationContext } from '@/providers/auth/organization-provider';
 import { OrganizationAttendancePunchProvider } from '@/providers/organization/attendance/organization-attendance-punch-provider';
 import { OrganizationAttendanceRecordListProvider } from '@/providers/organization/attendance/organization-attendance-record-list-provider';
+import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
 import { generateCalendarDate } from '@/utils/generator/string-generator/generate-calendar-date';
 import { generateZonedTime } from '@/utils/generator/string-generator/generate-zoned-time';
 
 export function OrganizationAttendanceScreenContent() {
   const router = useRouter();
-  const { organizationId, workDate } = useLocalSearchParams<{
-    organizationId: string;
-    workDate?: string;
-  }>();
+  const { workDate } = useLocalSearchParams<{ workDate?: string }>();
+  const { organizationId, can } = useOrganizationAbility();
   const { organizations } = useOrganizationContext();
 
   const [pickerVisible, setPickerVisible] = useState(false);
@@ -45,6 +47,23 @@ export function OrganizationAttendanceScreenContent() {
 
   return (
     <View style={styles.container}>
+      {can(PERMISSION_ACTION.CREATE, PERMISSION_RESOURCE.ATTENDANCE_CONCLUSION) && (
+        <Stack.Toolbar placement="right">
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({
+              ios: 'slider.horizontal.3',
+              android: TuneIcon,
+            })}
+            accessibilityLabel="Quản lý chấm công"
+            onPress={() =>
+              router.push({
+                pathname: '/(protected)/attendance-management',
+                params: { organizationId },
+              })
+            }
+          />
+        </Stack.Toolbar>
+      )}
       <Suspense fallback={<EntityListSectionSkeleton />}>
         <OrganizationAttendancePunchProvider organizationId={organizationId}>
           <View style={styles.topContainer}>

@@ -1,5 +1,6 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -8,6 +9,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -24,7 +26,7 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { ProjectStatus, ProjectStatusOptions } from '@/constants/project-constants';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInProjectProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-project-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
 import { useOrganizationAbility } from '@/providers/organization/organization-ability-provider';
@@ -69,19 +71,25 @@ export function ProjectDetailScreenContent() {
     refreshProject();
   }, [refreshProject]);
 
-  useScreenHeader({
-    title: 'Chi tiết Dự án',
-    onDelete: can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT)
-      ? handleDeleteProject
-      : undefined,
-    isDeleting: isDeletingProject,
-    onSave: can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.PROJECT)
-      ? handleSaveAndExit
-      : undefined,
-  });
-
   return (
     <OrganizationCustomerProvider organizationId={project.organization?.id}>
+      <Stack.Toolbar placement="right">
+        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT) && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeletingProject}
+            accessibilityLabel="Xoá"
+            onPress={handleDeleteProject}
+          />
+        )}
+        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.PROJECT) && (
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/save_and_exit.png')}
+            accessibilityLabel="Lưu & thoát"
+            onPress={handleSaveAndExit}
+          />
+        )}
+      </Stack.Toolbar>
       <ScrollView
         style={styles.container}
         refreshControl={

@@ -76,6 +76,38 @@ export const BOOKING_STATUS = {
 export type BookingStatus = (typeof BOOKING_STATUS)[keyof typeof BOOKING_STATUS];
 ```
 
+### 1.4 Asset file naming
+
+**Every file under `src/assets/` is `snake_case` — never a hyphen, never an uppercase letter.**
+
+This is the one place the `kebab-case` rule of §1.1 does not apply. `snake_case` is used because it is the only alphabet
+that survives every way an asset reaches the native projects.
+
+| How the asset is consumed                                    | Declared in `app.json`?           | Name constraint                       |
+| ------------------------------------------------------------ | --------------------------------- | ------------------------------------- |
+| `require('@/assets/images/x.png')`                            | **no** — Metro bundles it         | soft — see below                      |
+| `<Image source={{ uri: 'x' }} />`                             | **yes** — `expo-asset` `assets`   | **hard**: `/^[a-z][a-z0-9_]*$/`, and not a Java reserved word |
+| `icon`, `android.adaptiveIcon`, splash `image`, `web.favicon` | that field itself, by path        | none — the plugin renames the file    |
+
+
+**Prefix an asset with `vinaup_` when — and only when — it is listed in `expo-asset`.** Those land in
+`res/drawable/`, a flat namespace shared with every library in the app (`rn_edit_text_material`,
+`ic_launcher_background` are already there). A `require()`d asset is namespaced by its path
+(`src_assets_images_<name>`) and needs no prefix.
+
+**List files in `expo-asset`, never a directory.** A directory pulls in every neighbour — including the app
+icon and splash image, which their own plugins already process, so they end up embedded twice.
+
+```
+src/assets/images/
+├── app_icon.png                      → expo.icon
+├── app_icon_adaptive_foreground.png  → android.adaptiveIcon.foregroundImage
+├── splash_logo.png                   → expo-splash-screen
+├── vinaup_logo_primary.png           → web.favicon
+├── vinaup_logo_secondary.png         → expo-asset · {{ uri: 'vinaup_logo_secondary' }}
+└── vinaup_loader.gif                 → expo-asset · {{ uri: 'vinaup_loader' }}
+```
+
 ---
 
 ## 2. File & folder structure
@@ -439,6 +471,7 @@ Grounding: [Material 3 type roles](https://m3.material.io/styles/typography/appl
 | 1.1  | File naming                                                                    | `eslint-plugin-check-file` (excludes `src/app/`) |
 | 1.2  | Symbol casing                                                                  | `@typescript-eslint/naming-convention`           |
 | 1.3  | Enum constants                                                                 | Review                                           |
+| 1.4  | Asset file naming                                                              | Review — `expo prebuild` warns, it does not fail |
 | 2    | Folder structure                                                               | Review                                           |
 | 3.2  | Import order                                                                   | `import/order` (`warn`)                          |
 | 3.3  | Import direction                                                               | Review                                           |

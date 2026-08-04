@@ -1,9 +1,10 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import Entypo from '@react-native-vector-icons/entypo/static';
 import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useRef, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
@@ -28,7 +29,7 @@ import {
   SPACING,
 } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInBookingProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-booking-provider';
 import { useBookingDetailContext } from '@/providers/organization/booking/booking-detail-provider';
 import { OrganizationCustomerProvider } from '@/providers/organization/customer/organization-customer-provider';
@@ -89,15 +90,25 @@ export function BookingDetailScreenContent() {
     });
   };
 
-  useScreenHeader({
-    title: 'Chi tiết Booking',
-    onDelete: canDelete ? handleDeleteBooking : undefined,
-    onSave: canUpdate ? handleSaveAndExit : undefined,
-    isDeleting: isDeletingBooking,
-  });
-
   return (
     <OrganizationCustomerProvider organizationId={booking.organization?.id}>
+      <Stack.Toolbar placement="right">
+        {canDelete && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeletingBooking}
+            accessibilityLabel="Xoá"
+            onPress={handleDeleteBooking}
+          />
+        )}
+        {canUpdate && (
+          <Stack.Toolbar.Button
+            icon={require('@/assets/images/save_and_exit.png')}
+            accessibilityLabel="Lưu & thoát"
+            onPress={handleSaveAndExit}
+          />
+        )}
+      </Stack.Toolbar>
       <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <View style={styles.actionContainer}>
           <Badge variant={bookingStatusBadgeVariant[bookingStatus]}>

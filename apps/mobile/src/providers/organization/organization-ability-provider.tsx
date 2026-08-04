@@ -10,6 +10,9 @@ import { getMyAbilityInOrganization } from '@/apis/organization/organization-api
 import { FETCH_TAG } from '@/constants/fetch-tag-constants';
 
 interface OrganizationAbilityContextType {
+  // Read from here, not useLocalSearchParams: a nested Stack is a route boundary
+  // and does not inherit the [organizationId] segment's params.
+  organizationId: string;
   can: (action: PermissionAction, resource: PermissionResource) => boolean;
   isOwner: boolean;
   roleCode: string;
@@ -44,6 +47,7 @@ export function OrganizationAbilityProvider({
   if (!organizationAbility) return null;
 
   const value: OrganizationAbilityContextType = {
+    organizationId,
     can: (action, resource) => userAbility.can(action, resource),
     isOwner: organizationAbility.isOwner,
     roleCode: organizationAbility.roleCode,

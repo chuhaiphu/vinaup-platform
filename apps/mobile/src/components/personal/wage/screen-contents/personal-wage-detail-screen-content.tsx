@@ -1,4 +1,5 @@
-import { useRouter } from 'expo-router';
+import DeleteIcon from '@expo/material-symbols/delete.xml';
+import { Stack, useRouter } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -7,6 +8,7 @@ import {
   ActivityIndicator,
   ScrollView,
   RefreshControl,
+  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,7 +25,7 @@ import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
 import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { WageStatus, WageStatusOptions } from '@/constants/wage-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInWageProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-wage-provider';
 import { usePersonalWageDetailContext } from '@/providers/personal/wage/personal-wage-detail-provider';
 
@@ -64,15 +66,21 @@ export function PersonalWageDetailScreenContent() {
     refreshWage();
   }, [refreshWage]);
 
-  useScreenHeader({
-    title: 'Chi tiết Tiền công',
-    onDelete: handleDeleteWage,
-    isDeleting: isDeletingWage,
-    onSave: handleSaveAndExit,
-  });
-
   return (
     <>
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+          disabled={isDeletingWage}
+          accessibilityLabel="Xoá"
+          onPress={handleDeleteWage}
+        />
+        <Stack.Toolbar.Button
+          icon={require('@/assets/images/save_and_exit.png')}
+          accessibilityLabel="Lưu & thoát"
+          onPress={handleSaveAndExit}
+        />
+      </Stack.Toolbar>
       <ScrollView
         style={styles.container}
         refreshControl={

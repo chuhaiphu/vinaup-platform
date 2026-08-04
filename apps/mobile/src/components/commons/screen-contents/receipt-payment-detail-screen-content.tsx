@@ -1,8 +1,9 @@
+import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { createReceiptPaymentSchema } from '@vinaup-platform/validation';
 import dayjs, { Dayjs } from 'dayjs';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, Platform, StyleSheet } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 import { ReceiptPaymentForm } from '@/components/commons/receipt-payment/receipt-payment-form';
@@ -14,8 +15,8 @@ import {
 } from '@/constants/receipt-payment-constants';
 import { COLORS } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
-import { useScreenHeader } from '@/hooks/use-screen-header';
 import { FieldErrors, FieldValidator, useValidatedFields } from '@/hooks/use-validated-fields';
+import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { CreateReceiptPaymentRequest } from '@/interfaces/receipt-payment-interfaces';
 import { useReceiptPaymentFormContext } from '@/providers/commons/receipt-payment/receipt-payment-form-provider';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
@@ -240,16 +241,25 @@ export function ReceiptPaymentDetailScreenContent() {
     ]);
   };
 
-  useScreenHeader({
-    title: isUpdateMode ? 'Sửa Thu Chi' : 'Tạo Thu Chi',
-    onDelete: isUpdateMode ? handleDelete : undefined,
-    isDeleting,
-    onSave: handleSaveAndExit,
-    isSaving,
-  });
-
   return (
     <KeyboardAvoidingView style={styles.screenContainer} behavior={'padding'}>
+      <Stack.Title>{isUpdateMode ? 'Sửa Thu Chi' : 'Tạo Thu Chi'}</Stack.Title>
+      <Stack.Toolbar placement="right">
+        {isUpdateMode && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            disabled={isDeleting}
+            accessibilityLabel="Xoá"
+            onPress={handleDelete}
+          />
+        )}
+        <Stack.Toolbar.Button
+          icon={require('@/assets/images/save_and_exit.png')}
+          disabled={isSaving}
+          accessibilityLabel="Lưu & thoát"
+          onPress={handleSaveAndExit}
+        />
+      </Stack.Toolbar>
       <ReceiptPaymentForm
         fieldValues={fieldValues}
         fieldErrors={fieldErrors}
