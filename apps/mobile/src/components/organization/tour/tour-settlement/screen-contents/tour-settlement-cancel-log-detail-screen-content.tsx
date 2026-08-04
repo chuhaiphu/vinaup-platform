@@ -454,26 +454,6 @@ const styles = StyleSheet.create({
     color: COLORS.teal700,
     fontSize: FONT_SIZES.sm,
   },
-  headerTitleStyle: {
-    fontSize: FONT_SIZES.lg,
-  },
-  backBtn: {
-    padding: SPACING.xs,
-    marginLeft: -SPACING.sm,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACING.xs,
-  },
-  actionBtnDisabled: {
-    opacity: 0.6,
-  },
   scrollContent: {
     paddingHorizontal: SPACING.sm,
     paddingBottom: SPACING['2xl'],

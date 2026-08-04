@@ -247,6 +247,7 @@ export function ReceiptPaymentDetailScreenContent() {
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           icon={require('@/assets/images/save_and_exit.png')}
+          iconRenderingMode="template"
           disabled={isSaving}
           accessibilityLabel="Lưu & thoát"
           onPress={handleSaveAndExit}

@@ -323,24 +323,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.sm,
     color: COLORS.teal700,
   },
-  headerTitleStyle: {
-    fontSize: FONT_SIZES.lg,
-  },
-  backBtn: {
-    padding: SPACING.xs,
-    marginLeft: -SPACING.sm,
-  },
-  rightActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionBtnDisabled: {
-    opacity: 0.6,
-  },
   scrollContent: {
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING['2xl'],

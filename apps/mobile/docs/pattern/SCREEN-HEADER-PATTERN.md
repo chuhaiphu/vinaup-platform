@@ -19,7 +19,7 @@ It has three content regions and a surface underneath them:
            how to go back    where we are       actions on this screen
                                                 (a menu, when there are several)
 
-        the surface: background · tint · title font · shadow · translucency
+        the surface: background - tint - title font - shadow - translucency
 ```
 
 Both platforms ship this component, under different names and with different defaults:
@@ -42,8 +42,8 @@ Both platforms key the header off one question — _can this screen go back?_
 | **Root**   | the first screen of a navigator   | nothing   | the screen's name | 0–n items |
 | **Pushed** | anything navigated to from a root | back / up | the screen's name | 0–n items |
 
-Neither platform limits the trailing slot to a fixed count — `0–2` is [this app's own rule](#how), not a
-platform constraint.
+Neither platform limits the trailing slot to a fixed count — the shape this app gives it is
+[its own rule](#the-two-slots), not a platform constraint.
 
 ```
  Root                                    Pushed
@@ -130,7 +130,7 @@ Two slots hold them, **leading** and **trailing**, and they are not mirror image
 
 #### The two slots, per platform
 
-| Slot         | iOS · UIKit `UINavigationItem`                                                                          | Android · Material 3 `TopAppBar`                        |
+| Slot         | iOS - UIKit `UINavigationItem`                                                                          | Android - Material 3 `TopAppBar`                        |
 | ------------ | ------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
 | **leading**  | `leftBarButtonItems` — _"An array of custom bar button items to display on the left (or leading) side"_ | `navigationIcon: @Composable () -> Unit` — **one** slot |
 | **trailing** | `rightBarButtonItems` — an array of the same shape                                                      | `actions: @Composable RowScope.() -> Unit` — a **row**  |
@@ -151,11 +151,11 @@ On iOS, custom items there replace the Back button unless:
 > Setting `leftItemsSupplementBackButton` property to `true` causes the items … to be displayed to the right of the Back
 > button — that is, they're displayed in addition to, not instead of, the Back button.
 >
-> — [`leftItemsSupplementBackButton` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/leftitemssupplementbackbutton)
+> — [`leftItemsSupplementBackButton` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/leftitemssupplementbackbutton)
 
 #### What an action is made of
 
-| To show          | iOS · `UIBarButtonItem`                           | Android · `TopAppBar(actions:)`                            |
+| To show          | iOS - `UIBarButtonItem`                           | Android - `TopAppBar(actions:)`                            |
 | ---------------- | ------------------------------------------------- | ---------------------------------------------------------- |
 | **text**         | `init(title:style:target:action:)`                | a text composable — against the KDoc's stated convention   |
 | **an icon**      | `init(image:…)`, or `init(barButtonSystemItem:…)` | `IconButton` — _"This should typically be `IconButton`s."_ |
@@ -192,7 +192,7 @@ the same on iOS 26 as on iOS 18 — and the items get Glass for free.
 
 ### Native header overflow
 
-| Slot         | iOS · UIKit `UINavigationItem`                                             | Android · Material 3 `TopAppBar`                               |
+| Slot         | iOS - UIKit `UINavigationItem`                                             | Android - Material 3 `TopAppBar`                               |
 | ------------ | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
 | **leading**  | **none** — no overflow API applies to `leftBarButtonItems`                 | **none** — `navigationIcon` holds one item and cannot overflow |
 | **trailing** | `additionalOverflowItems` (iOS 16+) — **opt-in**: assign a non-`nil` value | **none** — `actions` is a `Row`                                |
@@ -203,11 +203,10 @@ On iOS, the opt-in is the whole mechanism — `additionalOverflowItems`, verbati
 > the navigation bar. … The system also populates the overflow menu with any items that can't fit in the
 > navigation bar due to layout space constraints.
 >
-> — [`additionalOverflowItems` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/additionaloverflowitems)
+> — [`additionalOverflowItems` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/additionaloverflowitems)
 
-**On android** `actions` is a `Row`: it measures nothing, hides nothing,
-and folds nothing. To solve that, we have to use a top app bar Material 3 menu component, an
-`IconButton` that opens a `DropdownMenu`.
+**On Android** `actions` is a `Row`: it measures nothing, hides nothing, and folds nothing. To solve that,
+we have to use a top app bar Material 3 menu component, an `IconButton` that opens a `DropdownMenu`.
 
 #### When the bar is overfilled and nothing handles it
 
@@ -218,7 +217,7 @@ The closest either vendor comes is one line of **Apple** design guidance — a w
 > Choose items deliberately to avoid overcrowding. People need to be able to distinguish and activate each
 > item, so you don't want to put too many items in the toolbar.
 >
-> — [Toolbars · Apple HIG](https://developer.apple.com/design/human-interface-guidelines/toolbars)
+> — [Toolbars - Apple HIG](https://developer.apple.com/design/human-interface-guidelines/toolbars)
 
 ---
 
@@ -285,7 +284,7 @@ before it reaches native, and what fills an empty one is Expo Router's `DefaultT
 | ---------------------------------------- | ----------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
 | `headerStyle.backgroundColor`            | the bar's background                | the bar's background, and a menu dropdown's         | `DefaultTheme.card` — white                 |
 | `headerTintColor`                        | the back chevron and every bar item | the navigation icon and every bar item              | iOS `DefaultTheme.primary`, Android `.text` |
-| `headerTitleStyle` — `fontSize`, `color` | the native title's text attributes  | the title `<Text>`'s style                          | 17pt / 20sp, `DefaultTheme.text`            |
+| `headerTitleStyle` — `fontSize`, `color` | the native title's text attributes  | the title `<Text>`'s style                          | 17pt / 20sp; the colour falls back to `headerTintColor`, then `DefaultTheme.text` |
 | `headerTitleAlign`                       | nothing — the option is a no-op     | the title's alignment, the one either platform offers | Android's own default, leading            |
 | `headerShadowVisible`                    | the hairline under the bar          | the bar's elevation                                 | both drawn                                  |
 | `headerBackButtonDisplayMode`            | the back button's title             | nothing — Android is always `'minimal'`             | iOS, showing the previous screen's title    |
@@ -305,7 +304,7 @@ contributes:
 claimed a capability the other two do not implement: the app's own pixels stayed light while alerts,
 action sheets, the keyboard and pickers went dark with the device. Locking it costs nothing — every
 surface we draw was already light — and it is what makes `<StatusBar barStyle="dark-content" />` correct
-unconditionally ([The status bar is not the header](#the-status-bar-is-not-the-header)).
+unconditionally.
 
 **Adopting dark mode later is not a header change.** It needs a second palette, a `ThemeProvider` driven
 by `useColorScheme()`, and every screen re-checked. `userInterfaceStyle` flips back to `"automatic"` on
@@ -319,7 +318,7 @@ One flag enables the second drawing. The `title` already declared feeds both —
 | ------------------------------- | --------------------------------------------------------------------------- |
 | `headerLargeTitleEnabled: true` | the large presentation, for that screen — **iOS only**                      |
 | `<Stack.Title large>`           | the same option, in composition syntax                                      |
-| `headerLargeTitleStyle`         | the large drawing's `fontFamily` · `fontSize` · `fontWeight` · `color`      |
+| `headerLargeTitleStyle`         | the large drawing's `fontFamily` - `fontSize` - `fontWeight` - `color`      |
 | `headerLargeStyle`              | the bar's background while the large drawing shows — `backgroundColor` only |
 | `headerLargeTitleShadowVisible` | the hairline while the large drawing shows                                  |
 | `headerTitleAlign`              | Android's alignment — a no-op on iOS, where both drawings are locked        |
@@ -328,12 +327,12 @@ One flag enables the second drawing. The `title` already declared feeds both —
 drawing simply sits there and no swap ever happens:
 
 1. the `ScrollView` / `FlatList` is the screen component's **first rendered child** — a wrapper is allowed
-   only with `collapsable={false}` on it.
+   only with `collapsable={false}` on it;
 2. that scrollable sets `contentInsetAdjustmentBehavior="automatic"`;
 3. its content is **taller than the screen** — _"if the scrollable area doesn't fill the screen, the large
    title won't collapse on scroll"_.
 
-**On IOS, it changes the bar's surface.**:
+**On iOS, it changes the bar's surface.**
 
 1. **The bar becomes translucent.** Forced on iOS, escapable only by stating `headerTransparent: false`.
 
@@ -344,7 +343,7 @@ drawing simply sits there and no swap ever happens:
 3. **The large drawing's colour falls back to the inline one.** `headerLargeTitleStyle.color` if given,
    otherwise `headerTitleStyle.color`.
 
-**Android ignores the flag** — the option is declared _"Only supported on iOS"_
+**Android ignores the flag** — the option is declared _"Only supported on iOS"_.
 
 ### Not reachable
 
@@ -363,7 +362,7 @@ drawing simply sits there and no swap ever happens:
 
 ---
 
-## How much of the Header we own
+## How much of the header we own
 
 Every header decision reduces to one question — **how much of the bar do we take over?** The APIs form a
 ladder, and each rung down buys control by giving up platform behaviour.
@@ -527,7 +526,7 @@ depends on `asChild`:
 | `<Stack.Title asChild><CarTitle /></Stack.Title>` | `headerTitle: () => <CarTitle />` — `CarTitle` mounts **in the bar** |
 | `<Stack.Title><CarTitle /></Stack.Title>`         | dropped, with a dev warning — a component needs `asChild`            |
 
-`asChild` is therefore the rung boundary in component form.
+`asChild` is therefore the rung boundary in component form
 (→ [How much of the header we own](#how-much-of-the-header-we-own)).
 
 ### Stack.Toolbar
@@ -557,22 +556,23 @@ Three rules the API imposes on the group itself:
 #### The members
 
 Nine, in **two kinds**. An **item** takes a position in the slot. A **content primitive** describes what is
-drawn inside an item and takes no position of its own.
+drawn inside an item and takes no position of its own. `MenuAction` is neither — it is an entry inside a
+menu, and the menu is the item.
 
 | Kind                  | Member                        | Is                                                                                                                                                                      |
 | --------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **item**              | `Stack.Toolbar.Button`        | one tappable item — `icon`, `onPress`, `disabled`, `hidden`, `tintColor`, `variant` (iOS), `selected` (iOS)                                                             |
 |                       | `Stack.Toolbar.Menu`          | one item whose tap opens a **native menu** — `icon`, `title`, `destructive` (iOS); `inline`, `palette` and `elementSize` (iOS 16+) apply when it is nested as a submenu |
-|                       | `Stack.Toolbar.MenuAction`    | one **entry inside** a menu, not an item in the slot — `icon`, `onPress`, `isOn`, `destructive`, `subtitle` (iOS), `unstable_keepPresented`                             |
 |                       | `Stack.Toolbar.View`          | one item drawn by a component of ours — `children`, `hidden`                                                                                                           |
-
-`separateBackground` (iOS) and `hidesSharedBackground` (iOS 26+) are on all three **items** — `Button`,
-`Menu` and `View` — not on `View` alone ([iOS 26](#ios-26--liquid-glass)).
-|                       | `Stack.Toolbar.Spacer`        | empty space between items — `width`, **required** in the header slots; omitting it gives a flexible spacer, and only in a bottom toolbar on iOS                         |
+|                       | `Stack.Toolbar.Spacer`        | empty space between items — `width`, **required** in the header slots and on Android in every placement; omitting it gives a flexible spacer, and only in a bottom toolbar on iOS |
 |                       | `Stack.Toolbar.SearchBarSlot` | where `Stack.SearchBar` sits inside a **bottom** toolbar — iOS 26+                                                                                                      |
+| **menu entry**        | `Stack.Toolbar.MenuAction`    | one **entry inside** a menu, not an item in the slot — `icon`, `onPress`, `isOn`, `destructive`, `subtitle` (iOS), `unstable_keepPresented`                             |
 | **content primitive** | `Stack.Toolbar.Icon`          | the item's image — exactly one of `sf` (iOS), `src`, `xcasset` (iOS), plus `renderingMode`                                                                              |
 |                       | `Stack.Toolbar.Label`         | the item's text                                                                                                                                                         |
 |                       | `Stack.Toolbar.Badge`         | the item's badge — header placements only                                                                                                                               |
+
+`separateBackground` (iOS) and `hidesSharedBackground` (iOS 26+) are on the three **positioned items** —
+`Button`, `Menu` and `View` — not on `View` alone ([iOS 26](#ios-26--liquid-glass)).
 
 ```
 <Stack.Toolbar placement="right">              ← the group: which slot
@@ -597,10 +597,10 @@ demoted to accessibility:
 
 | Declared                                           | iOS draws                               | Android draws                          |
 | -------------------------------------------------- | --------------------------------------- | -------------------------------------- |
-| `icon="trash"` · `<Stack.Toolbar.Icon sf>`         | the SF Symbol                           | **nothing** — the item does not render |
-| `icon={require('…')}` · `<Stack.Toolbar.Icon src>` | the image                               | the image                              |
+| `icon="trash"` - `<Stack.Toolbar.Icon sf>`         | the SF Symbol                           | **nothing** — the item does not render |
+| `icon={require('…')}` - `<Stack.Toolbar.Icon src>` | the image                               | the image                              |
 | `<Stack.Toolbar.Icon xcasset="…">`                 | the asset-catalog image                 | **nothing**                            |
-| text children · `<Stack.Toolbar.Label>`            | the text                                | **nothing**                            |
+| text children - `<Stack.Toolbar.Label>`            | the text                                | **nothing**                            |
 | `<Stack.Toolbar.Badge>`                            | the badge                               | the badge                              |
 | `<Stack.Toolbar.View>`                             | our element, as a `customView` bar item | our element                            |
 
@@ -626,13 +626,31 @@ import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 
 `trash` is the SF Symbol for iOS. Android's own format for a glyph
 that tints and scales is the **XML vector drawable**. `@expo/material-symbols` ships Google's Material
-Symbols in exactly that format, one Metro-asset subpath per icon. Both platforms **tint an image by
-default** — `iconRenderingMode="original"` is the opt-out, for a mark whose own colours are the point.
+Symbols in exactly that format, one Metro-asset subpath per icon.
 
-**The `<ToolbarIcon>` generic is required, not decoration.** A `.xml` subpath resolves to a Metro asset
-id — a `number` — so `Platform.select` infers `number` from the Android branch alone and rejects the iOS
-SF Symbol string. `ToolbarIcon` in `interfaces/navigation-interfaces.ts` is the button's own `icon` type,
-which admits both.
+**Only one of the two kinds of icon has colours of its own.** An SF Symbol is a **name the OS resolves** —
+it carries a shape, and the system paints it. An image is a **file we ship**, and its colours are already
+inside it. So only an image raises the question `iconRenderingMode` answers: _whose colours win, the
+file's or the bar's?_
+
+| `iconRenderingMode` | The image is treated as | Its colours                                        |
+| ------------------- | ----------------------- | ---------------------------------------------------- |
+| `'original'`        | a picture               | drawn as they are                                  |
+| `'template'`        | a **stencil**           | discarded — only the shape survives, repainted flat |
+
+`'template'` is what makes a glyph belong to the bar: the bar carries one tint, the back chevron follows
+it, and a stencilled glyph follows it too. It is also what destroys a two-colour mark, which comes out
+flattened into that single colour.
+
+**Left off, the two platforms answer the question differently:**
+
+| Platform    | Undeclared resolves to                              | Once `'template'`, repainted with                                |
+| ----------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| **iOS**     | `'original'`, unless the item sets its own `tintColor` | that `tintColor`, else the bar's — `headerTintColor`             |
+| **Android** | `'template'`                                          | the item's `tintColor`, else `headerTintColor`, else `onSurface` |
+
+Read the two columns separately: `headerTintColor` never takes part in **choosing** the mode, but it is
+what paints the result once the mode is `'template'`.
 
 Whatever the icon is, on iOS 26 the item is drawn on the bar's shared Glass background
 ([iOS 26 — Liquid Glass](#ios-26--liquid-glass)).
@@ -739,8 +757,17 @@ mandatory:
 )}
 ```
 
-**A toolbar that could end up empty is gated whole.** Gate the `Stack.Toolbar`, never the item inside it
-— an empty bar is nothing, an empty menu is a trigger that opens onto nothing.
+**A gate goes at the level that cannot leave an empty group.** Which level that is depends on what else
+is in the group:
+
+| The group holds                             | Gate            |
+| ------------------------------------------- | --------------- |
+| only items sharing one condition            | the `Stack.Toolbar` |
+| one item that always renders, plus a gated one | the gated **item**  |
+
+`car-detail` is the first shape — one `Xoá`, gated with `can(DELETE, …)`, so the whole toolbar
+disappears. `booking-detail` and `receipt-payment-detail` are the second — `Xem trước` and `Lưu & thoát`
+always render, so only `Xoá` beside them carries the condition.
 
 **No screen in this app reaches three actions**, so `Stack.Toolbar.Menu` is currently unused. What it
 would look like, for the screen that first needs it:
@@ -769,8 +796,8 @@ does**. The rest is per-platform detail:
 | an entry's `destructive`    | the label turns red                                | label and icon turn `Color.android.material.error`     |
 | the trigger's `destructive` | marks the whole menu destructive                   | **ignored** — that prop is iOS-only                    |
 
-The two triggers are only a convention pair. Because iOS has no vertical
-three-dot symbo and Android's `more_vert` is vertical by definition.
+The two triggers are only a convention pair, because iOS has no vertical three-dot symbol and Android's
+`more_vert` is vertical by definition.
 
 **No spinner, ever.** Neither `Stack.Toolbar.Button` nor `Stack.Toolbar.MenuAction` has a loading state,
 so a mutating action sets `disabled` and the global loader (`useNavigationStore`) covers the wait.
@@ -893,27 +920,26 @@ file or a symbol name, and this is where each one comes from.
 | a shared convention — delete, ⋮, search, PDF | `@expo/material-symbols` — an XML vector drawable | the SF Symbol closest to it |
 | a VinaUp mark — Lưu & thoát, Thêm mới        | a **PNG** in `src/assets/images/`                 | the **same PNG**            |
 
-Two rules follow.
+One rule per row.
 
-**Conventional icons branch, VinaUp icons do not.** A shared convention is a build-time pair, written with
-`Platform.select<ToolbarIcon>` ([What an item can draw](#what-an-item-can-draw-per-platform)). `Platform`
-is imported straight from `react-native` and never `process.env.EXPO_OS`: only the former is
-platform-shaken, and shaking is the point — the Android drawable must not reach the iOS bundle.
+**A shared convention branches at build time** written with `Platform.select<ToolbarIcon>`
+([What an item can draw](#what-an-item-can-draw-per-platform)).
 
-A VinaUp mark is one file both platforms load, so it is declared once, with no branch:
+| Mark          | Is                          | Mode         | Because                                                                             |
+| ------------- | --------------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `Lưu & thoát` | a single-colour glyph       | `"template"` | it is a symbol, like `trash` or `plus` — it belongs to the bar and follows its tint  |
+| `Thêm mới`    | a two-colour brand badge    | `"original"` | a stencil would flatten the yellow glyph into the teal disc                         |
 
 ```tsx
+// a glyph — the bar owns its colour
 <Stack.Toolbar.Button
   icon={require('@/assets/images/save_and_exit.png')}
+  iconRenderingMode="template"
   accessibilityLabel="Lưu & thoát"
   onPress={handleSaveAndExit}
 />
-```
 
-**A multi-colour mark declares `iconRenderingMode="original"`.** `Thêm mới` is a teal disc with a yellow
-glyph, so it opts out of the default tint; `Lưu & thoát` is a single-colour outline, so it does not.
-
-```tsx
+// a mark — the file owns its colours
 <Stack.Toolbar.Button
   icon={require('@/assets/images/add_new.png')}
   iconRenderingMode="original"
@@ -922,10 +948,8 @@ glyph, so it opts out of the default tint; `Lưu & thoát` is a single-colour ou
 />
 ```
 
-A PNG rather than a custom SF Symbol because `/ios` and `/android` are in `.gitignore` — this project runs
-[CNG](https://docs.expo.dev/workflow/continuous-native-generation/), so an asset catalog needs a config
-plugin, and `Thêm mới` is a two-colour badge, which is not what a symbol is. The upgrade stays local if it
-is ever wanted: a `.symbolset` behind a config plugin, reached with `<Stack.Toolbar.Icon xcasset="…" />`.
+**`"template"` carries no `tintColor` of its own.** An item that sets none inherits the bar's, and that is
+`headerTintColor` on both platforms or `navigationBar.tintColor` on iOS. One value, declared once in `STACK_SCREEN_OPTIONS`, reaching both.
 
 **`variant` stays `'plain'` on every item.** A VinaUp mark carries its own background where one is wanted,
 so the bar never has to draw a tinted one.
@@ -982,8 +1006,9 @@ so the bar never has to draw a tinted one.
 6. **Count the actions: one or two are buttons, three or more become one menu.** Nothing else decides the
    shape, and a menu never holds fewer than three.
 7. **Every button declares `accessibilityLabel`, and every destructive one confirms first.** A bar button
-   shows no text, so the label is all it has and the confirmation is what makes a bare `Xoá` safe. Gate
-   the whole `Stack.Toolbar` — never the item — when it could end up empty.
+   shows no text, so the label is all it has and the confirmation is what makes a bare `Xoá` safe. Put a
+   gate where it cannot leave an empty group — the whole `Stack.Toolbar` when every item shares the
+   condition, the item itself when a sibling always renders.
 8. **A mutating item is `disabled`, never a spinner** — `Button` and `MenuAction` both take it. The
    global loader covers the wait.
 9. **Conventional icons branch on `Platform.select<ToolbarIcon>` imported straight from `react-native`;
@@ -992,8 +1017,7 @@ so the bar never has to draw a tinted one.
 10. **`Tabs` keeps `headerShown: false`** so each tab's Stack draws the only bar.
 11. **One `StatusBar`, at the root; no item ever declares `hidesSharedBackground` or
     `separateBackground`.** Both follow from the chrome, and are not per-screen choices
-    ([The status bar is not the header](#the-status-bar-is-not-the-header),
-    [iOS 26](#ios-26--liquid-glass)).
+    ([iOS 26](#ios-26--liquid-glass)).
 
 ## Adding a screen
 
@@ -1016,40 +1040,40 @@ so the bar never has to draw a tinted one.
 
 **Platform**
 
-- [Toolbars · Apple HIG](https://developer.apple.com/design/human-interface-guidelines/toolbars) — the current page for both bars; `…/navigation-bars` `301`s here. Source of the overcrowding, macOS/iPadOS-only auto-overflow, and iOS "create a More menu" quotes
-- [Menus · Apple HIG](https://developer.apple.com/design/human-interface-guidelines/menus) — when an action becomes a menu
-- [`UINavigationItem` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem) — `title`, `titleView`, `largeTitleDisplayMode`, `backButtonDisplayMode`; `leftBarButtonItems` / `rightBarButtonItems` are **arrays**, not single slots
-- [`UIBarButtonItem` · UIKit](https://developer.apple.com/documentation/uikit/uibarbuttonitem) — one action: the initializers that fix its content, `customView`, `menu`, `style`, `badge`. Its `title` and `image` are inherited from [`UIBarItem`](https://developer.apple.com/documentation/uikit/uibaritem), which documents each on its own and neither against the other
-- [`hidesSharedBackground` · UIKit](https://developer.apple.com/documentation/uikit/uibarbuttonitem/hidessharedbackground) — iOS 26+: the bar draws a _"standard shared background (typically using the Glass effect)"_ behind its items, and the default is not to hide it
-- [`additionalOverflowItems` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/additionaloverflowitems) — iOS 16+; the opt-in overflow button, and the system filling it with items that don't fit
-- [`leftItemsSupplementBackButton` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/leftitemssupplementbackbutton) — custom leading items remove the Back button unless this is set
-- [`largeTitleDisplayMode` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/largetitledisplaymode) — `.automatic` / `.always` / `.never`, per screen
-- [`prefersLargeTitles` · UIKit](https://developer.apple.com/documentation/uikit/uinavigationbar/preferslargetitles) — the bar-level switch the per-screen mode depends on
-- [Explore navigation design for iOS · WWDC22](https://developer.apple.com/videos/play/wwdc2022/10001/) — where a large title belongs, and its collapse
-- [Top app bar · Material 3](https://m3.material.io/components/app-bars/guidelines) — the four types and their slots; **medium** and **large** are the ones with collapsing titles
-- [App bars · Jetpack Compose](https://developer.android.com/develop/ui/compose/components/app-bars) — the four top app bar types, `navigationIcon` / `title` / `actions`, scroll behaviour
-- [`AppBar.kt` · androidx](https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/AppBar.kt) — `TopAppBar`'s signature and KDoc: `navigationIcon: @Composable () -> Unit`, `actions: @Composable RowScope.() -> Unit`, _"The default layout here is a `Row`"_, and the `subtitle` overload
-- [Floating action buttons · Material 3](https://m3.material.io/components/floating-action-button/guidelines) — _"FABs help people take primary actions… Provide only one action at a time at this level"_: on Android the primary action is a FAB, not a top-app-bar action
-- [Build a UIKit app with the new design · WWDC25](https://developer.apple.com/videos/play/wwdc2025/284/) — iOS 26 bars: _"To tint the button background, set the style to prominent"_, and which items get separate backgrounds
-- [Creating custom symbol images for your app · UIKit](https://developer.apple.com/documentation/uikit/creating-custom-symbol-images-for-your-app) · [Create custom symbols · WWDC21](https://developer.apple.com/videos/play/wwdc2021/10250/) — the SVG template, _"use the Export Symbol option to make sure you get all the features that a full custom symbol provides"_, and `UIImage(named:)` resolving a symbol before a plain image
-- [TN3106: Customizing the appearance of `UINavigationBar` · Apple](https://developer.apple.com/documentation/technotes/tn3106-customizing-uinavigationbar-appearance) — the three `configureWith…Background` methods, and the 2025-09-03 revision: _"Starting in iOS 26, reduce your use of custom backgrounds in navigation elements and controls"_
-- [Adopting Liquid Glass · Apple](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) — what the material is and where the system already applies it
+- [Toolbars - Apple HIG](https://developer.apple.com/design/human-interface-guidelines/toolbars) — the current page for both bars; `…/navigation-bars` `301`s here. Source of the overcrowding, macOS/iPadOS-only auto-overflow, and iOS "create a More menu" quotes
+- [Menus - Apple HIG](https://developer.apple.com/design/human-interface-guidelines/menus) — when an action becomes a menu
+- [`UINavigationItem` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem) — `title`, `titleView`, `largeTitleDisplayMode`, `backButtonDisplayMode`; `leftBarButtonItems` / `rightBarButtonItems` are **arrays**, not single slots
+- [`UIBarButtonItem` - UIKit](https://developer.apple.com/documentation/uikit/uibarbuttonitem) — one action: the initializers that fix its content, `customView`, `menu`, `style`, `badge`. Its `title` and `image` are inherited from [`UIBarItem`](https://developer.apple.com/documentation/uikit/uibaritem), which documents each on its own and neither against the other
+- [`hidesSharedBackground` - UIKit](https://developer.apple.com/documentation/uikit/uibarbuttonitem/hidessharedbackground) — iOS 26+: the bar draws a _"standard shared background (typically using the Glass effect)"_ behind its items, and the default is not to hide it
+- [`additionalOverflowItems` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/additionaloverflowitems) — iOS 16+; the opt-in overflow button, and the system filling it with items that don't fit
+- [`leftItemsSupplementBackButton` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/leftitemssupplementbackbutton) — custom leading items remove the Back button unless this is set
+- [`largeTitleDisplayMode` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationitem/largetitledisplaymode) — `.automatic` / `.always` / `.never`, per screen
+- [`prefersLargeTitles` - UIKit](https://developer.apple.com/documentation/uikit/uinavigationbar/preferslargetitles) — the bar-level switch the per-screen mode depends on
+- [Explore navigation design for iOS - WWDC22](https://developer.apple.com/videos/play/wwdc2022/10001/) — where a large title belongs, and its collapse
+- [Top app bar - Material 3](https://m3.material.io/components/app-bars/guidelines) — the four types and their slots; **medium** and **large** are the ones with collapsing titles
+- [App bars - Jetpack Compose](https://developer.android.com/develop/ui/compose/components/app-bars) — the four top app bar types, `navigationIcon` / `title` / `actions`, scroll behaviour
+- [`AppBar.kt` - androidx](https://github.com/androidx/androidx/blob/androidx-main/compose/material3/material3/src/commonMain/kotlin/androidx/compose/material3/AppBar.kt) — `TopAppBar`'s signature and KDoc: `navigationIcon: @Composable () -> Unit`, `actions: @Composable RowScope.() -> Unit`, _"The default layout here is a `Row`"_, and the `subtitle` overload
+- [Floating action buttons - Material 3](https://m3.material.io/components/floating-action-button/guidelines) — _"FABs help people take primary actions… Provide only one action at a time at this level"_: on Android the primary action is a FAB, not a top-app-bar action
+- [Build a UIKit app with the new design - WWDC25](https://developer.apple.com/videos/play/wwdc2025/284/) — iOS 26 bars: _"To tint the button background, set the style to prominent"_, and which items get separate backgrounds
+- [Creating custom symbol images for your app - UIKit](https://developer.apple.com/documentation/uikit/creating-custom-symbol-images-for-your-app) - [Create custom symbols - WWDC21](https://developer.apple.com/videos/play/wwdc2021/10250/) — the SVG template, _"use the Export Symbol option to make sure you get all the features that a full custom symbol provides"_, and `UIImage(named:)` resolving a symbol before a plain image
+- [TN3106: Customizing the appearance of `UINavigationBar` - Apple](https://developer.apple.com/documentation/technotes/tn3106-customizing-uinavigationbar-appearance) — the three `configureWith…Background` methods, and the 2025-09-03 revision: _"Starting in iOS 26, reduce your use of custom backgrounds in navigation elements and controls"_
+- [Adopting Liquid Glass - Apple](https://developer.apple.com/documentation/TechnologyOverviews/adopting-liquid-glass) — what the material is and where the system already applies it
 
 **Framework**
 
-- [Stack · Expo Router](https://docs.expo.dev/router/advanced/stack/) — the full header options table, the composition API, and the custom-header caveat
-- [Large title does not collapse when scrolling · Expo Router](https://docs.expo.dev/router/advanced/stack/#large-title-does-not-collapse-when-scrolling) — the direct-first-child requirement
-- [Tabs · Expo Router](https://docs.expo.dev/router/advanced/tabs/)
-- [Nesting navigators · Expo Router](https://docs.expo.dev/router/advanced/nesting-navigators/) — a Stack inside each tab
-- [Stack Toolbar · Expo Router](https://docs.expo.dev/router/advanced/stack-toolbar/) — `Stack.Toolbar` and its children; Android from SDK 56, iOS from SDK 55. No item limit and no overflow behaviour is documented, because there is none
-- [Router Stack API · Expo Router](https://docs.expo.dev/versions/latest/sdk/router/stack) — the per-prop reference for `Stack.Toolbar.*`: `icon` is `ImageSourcePropType | SFSymbol`, _"On Android, only image sources are supported"_, and _"When icon is used, the label will not be shown and will be used for accessibility purposes only"_
+- [Stack - Expo Router](https://docs.expo.dev/router/advanced/stack/) — the full header options table, the composition API, and the custom-header caveat
+- [Large title does not collapse when scrolling - Expo Router](https://docs.expo.dev/router/advanced/stack/#large-title-does-not-collapse-when-scrolling) — the direct-first-child requirement
+- [Tabs - Expo Router](https://docs.expo.dev/router/advanced/tabs/)
+- [Nesting navigators - Expo Router](https://docs.expo.dev/router/advanced/nesting-navigators/) — a Stack inside each tab
+- [Stack Toolbar - Expo Router](https://docs.expo.dev/router/advanced/stack-toolbar/) — `Stack.Toolbar` and its children; Android from SDK 56, iOS from SDK 55. No item limit and no overflow behaviour is documented, because there is none
+- [Router Stack API - Expo Router](https://docs.expo.dev/versions/latest/sdk/router/stack) — the per-prop reference for `Stack.Toolbar.*`: `icon` is `ImageSourcePropType | SFSymbol`, _"On Android, only image sources are supported"_, and _"When icon is used, the label will not be shown and will be used for accessibility purposes only"_
 - [`@expo/material-symbols`](https://github.com/expo/material-symbols) — Material Symbols as Android XML vector drawables, one Metro-asset subpath per icon
-- [Tree shaking and code removal · Expo](https://docs.expo.dev/guides/tree-shaking/) — why an icon branches on `Platform` and not on `process.env.EXPO_OS`: _"Any code that is used conditionally based on the `Platform` module from react-native is removed from the other platforms"_, only where _"`Platform.select` and `Platform.OS` are directly imported from react-native in each file"_, and _"`process.env.EXPO_OS` … does not support platform shaking imports"_
-- [Platform-specific code · React Native](https://reactnative.dev/docs/platform-specific-code) — `Platform.OS` / `Platform.select` for _"when only small parts of a component are platform-specific"_, and a `.ios.` / `.android.` file _"when your platform-specific code is more complex"_
+- [Tree shaking and code removal - Expo](https://docs.expo.dev/guides/tree-shaking/) — why an icon branches on `Platform` and not on `process.env.EXPO_OS`: _"Any code that is used conditionally based on the `Platform` module from react-native is removed from the other platforms"_, only where _"`Platform.select` and `Platform.OS` are directly imported from react-native in each file"_, and _"`process.env.EXPO_OS` … does not support platform shaking imports"_
+- [Platform-specific code - React Native](https://reactnative.dev/docs/platform-specific-code) — `Platform.OS` / `Platform.select` for _"when only small parts of a component are platform-specific"_, and a `.ios.` / `.android.` file _"when your platform-specific code is more complex"_
 - [`react-native-screens`](https://github.com/software-mansion/react-native-screens) — the native header binding behind the Stack, and Expo Router's only navigation dependency
-- [Expo Router v56: Decoupling from React Navigation · Expo blog](https://expo.dev/blog/expo-router-v56-decoupling-from-react-navigation) — why the navigator now lives **inside** `expo-router`. `@react-navigation/*` is not a dependency and application code never imports it; `reactnavigation.org` documents a different package and is not the reference for these options
-- [Continuous Native Generation · Expo](https://docs.expo.dev/workflow/continuous-native-generation/) — why `/ios` and `/android` are gitignored here, and why anything in an asset catalog needs a config plugin
-- [Color themes · Expo](https://docs.expo.dev/develop/user-interface/color-themes/) — `userInterfaceStyle`: `automatic` _"Follow system appearance settings"_, `light` _"Restrict the app to support light theme only"_; and `useColorScheme`
-- [System bars · Expo](https://docs.expo.dev/develop/user-interface/system-bars/) — the status bar under edge-to-edge
-- [`StatusBar` · React Native](https://reactnative.dev/docs/statusbar) — `'dark-content'` / `'light-content'`; _"the props will be merged in the order the `StatusBar` components were mounted"_; and both `backgroundColor` and `translucent` _"deprecated in API level 35 … will have no effect"_
-- [Adopt `configureWithDefaultBackground` … · react-native-screens #4021](https://github.com/software-mansion/react-native-screens/discussions/4021) — why a Stack header cannot render the iOS 26 Liquid Glass material; open
+- [Expo Router v56: Decoupling from React Navigation - Expo blog](https://expo.dev/blog/expo-router-v56-decoupling-from-react-navigation) — why the navigator now lives **inside** `expo-router`. `@react-navigation/*` is not a dependency and application code never imports it; `reactnavigation.org` documents a different package and is not the reference for these options
+- [Continuous Native Generation - Expo](https://docs.expo.dev/workflow/continuous-native-generation/) — why `/ios` and `/android` are gitignored here, and why anything in an asset catalog needs a config plugin
+- [Color themes - Expo](https://docs.expo.dev/develop/user-interface/color-themes/) — `userInterfaceStyle`: `automatic` _"Follow system appearance settings"_, `light` _"Restrict the app to support light theme only"_; and `useColorScheme`
+- [System bars - Expo](https://docs.expo.dev/develop/user-interface/system-bars/) — the status bar under edge-to-edge
+- [`StatusBar` - React Native](https://reactnative.dev/docs/statusbar) — `'dark-content'` / `'light-content'`; _"the props will be merged in the order the `StatusBar` components were mounted"_; and both `backgroundColor` and `translucent` _"deprecated in API level 35 … will have no effect"_
+- [Adopt `configureWithDefaultBackground` … - react-native-screens #4021](https://github.com/software-mansion/react-native-screens/discussions/4021) — why a Stack header cannot render the iOS 26 Liquid Glass material; open
