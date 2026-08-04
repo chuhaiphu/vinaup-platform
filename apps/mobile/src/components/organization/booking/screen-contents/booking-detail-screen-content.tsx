@@ -1,6 +1,5 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
-import Entypo from '@react-native-vector-icons/entypo/static';
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
+import VisibilityIcon from '@expo/material-symbols/visibility.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
 import { Stack, useRouter } from 'expo-router';
 import { Suspense, useRef, useState } from 'react';
@@ -8,7 +7,6 @@ import { View, StyleSheet, ScrollView, RefreshControl, Platform } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { EntityListSectionSkeleton } from '@/components/commons/skeletons/entity-list-section-skeleton';
-import VinaupEyeSquare from '@/components/icons/vinaup-eye-square.native';
 import { BookingContentSection } from '@/components/organization/booking/detail/booking-content-section';
 import { BookingDetailHeader } from '@/components/organization/booking/detail/booking-detail-header';
 import BookingSignatureSection from '@/components/organization/booking/detail/booking-signature-section';
@@ -18,16 +16,8 @@ import {
   ReceiptPaymentListInBookingRef,
 } from '@/components/organization/booking/receipt-payment-list-in-booking';
 import { Badge } from '@/components/primitives/badge';
-import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { BOOKING_STATUS, BookingStatus, BookingStatusDisplay } from '@/constants/booking-constants';
-import {
-  BADGE_VARIANT,
-  BadgeVariant,
-  COLORS,
-  ICON_SIZES,
-  RADIUS,
-  SPACING,
-} from '@/constants/style-constants';
+import { BADGE_VARIANT, BadgeVariant, COLORS, RADIUS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInBookingProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-booking-provider';
@@ -60,7 +50,6 @@ export function BookingDetailScreenContent() {
   const receiptListRef = useRef<ReceiptPaymentListInBookingRef>(null);
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
 
-  const canUpdate = canEdit && can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.BOOKING);
   const canDelete = canEdit && can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.BOOKING);
 
   const bookingStatus = booking.status ?? BOOKING_STATUS.DRAFT;
@@ -78,11 +67,6 @@ export function BookingDetailScreenContent() {
     receiptListRef.current?.refresh();
   };
 
-  const handleSaveAndExit = () => {
-    refreshBooking();
-    router.back();
-  };
-
   const handlePressPreview = () => {
     router.push({
       pathname: '/(protected)/booking-detail/[bookingId]/booking-detail-preview',
@@ -93,19 +77,17 @@ export function BookingDetailScreenContent() {
   return (
     <OrganizationCustomerProvider organizationId={booking.organization?.id}>
       <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          icon={Platform.select<ToolbarIcon>({ ios: 'eye', android: VisibilityIcon })}
+          accessibilityLabel="Xem trước"
+          onPress={handlePressPreview}
+        />
         {canDelete && (
           <Stack.Toolbar.Button
             icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeletingBooking}
             accessibilityLabel="Xoá"
+            disabled={isDeletingBooking}
             onPress={handleDeleteBooking}
-          />
-        )}
-        {canUpdate && (
-          <Stack.Toolbar.Button
-            icon={require('@/assets/images/save_and_exit.png')}
-            accessibilityLabel="Lưu & thoát"
-            onPress={handleSaveAndExit}
           />
         )}
       </Stack.Toolbar>
@@ -114,17 +96,6 @@ export function BookingDetailScreenContent() {
           <Badge variant={bookingStatusBadgeVariant[bookingStatus]}>
             {BookingStatusDisplay[bookingStatus]}
           </Badge>
-          <View style={styles.actionButton}>
-            <PressableOpacity style={styles.actionButtonItem} onPress={handlePressPreview}>
-              <VinaupEyeSquare />
-            </PressableOpacity>
-            <PressableOpacity style={styles.actionButtonItem}>
-              <FontAwesome5 name="copy" size={ICON_SIZES.md} color={COLORS.teal700} />
-            </PressableOpacity>
-            <PressableOpacity style={styles.actionButtonItem}>
-              <Entypo name="dots-three-horizontal" size={ICON_SIZES.md} color={COLORS.teal700} />
-            </PressableOpacity>
-          </View>
         </View>
 
         <ScrollView
@@ -186,11 +157,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  actionButton: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  actionButtonItem: {},
   bookingSignatureContainer: {
     backgroundColor: COLORS.green50,
     paddingHorizontal: SPACING.sm,

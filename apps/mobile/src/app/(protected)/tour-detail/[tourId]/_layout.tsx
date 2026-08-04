@@ -1,6 +1,4 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
-import Entypo from '@react-native-vector-icons/entypo/static';
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { Slot, Stack, useLocalSearchParams, useRouter, useSegments } from 'expo-router';
 import { type ApiError } from 'fetchwire';
 import { useRef, Suspense } from 'react';
@@ -14,7 +12,7 @@ import { ErrorBoundary } from '@/components/primitives/error-boundary';
 import { PressableOpacity } from '@/components/primitives/pressable-opacity';
 import { SingleSelect } from '@/components/primitives/single-select';
 import { SlideSheet, SlideSheetRef } from '@/components/primitives/slide-sheet';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
+import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { TourStatus, TourStatusOptions } from '@/constants/tour-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
@@ -33,15 +31,8 @@ function TourDetailLayoutContent() {
   const { tourId } = useLocalSearchParams<{
     tourId: string;
   }>();
-  const {
-    tour,
-    isRefreshingTour,
-    isUpdatingTour,
-    handleUpdateTour,
-    refreshTour,
-    deleteTour,
-    isDeleting,
-  } = useTourDetailContext();
+  const { tour, isRefreshingTour, isUpdatingTour, handleUpdateTour, deleteTour, isDeleting } =
+    useTourDetailContext();
 
   const segments = useSegments();
   const tab = segments[segments.length - 1];
@@ -70,24 +61,14 @@ function TourDetailLayoutContent() {
     ]);
   };
 
-  const handleSaveAndExit = () => {
-    refreshTour();
-    router.back();
-  };
-
   return (
     <>
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-          disabled={isDeleting}
           accessibilityLabel="Xoá"
+          disabled={isDeleting}
           onPress={handleDelete}
-        />
-        <Stack.Toolbar.Button
-          icon={require('@/assets/images/save_and_exit.png')}
-          accessibilityLabel="Lưu & thoát"
-          onPress={handleSaveAndExit}
         />
       </Stack.Toolbar>
       <OrganizationTourDetailTabList currentTab={tab} tourId={tourId} />
@@ -102,14 +83,6 @@ function TourDetailLayoutContent() {
             </Text>
           </PressableOpacity>
         )}
-        <View style={styles.actionButton}>
-          <PressableOpacity style={styles.actionButtonItem}>
-            <FontAwesome5 name="copy" size={ICON_SIZES.md} color={COLORS.teal700} />
-          </PressableOpacity>
-          <PressableOpacity style={styles.actionButtonItem}>
-            <Entypo name="dots-three-horizontal" size={ICON_SIZES.md} color={COLORS.teal700} />
-          </PressableOpacity>
-        </View>
       </View>
       <SlideSheet ref={sheetRef}>
         <View style={styles.sheetHeader}>
@@ -158,15 +131,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  actionButton: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  actionButtonItem: {},
-  actionButtonItemText: {
-    fontSize: FONT_SIZES.base,
-    color: COLORS.teal700,
-  },
   statusFilter: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -183,18 +147,6 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZES.lg,
     fontWeight: FONT_WEIGHTS.bold,
     color: COLORS.teal900,
-  },
-  headerContainer: {
-    backgroundColor: COLORS.white,
-  },
-  headerTitle: {
-    fontSize: FONT_SIZES.lg,
-  },
-  headerBackButtonIcon: {
-    color: COLORS.teal700,
-  },
-  headerDeleteButtonIcon: {
-    color: COLORS.teal700,
   },
   slotContainer: {
     flex: 1,

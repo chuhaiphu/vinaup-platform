@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./src/assets/images/app_icon.png",
     "scheme": "vinaup-mobile",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vinaup.mobile"
@@ -56,7 +56,6 @@
       "expo-sharing",
       "expo-image-picker",
       "expo-secure-store",
-      "expo-status-bar",
       "@react-native-vector-icons/ionicons",
       "@react-native-vector-icons/feather",
       "@react-native-vector-icons/fontawesome",

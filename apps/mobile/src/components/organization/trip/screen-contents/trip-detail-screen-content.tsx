@@ -1,6 +1,6 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Suspense, useRef } from 'react';
 import {
   View,
@@ -45,7 +45,6 @@ export function TripDetailScreenContent() {
   const sheetRef = useRef<SlideSheetRef>(null);
   const assignmentSectionRef = useRef<TripAssignmentSectionRef>(null);
   const tripCostRef = useRef<TripCostSectionRef>(null);
-  const router = useRouter();
 
   const {
     trip,
@@ -73,30 +72,18 @@ export function TripDetailScreenContent() {
     tripCostRef.current?.refresh();
   };
 
-  const handleSaveAndExit = () => {
-    refreshTrip();
-    router.back();
-  };
-
   return (
     <OrganizationCustomerProvider organizationId={trip.organization?.id}>
-      <Stack.Toolbar placement="right">
-        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TRIP) && (
+      {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.TRIP) && (
+        <Stack.Toolbar placement="right">
           <Stack.Toolbar.Button
             icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeletingTrip}
             accessibilityLabel="Xoá"
+            disabled={isDeletingTrip}
             onPress={handleDeleteTrip}
           />
-        )}
-        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.TRIP) && (
-          <Stack.Toolbar.Button
-            icon={require('@/assets/images/save_and_exit.png')}
-            accessibilityLabel="Lưu & thoát"
-            onPress={handleSaveAndExit}
-          />
-        )}
-      </Stack.Toolbar>
+        </Stack.Toolbar>
+      )}
       <View style={[styles.container, { paddingBottom: insets.bottom }]}>
         <View style={styles.actionContainer}>
           {isUpdatingTrip || isRefreshingTrip ? (

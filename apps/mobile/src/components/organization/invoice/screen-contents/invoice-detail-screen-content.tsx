@@ -1,8 +1,6 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
-import Entypo from '@react-native-vector-icons/entypo/static';
-import FontAwesome5 from '@react-native-vector-icons/fontawesome5/static';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -31,7 +29,7 @@ import {
   InvoiceStatusOptions,
   InvoiceTypeDisplay,
 } from '@/constants/invoice-constants';
-import { COLORS, FONT_SIZES, FONT_WEIGHTS, ICON_SIZES, SPACING } from '@/constants/style-constants';
+import { COLORS, FONT_SIZES, FONT_WEIGHTS, SPACING } from '@/constants/style-constants';
 import { useNavigationStore } from '@/hooks/use-navigation-store';
 import type { ToolbarIcon } from '@/interfaces/navigation-interfaces';
 import { ReceiptPaymentListInInvoiceProvider } from '@/providers/commons/receipt-payment/receipt-payment-list-in-invoice-provider';
@@ -56,7 +54,6 @@ export function InvoiceDetailScreenContent() {
   const receiptListRef = useRef<ReceiptPaymentListInInvoiceRef>(null);
   const [isRefreshingReceiptList, setIsRefreshingReceiptList] = useState(false);
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   function handleDeleteInvoice() {
     return handleDelete(
@@ -64,11 +61,6 @@ export function InvoiceDetailScreenContent() {
       () => setIsNavigating(false),
     );
   }
-
-  const handleSaveAndExit = () => {
-    refreshInvoice();
-    router.back();
-  };
 
   const handlePullToRefresh = useCallback(() => {
     receiptListRef.current?.refresh();
@@ -78,23 +70,16 @@ export function InvoiceDetailScreenContent() {
   return (
     <OrganizationCustomerProvider organizationId={invoice.organization?.id}>
       <Stack.Title>{`Chi tiết ${InvoiceTypeDisplay[invoice.type]}`}</Stack.Title>
-      <Stack.Toolbar placement="right">
-        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE) && (
+      {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.INVOICE) && (
+        <Stack.Toolbar placement="right">
           <Stack.Toolbar.Button
             icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeletingInvoice}
             accessibilityLabel="Xoá"
+            disabled={isDeletingInvoice}
             onPress={handleDeleteInvoice}
           />
-        )}
-        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.INVOICE) && (
-          <Stack.Toolbar.Button
-            icon={require('@/assets/images/save_and_exit.png')}
-            accessibilityLabel="Lưu & thoát"
-            onPress={handleSaveAndExit}
-          />
-        )}
-      </Stack.Toolbar>
+        </Stack.Toolbar>
+      )}
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -118,17 +103,6 @@ export function InvoiceDetailScreenContent() {
               </Text>
             </PressableOpacity>
           )}
-          <View style={styles.actionButton}>
-            <PressableOpacity style={styles.actionButtonItem}>
-              <Text style={styles.actionButtonItemText}>Hóa đơn</Text>
-            </PressableOpacity>
-            <PressableOpacity style={styles.actionButtonItem}>
-              <FontAwesome5 name="copy" size={ICON_SIZES.md} color={COLORS.teal700} />
-            </PressableOpacity>
-            <PressableOpacity style={styles.actionButtonItem}>
-              <Entypo name="dots-three-horizontal" size={ICON_SIZES.md} color={COLORS.teal700} />
-            </PressableOpacity>
-          </View>
         </View>
         <SlideSheet ref={sheetRef}>
           <View style={styles.sheetHeader}>
@@ -184,15 +158,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    gap: SPACING.md,
-  },
-  actionButtonItem: {},
-  actionButtonItemText: {
-    fontSize: FONT_SIZES.base,
-    color: COLORS.teal700,
   },
   statusFilter: {
     flexDirection: 'row',

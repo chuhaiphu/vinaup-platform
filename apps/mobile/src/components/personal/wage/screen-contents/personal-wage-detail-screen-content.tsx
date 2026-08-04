@@ -1,5 +1,5 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -42,7 +42,6 @@ export function PersonalWageDetailScreenContent() {
     handleDelete,
     refreshWage,
   } = usePersonalWageDetailContext();
-  const router = useRouter();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const sheetRef = useRef<SlideSheetRef>(null);
   const receiptListRef = useRef<ReceiptPaymentListInWageRef>(null);
@@ -56,11 +55,6 @@ export function PersonalWageDetailScreenContent() {
     );
   }
 
-  const handleSaveAndExit = () => {
-    refreshWage();
-    router.back();
-  };
-
   const handlePullToRefresh = useCallback(() => {
     receiptListRef.current?.refresh();
     refreshWage();
@@ -71,14 +65,9 @@ export function PersonalWageDetailScreenContent() {
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
           icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-          disabled={isDeletingWage}
           accessibilityLabel="Xoá"
+          disabled={isDeletingWage}
           onPress={handleDeleteWage}
-        />
-        <Stack.Toolbar.Button
-          icon={require('@/assets/images/save_and_exit.png')}
-          accessibilityLabel="Lưu & thoát"
-          onPress={handleSaveAndExit}
         />
       </Stack.Toolbar>
       <ScrollView

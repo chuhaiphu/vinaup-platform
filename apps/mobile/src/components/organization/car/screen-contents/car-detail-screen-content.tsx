@@ -1,6 +1,6 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 import { CarAdditionalImagesSection } from '@/components/organization/car/detail/car-additional-images-section';
@@ -20,7 +20,6 @@ import { useOrganizationAbility } from '@/providers/organization/organization-ab
 export function CarDetailScreenContent() {
   const { isRefreshingCar, isDeletingCar, refreshCar, handleDelete } = useCarDetailContext();
   const { can } = useOrganizationAbility();
-  const router = useRouter();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const handleDeleteCar = () =>
     handleDelete(
@@ -28,30 +27,18 @@ export function CarDetailScreenContent() {
       () => setIsNavigating(false),
     );
 
-  const handleSaveAndExit = () => {
-    refreshCar();
-    router.back();
-  };
-
   return (
     <View style={styles.container}>
-      <Stack.Toolbar placement="right">
-        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.CAR) && (
+      {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.CAR) && (
+        <Stack.Toolbar placement="right">
           <Stack.Toolbar.Button
             icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeletingCar}
             accessibilityLabel="Xoá"
+            disabled={isDeletingCar}
             onPress={handleDeleteCar}
           />
-        )}
-        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.CAR) && (
-          <Stack.Toolbar.Button
-            icon={require('@/assets/images/save_and_exit.png')}
-            accessibilityLabel="Lưu & thoát"
-            onPress={handleSaveAndExit}
-          />
-        )}
-      </Stack.Toolbar>
+        </Stack.Toolbar>
+      )}
       {/* Status bar sits above the header card and stays fixed while the detail scrolls. */}
       <CarStatusBar />
       <ScrollView

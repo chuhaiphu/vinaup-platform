@@ -1,6 +1,6 @@
 import DeleteIcon from '@expo/material-symbols/delete.xml';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { Suspense, useCallback, useRef, useState } from 'react';
 import {
   View,
@@ -46,7 +46,6 @@ export function ProjectDetailScreenContent() {
     refreshProject,
   } = useProjectDetailContext();
   const { can } = useOrganizationAbility();
-  const router = useRouter();
   const setIsNavigating = useNavigationStore((s) => s.setIsNavigating);
   const sheetRef = useRef<SlideSheetRef>(null);
   const receiptListRef = useRef<ReceiptPaymentListInProjectRef>(null);
@@ -60,12 +59,6 @@ export function ProjectDetailScreenContent() {
     );
   }
 
-  const handleSaveAndExit = () => {
-    if (!project) return;
-    refreshProject();
-    router.back();
-  };
-
   const handlePullToRefresh = useCallback(() => {
     receiptListRef.current?.refresh();
     refreshProject();
@@ -73,23 +66,16 @@ export function ProjectDetailScreenContent() {
 
   return (
     <OrganizationCustomerProvider organizationId={project.organization?.id}>
-      <Stack.Toolbar placement="right">
-        {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT) && (
+      {can(PERMISSION_ACTION.DELETE, PERMISSION_RESOURCE.PROJECT) && (
+        <Stack.Toolbar placement="right">
           <Stack.Toolbar.Button
             icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeletingProject}
             accessibilityLabel="Xoá"
+            disabled={isDeletingProject}
             onPress={handleDeleteProject}
           />
-        )}
-        {can(PERMISSION_ACTION.UPDATE, PERMISSION_RESOURCE.PROJECT) && (
-          <Stack.Toolbar.Button
-            icon={require('@/assets/images/save_and_exit.png')}
-            accessibilityLabel="Lưu & thoát"
-            onPress={handleSaveAndExit}
-          />
-        )}
-      </Stack.Toolbar>
+        </Stack.Toolbar>
+      )}
       <ScrollView
         style={styles.container}
         refreshControl={

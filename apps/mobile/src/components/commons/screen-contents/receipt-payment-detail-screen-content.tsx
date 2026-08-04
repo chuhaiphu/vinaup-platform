@@ -245,20 +245,20 @@ export function ReceiptPaymentDetailScreenContent() {
     <KeyboardAvoidingView style={styles.screenContainer} behavior={'padding'}>
       <Stack.Title>{isUpdateMode ? 'Sửa Thu Chi' : 'Tạo Thu Chi'}</Stack.Title>
       <Stack.Toolbar placement="right">
-        {isUpdateMode && (
-          <Stack.Toolbar.Button
-            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
-            disabled={isDeleting}
-            accessibilityLabel="Xoá"
-            onPress={handleDelete}
-          />
-        )}
         <Stack.Toolbar.Button
           icon={require('@/assets/images/save_and_exit.png')}
           disabled={isSaving}
           accessibilityLabel="Lưu & thoát"
           onPress={handleSaveAndExit}
         />
+        {isUpdateMode && (
+          <Stack.Toolbar.Button
+            icon={Platform.select<ToolbarIcon>({ ios: 'trash', android: DeleteIcon })}
+            accessibilityLabel="Xoá"
+            disabled={isDeleting}
+            onPress={handleDelete}
+          />
+        )}
       </Stack.Toolbar>
       <ReceiptPaymentForm
         fieldValues={fieldValues}

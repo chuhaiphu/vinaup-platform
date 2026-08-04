@@ -1,4 +1,3 @@
-import { Stack, useRouter } from 'expo-router';
 import { RefreshControl, StyleSheet } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 
@@ -11,8 +10,6 @@ import { calculateTripCostSummaries } from '@/utils/calculator/calculate-trip-co
 import { generateLocaleFormatString } from '@/utils/generator/string-generator/generate-locale-format-string';
 
 export function TripCostScreenContent() {
-  const router = useRouter();
-
   const { trip, tripId, refreshTrip, isRefreshingTrip } = useTripDetailContext();
   const { receiptPayments, refreshFetch, isRefreshing } = useReceiptPaymentListInTripContext();
 
@@ -22,62 +19,48 @@ export function TripCostScreenContent() {
     commissionRate: trip.commissionRate,
   });
 
-  const handleSaveAndExit = () => {
-    refreshTrip();
-    router.back();
-  };
-
   const handleRefresh = () => {
     refreshTrip();
     refreshFetch();
   };
 
   return (
-    <>
-      <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          icon={require('@/assets/images/save_and_exit.png')}
-          accessibilityLabel="Lưu & thoát"
-          onPress={handleSaveAndExit}
+    <KeyboardAwareScrollView
+      bottomOffset={8}
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshingTrip || isRefreshing}
+          onRefresh={handleRefresh}
+          colors={[COLORS.teal700]}
+          tintColor={COLORS.teal700}
         />
-      </Stack.Toolbar>
-      <KeyboardAwareScrollView
-        bottomOffset={8}
-        style={styles.container}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshingTrip || isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[COLORS.teal700]}
-            tintColor={COLORS.teal700}
-          />
-        }
-      >
-        <TripExpenseSummary
-          onUpdated={refreshTrip}
-          rentalPrice={trip.rentalPrice}
-          taxRate={trip.taxRate}
-          commissionRate={trip.commissionRate}
-          totalReceipt={generateLocaleFormatString(summary.totalReceipt)}
-          totalPayment={generateLocaleFormatString(summary.totalPayment)}
-          vatGTGT={generateLocaleFormatString(summary.vatGTGT)}
-          vatDeducted={generateLocaleFormatString(summary.vatDeducted)}
-          totalTaxPay={generateLocaleFormatString(summary.totalTaxPay)}
-          netProfitAfterTaxPay={generateLocaleFormatString(summary.netProfitAfterTaxPay)}
-          profitMarginAfterTaxPay={generateLocaleFormatString(
-            summary.profitMarginAfterTaxPay,
-            'vi-VN',
-            2,
-          )}
-        />
-        <TripExpenseReceiptPaymentList
-          receiptPayments={receiptPayments}
-          isRefreshing={isRefreshing}
-          tripId={tripId}
-          organizationId={trip.organization?.id}
-        />
-      </KeyboardAwareScrollView>
-    </>
+      }
+    >
+      <TripExpenseSummary
+        onUpdated={refreshTrip}
+        rentalPrice={trip.rentalPrice}
+        taxRate={trip.taxRate}
+        commissionRate={trip.commissionRate}
+        totalReceipt={generateLocaleFormatString(summary.totalReceipt)}
+        totalPayment={generateLocaleFormatString(summary.totalPayment)}
+        vatGTGT={generateLocaleFormatString(summary.vatGTGT)}
+        vatDeducted={generateLocaleFormatString(summary.vatDeducted)}
+        totalTaxPay={generateLocaleFormatString(summary.totalTaxPay)}
+        netProfitAfterTaxPay={generateLocaleFormatString(summary.netProfitAfterTaxPay)}
+        profitMarginAfterTaxPay={generateLocaleFormatString(
+          summary.profitMarginAfterTaxPay,
+          'vi-VN',
+          2,
+        )}
+      />
+      <TripExpenseReceiptPaymentList
+        receiptPayments={receiptPayments}
+        isRefreshing={isRefreshing}
+        tripId={tripId}
+        organizationId={trip.organization?.id}
+      />
+    </KeyboardAwareScrollView>
   );
 }
 
