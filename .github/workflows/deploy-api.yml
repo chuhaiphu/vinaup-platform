@@ -80,6 +80,7 @@ jobs:
           export DOCKER_CONTAINER_NAME="${{ env.DOCKER_CONTAINER_NAME }}"
           export MAIL_DRIVER="${{ vars.MAIL_DRIVER }}"
           export PHONE_DRIVER="${{ vars.PHONE_DRIVER }}"
+          export STORAGE_DRIVER="${{ vars.STORAGE_DRIVER }}"
           export STORAGE_PUBLIC_BASE_URL="${{ vars.STORAGE_PUBLIC_BASE_URL }}"
 
           # Pull the latest images

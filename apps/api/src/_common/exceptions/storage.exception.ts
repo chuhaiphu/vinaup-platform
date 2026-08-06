@@ -34,3 +34,13 @@ export class UploadFailedException extends InternalServerErrorException {
     });
   }
 }
+
+export class StorageDriverNotIntegratedException extends InternalServerErrorException {
+  constructor() {
+    super({
+      error: 'STORAGE_DRIVER_NOT_INTEGRATED',
+      message: 'The selected storage driver has no backend behind it',
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+  }
+}

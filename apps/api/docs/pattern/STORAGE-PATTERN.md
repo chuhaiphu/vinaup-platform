@@ -2,34 +2,41 @@
 
 ## What
 
-The **Storage pattern** hides _where a file physically lives_ behind a stable **contract**, so business code never names a storage backend. One **driver** implements that contract, and business code only ever sees the contract.
+The **Storage pattern** hides _where a file physically lives_ behind a stable **contract**. One driver implements that contract and exactly one driver is chosen at boot.
 
 - The **contract** is `StorageService` — an abstract class written in domain language (`put` / `delete` / `getPublicUrl`). Every consumer depends on it and on nothing else.
-- A **driver** is one concrete implementation of the contract: `LocalDiskStorageService` (a VPS disk). Today there is exactly one.
+- A **driver** is one concrete implementation of the contract: `LocalDiskStorageService` (a VPS disk), `R2StorageService` (Cloudflare R2).
 - A **key** is the string the DB stores — `users/{userId}/avatar-{ts}.{ext}`. The public URL is derived from it, never stored.
+- Which driver is active is decided once, at boot, by `STORAGE_DRIVER`.
 
 ```
-  Business code (user avatar, organization logo, car images, signatures)
-        │  injects
-        ▼
-  ┌──────────────────────────────────┐
-  │  StorageService                  │   CONTRACT — abstract class
-  │  put / delete / getPublicUrl     │   (the only export of StorageModule)
-  └──────────────────────────────────┘
-        ▲
-        │ extends
-  ┌──────────────────────────────────┐
-  │  LocalDiskStorageService         │   DRIVER
-  │  (node:fs/promises)              │
-  └──────────────────────────────────┘
-        one driver, bound with useClass — no boot-time switch
+                    Business code
+                          │
+                          │  injects StorageService
+                          ▼
+      ┌────────────────────────────────────────┐
+      │  StorageService                        │   CONTRACT
+      │  put / delete / getPublicUrl           │   abstract class
+      └────────────────────────────────────────┘
+                          △
+                          │  STORAGE_DRIVER
+                          │  binds exactly one
+                          │
+      ┌────────────────────────────────────────┐
+      │  LocalDiskStorageService               │   DRIVER
+      │  R2StorageService                      │   one per backend
+      └────────────────────────────────────────┘
 ```
+
+A driver is named for **the backend it writes to**, the same way a notifier driver is named for its transport. → [Notifier Facade Pattern](NOTIFIER-FACADE-PATTERN.md)
+
+> **`R2StorageService` is registered but not integrated.** Selectable by `STORAGE_DRIVER=r2`; `getPublicUrl` is real, `put` and `delete` log and throw. → [The R2 driver](#the-r2-driver)
 
 The contract is an **abstract class, not an interface**: a TypeScript interface is erased at compile time, so it cannot serve as a DI token. An abstract class exists at runtime **and** type-checks the drivers that extend it. → [Factory Pattern — the token rule](FACTORY-PATTERN.md#the-token-rule--whoever-calls-new-decides-what-may-go-in-the-constructor)
 
 ### In this codebase
 
-`StorageModule` exports **only** the contract. The driver stays internal, so no other module can name a backend.
+`StorageModule` exports **only** the contract. Both drivers stay internal, so no other module can name a backend.
 
 ```ts
 constructor(private readonly storageService: StorageService) {} // no @Inject, no fs
@@ -46,7 +53,7 @@ Without the contract, every upload site talks to the backend directly — `fs.wr
 
 | Problem                                    | Consequence                                                                                                    | How to solve it                                                                       |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| feature code calls `fs` / an SDK directly  | _where files live_ is a **deployment** decision, but changing it means editing every upload site               | one contract; swapping backends is a new driver plus one binding, and nothing outside `src/storage/` moves |
+| feature code calls `fs` / an SDK directly  | _where files live_ is a **deployment** decision, but changing it means editing every upload site               | one contract; swapping backends is one env var, and nothing outside `src/storage/` moves |
 | the DB stores a full URL                   | the base URL **will** change (new domain, new bucket, CDN in front) → every change becomes a data migration    | store the **key**; `getPublicUrl(key)` re-derives the URL at read time                |
 | the client sends the path back to the server | any authenticated caller can name **any** path — `../../../etc/passwd` normalises out of the upload root       | keys are **server-generated** and never accepted from input                          |
 | the file extension comes from the upload's filename | content is verified by magic number but the **name** is not — a valid PNG can be stored as `evil.html` and served as HTML | derive the extension from the **verified** MIME type (`EXTENSION_BY_MIME`)            |
@@ -90,6 +97,7 @@ The first segment names the **owning scope**, the second is that owner's id:
 - **`{ts}` makes every upload a NEW key** instead of overwriting. The URL changes, so a browser or CDN can never serve a stale cached image, and two concurrent uploads cannot race on one key.
 - **Keys are server-generated**, always. Nothing in a request body ever reaches `put` or `delete`.
 - **`{ext}` comes from the verified MIME type**, not from the uploaded filename. → [`storage.constant.ts`](../../src/_common/constants/storage.constant.ts)
+- **Every driver uses this same layout**, so objects stay portable between backends. Switching `STORAGE_DRIVER` changes where bytes land, never what they are called — only `publicBaseUrl` differs.
 
 ### Replacing a file
 
@@ -107,23 +115,50 @@ Step 3 must never fail the request: the user's avatar **did** change. A leftover
 
 ---
 
-## Choosing the driver
+## Choosing the driver at boot
 
-There is one driver, so the binding is a plain `useClass`:
+The binding "which driver _is_ `StorageService`" is a **factory provider**, because the choice depends on config that exists only at runtime:
 
 ```ts
 // src/storage/storage.module.ts
-providers: [{ provide: StorageService, useClass: LocalDiskStorageService }],
-exports: [StorageService],
+{
+  provide: StorageService,
+  useFactory: (
+    config: StorageConfig,
+    local: LocalDiskStorageService,
+    r2: R2StorageService,
+  ): StorageService => {
+    switch (config.driver) {
+      case 'local':
+        return local;
+      case 'r2':
+        return r2;
+    }
+  },
+  inject: [storageConfig.KEY, LocalDiskStorageService, R2StorageService],
+}
 ```
 
-**Why not a `useFactory` that switches on an env var**, the way [`NotifierModule`](NOTIFIER-FACADE-PATTERN.md) picks a mail driver? Because a switch over a one-member union is an abstraction with nothing to abstract. → [KISS "How" §5](../principle/KISS.md#how) — _do not add an abstraction before it is needed._
+It **must** be a factory, not `useClass: conf.driver === 'local' ? … : …`: the `providers` array is evaluated at _import time_, before `ConfigModule.forRoot` has read `.env`. A factory runs later, at instantiation time, once config exists. → [Factory Pattern — import time vs instantiation time](FACTORY-PATTERN.md#import-time-vs-instantiation-time)
 
-The moment a **second** driver lands, the binding — and only the binding — changes shape. See [Adding a driver](#adding-a-driver).
+`inject` names every driver, so the container builds them all and the factory picks one — which is why a driver must stay cheap to construct.
+
+---
+
+## The R2 driver
+
+R2 has no Node SDK of its own — it is **S3-compatible**, driven by `@aws-sdk/client-s3`. The `S3Client` is built by an internal `'S3_CLIENT'` factory provider (same shape as `'DATABASE'` in `PrismaModule` → [Factory Pattern](FACTORY-PATTERN.md#in-this-codebase)), with two R2-specific settings:
+
+- `endpoint: https://{accountId}.r2.cloudflarestorage.com`, `region: 'auto'` — `region` is required by the SDK and ignored by R2.
+- `requestChecksumCalculation` / `responseChecksumValidation` = `'WHEN_REQUIRED'` — the AWS SDK ≥ 3.729 sends CRC32 checksums by default and R2 rejects them. `WHEN_REQUIRED` restores the pre-3.729 behavior: a checksum only when an operation demands one.
+
+**Not integrated yet.** The class, its registration and the binding are real, and so is `getPublicUrl`. `put` and `delete` log and throw — a silent no-op would answer `201` to an upload whose bytes went nowhere. Integrating it: add the dependency, add the `'S3_CLIENT'` provider, replace the two bodies.
 
 ---
 
 ## The local-disk driver
+
+`STORAGE_DRIVER=local` selects the VPS disk — the driver production runs today.
 
 The driver writes files; **it never reads them back**. Serving is somebody else's job, and who that is differs by environment:
 
@@ -167,32 +202,35 @@ Three pieces must agree:
 
 ### Dev serving
 
-There is no nginx in dev, so [main.ts](../../src/main.ts) mounts the storage dir as static assets — **outside production only**:
+There is no nginx in dev, so [main.ts](../../src/main.ts) mounts the storage dir as static assets:
 
 ```ts
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && storageConf.driver === 'local') {
   app.useStaticAssets(resolve(storageConf.localRoot), {
     prefix: new URL(storageConf.publicBaseUrl).pathname, // "/storage"
   });
 }
 ```
 
-The condition is on the **environment**, not on the driver: production runs the same local driver, and there it is nginx that must serve. Mounting the assets there too would quietly put Node back in the read path.
+Both halves are load-bearing. **Not production**, because production runs the local driver too and there nginx must serve — mounting the assets would put Node back in the read path. **Driver is local**, because under `r2` the prefix is `/` and the line would mount an empty folder over every route.
 
 ---
 
 ## Config
 
-Namespace `storage` ([storage.config.ts](../../src/_core/configs/storage.config.ts)) — one env var:
+Namespace `storage` ([storage.config.ts](../../src/_core/configs/storage.config.ts)):
 
-| Var                       | Meaning                                                                                                          |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `STORAGE_PUBLIC_BASE_URL` | base of every public URL. Dev: the API origin + `/storage` (`http://localhost:8000/storage`). Prod: `https://media.vinaup.com` |
+| Var                       | Required               | Meaning                                                                                                          |
+| ------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `STORAGE_DRIVER`          | always                 | `local` \| `r2` — which driver the factory returns                                                                |
+| `STORAGE_PUBLIC_BASE_URL` | always                 | base of every public URL. Dev: the API origin + `/storage` (`http://localhost:8000/storage`). Prod: `https://media.vinaup.com` |
+| `R2_ACCOUNT_ID`           | when `STORAGE_DRIVER=r2` | account whose R2 endpoint the SDK talks to                                                                       |
+| `R2_ACCESS_KEY_ID` / `R2_SECRET_ACCESS_KEY` | when `STORAGE_DRIVER=r2` | R2 API token, scoped to the bucket with Object Read & Write                                      |
+| `R2_BUCKET`               | when `STORAGE_DRIVER=r2` | bucket every key is written under                                                                                |
 
-Everything else in the namespace is **code-owned, not env**, because changing it is a code decision that should be reviewed like one:
+`registerAs` validates all of them and **throws before the app listens**, the same discipline as [`notifier.config.ts`](../../src/_core/configs/notifier.config.ts).
 
-- the **upload policy** — `MAX_FILE_SIZE_BYTES` (5 MB) and `ALLOWED_MIME_TYPES` (jpeg/png/webp), plus the derived `ALLOWED_MIME_REGEX` and `EXTENSION_BY_MIME` — lives in [`storage.constant.ts`](../../src/_common/constants/storage.constant.ts) and is imported into the config's `maxFileSizeBytes` / `allowedMimeTypes` fields, so every upload endpoint enforces one policy;
-- **`localRoot`** — the driver's write path relative to cwd; the physical host location is chosen by the docker volume instead.
+The rest of the namespace is **code-owned, not env**.
 
 `ALLOWED_MIME_REGEX` is what `FileTypeValidator` matches against, and it is compared to the **magic-number-detected** type, not to the client's `Content-Type` header. `EXTENSION_BY_MIME` maps that same verified type to the extension the key gets — the two are derived from one list, so the allow-list stays a single source.
 
@@ -204,14 +242,16 @@ Everything else in the namespace is **code-owned, not env**, because changing it
 2. **Generate the key server-side** on the documented layout — owning scope first, `{ts}` in the name, extension from the verified MIME — and store the **key**. Never accept a key or a path from a request.
 3. **Expose `*Url`, store `*Key`.** The response DTO maps one to the other with `getPublicUrl`; the column name ends in `Key` so the two can never be confused at a call site.
 4. **Replace with put → repoint → prune**, and let the prune fail silently. → [Replacing a file](#replacing-a-file)
-5. **Keep the driver cheap to construct** — no I/O in a constructor, so the container can build it eagerly.
+5. **Select the driver through `STORAGE_DRIVER`**, and keep `STORAGE_PUBLIC_BASE_URL` in agreement with it — the disk behind nginx and an R2 bucket do not share a domain.
+6. **Keep every driver cheap to construct** — no I/O in a constructor. All of them are built, not only the selected one.
 
 ### Adding a driver
 
-1. Create `src/storage/<name>-storage.service.ts` — `@Injectable() class <Name>StorageService extends StorageService`, implementing the three methods over the **same key layout**, so objects stay portable between backends.
-2. If it needs a third-party client with runtime config (an `S3Client`, say), build that client as an **internal factory provider** in `StorageModule`, the same shape as `'DATABASE'` in `PrismaModule`. → [Factory Pattern](FACTORY-PATTERN.md#in-this-codebase)
-3. **Now** the binding earns a factory. Add a `StorageDriver` union and a `driver` field to `storage.config.ts`, then replace the `useClass` binding with a `useFactory` that switches on it — an `useClass` ternary would be evaluated during module evaluation, before `ConfigModule.forRoot` has read `.env`, and would always pick the same branch. → [Factory Pattern — import time vs instantiation time](FACTORY-PATTERN.md#import-time-vs-instantiation-time)
-4. Register the new class in `StorageModule.providers`, and keep `exports` at `[StorageService]` alone.
-5. Nothing outside `src/storage/` changes — that is the point.
+1. Create `src/storage/<name>-storage.service.ts` — `@Injectable() class <Name>StorageService extends StorageService`, implementing the three methods over the **same key layout**. `getPublicUrl` belongs to the driver: each backend owns how its URLs are derived, so a private bucket can later return a presigned URL without touching the contract.
+2. If it needs a third-party client with runtime config, build that client as an **internal factory provider** in `StorageModule` (like `'S3_CLIENT'`). → [Factory Pattern](FACTORY-PATTERN.md#in-this-codebase)
+3. Extend the `StorageDriver` union in `storage.config.ts`, and validate whatever env vars it needs — only when that driver is selected. → [Config](#config)
+4. Add its `case` to the `StorageService` factory; until then the build fails, which is the point of having no `default`.
+5. Register the class in `StorageModule.providers`, and keep `exports` at `[StorageService]` alone.
+6. Nothing outside `src/storage/` changes — that is the point.
 
 ---

@@ -21,8 +21,8 @@ async function bootstrap() {
   });
 
   // ─── Dev-only static serving for uploaded files ─────────────────────
-  if (process.env.NODE_ENV !== 'production') {
-    const storageConf = configService.get<StorageConfig>('storage')!;
+  const storageConf = configService.get<StorageConfig>('storage')!;
+  if (process.env.NODE_ENV !== 'production' && storageConf.driver === 'local') {
     app.useStaticAssets(resolve(storageConf.localRoot), {
       prefix: new URL(storageConf.publicBaseUrl).pathname,
     });

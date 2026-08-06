@@ -11,6 +11,8 @@ services:
       - MAIL_DRIVER=${MAIL_DRIVER}
       - PHONE_DRIVER=${PHONE_DRIVER}
       # ── Storage (see docs/pattern/STORAGE-PATTERN.md) ──
+      # Unset or misspelled = the app refuses to boot.
+      - STORAGE_DRIVER=${STORAGE_DRIVER}
       # Base of every public file URL; nginx serves this host from the bind mount below.
       - STORAGE_PUBLIC_BASE_URL=${STORAGE_PUBLIC_BASE_URL}
     volumes:

@@ -206,6 +206,7 @@ Raised by the file-upload endpoints. The first two come from the `ParseFilePipe`
 | `FILE_TYPE_INVALID` | 415  | `FileTypeInvalidException` | every upload controller — `FileTypeValidator` rejects the magic-number-detected type, and the fallback when no file is sent at all |
 | `FILE_TOO_LARGE`    | 413  | `FileTooLargeException`    | every upload controller — `MaxFileSizeValidator` rejects the size                  |
 | `UPLOAD_FAILED`     | 500  | `UploadFailedException`    | every upload service — `StorageService.put` threw, so nothing was stored           |
+| `STORAGE_DRIVER_NOT_INTEGRATED` | 500 | `StorageDriverNotIntegratedException` | [`r2-storage.service.ts`](../../src/storage/r2-storage.service.ts) — `STORAGE_DRIVER=r2` is selected but no client is wired behind it |
 
 ### Document — cross-cutting signing lock · `document.exception.ts`
 
