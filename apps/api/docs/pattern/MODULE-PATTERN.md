@@ -61,13 +61,13 @@ These modules are imported by most feature modules; each encapsulates a cross-cu
 | ------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PrismaModule`     | `PrismaService`                  | the single database gateway (constructs the `@prisma/adapter-pg` adapter via a `'DATABASE'` factory provider) |
 | `AuthModule`       | `PassportModule`, `JwtModule`    | makes JWT authentication usable in any module                                                                 |
-| `NotifierModule`   | `NotifierService`                | outbound messages (mail, SMS); the channel contracts and their drivers stay internal → [Notifier Pattern](NOTIFIER-PATTERN.md) |
+| `NotifierModule`   | `NotifierService`                | outbound notifications; the facade alone is exported, so contracts and drivers stay internal and no other module can name a transport → [Notifier Facade Pattern](NOTIFIER-FACADE-PATTERN.md) |
 
 `PrismaModule` is intentionally absent from `AppModule` because `AppController`/`AppService` do not use the database; although `PrismaModule` is invisible to `AppModule`, it is visible to other modules because they imported it.
 
 `PrismaModule` is loaded transitively — via `BookingModule → PrismaModule`, `TourModule → PrismaModule`, and so on — and since modules are singletons, every path in the graph reaches the same `PrismaService` instance.
 
-Feature modules never re-declare `PrismaService` in their own `providers` array either — doing so would create an isolated second instance with its own connection pool, invisible to all other modules.
+Feature modules never re-declare `PrismaService` in their own `providers` array either — doing so would create an isolated second instance that opens its own connection pool on its first query, invisible to all other modules. → [what must go through DI](FACTORY-PATTERN.md#what-must-go-through-di-and-what-may-be-newed)
 
 ### Module layout
 

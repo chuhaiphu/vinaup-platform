@@ -3,6 +3,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 
 import { JwtStrategy } from 'src/_core/guards/strategies/jwt.strategy';
+import { NotifierModule } from 'src/notifier/notifier.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 
 import { AuthController } from './auth.controller';
@@ -20,6 +21,10 @@ import { AuthService } from './auth.service';
     // ─── PrismaModule: make PrismaService injectable in this module ───────────────
     // AuthService and JwtStrategy inject PrismaService for DB access.
     PrismaModule,
+    // ─── NotifierModule: make NotifierService injectable in this module ───────────
+    // The auth flows send every OTP, verification code and reset link through it. It exports the
+    // facade only, so AuthService cannot name a transport. → docs/pattern/NOTIFIER-FACADE-PATTERN.md
+    NotifierModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

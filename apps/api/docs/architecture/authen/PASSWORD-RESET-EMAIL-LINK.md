@@ -35,7 +35,7 @@ sequenceDiagram
     alt user exists with an Auth(LOCAL) credential
         Note over Auth: token = 32 random bytes (CSPRNG)
         Auth->>DB: Verification.create(kind=PASSWORD_RESET_EMAIL_LINK,<br/>tokenHash=sha256(token), expiresAt=+1h)
-        Auth-)N: sendPasswordResetLink(email, resetUrl) — fire-and-forget
+        Auth-)N: sendPasswordResetLinkToEmail(email, resetUrl) — fire-and-forget
     else no user / no local credential
         Note over Auth: do nothing (silent)
     end
@@ -44,7 +44,7 @@ sequenceDiagram
 ```
 
 **Half-flow 2 — Reset step** (`reset-password-link`): the token is globally unique, so the row is fetched
-by `sha256(token)` directly — the lookup itself *is* the match.
+by `sha256(token)` directly — the lookup itself _is_ the match.
 
 ```mermaid
 sequenceDiagram
@@ -73,7 +73,7 @@ sequenceDiagram
 > **Anti-timing-leak.** The send is fire-and-forget, not awaited: awaiting the round-trip would
 > make the response measurably slower when the address exists, leaking existence via timing and
 > defeating the always-`200` above. The
-> [facade's methods return `void`](../../pattern/NOTIFIER-PATTERN.md#question-2-in-the-method-body--which-contract-does-a-facade-method-use),
+> [facade's methods return `void`](../../pattern/NOTIFIER-FACADE-PATTERN.md#question-2-in-the-method-body--which-contract-does-a-facade-method-use),
 > so there is no promise to await.
 
 > **Local-credential accounts only.** A link is issued only when the user has an `Auth(LOCAL)` row with a
@@ -85,3 +85,8 @@ sequenceDiagram
 
 > **The reset URL** is `${WEB_APP_URL}/reset-password?token=raw`, read through the typed `auth` config
 > namespace, never `process.env` inline.
+
+> **The URL leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
+> the whole URL — raw token included — is written into the application log so the flow runs end to end
+> without a mail provider →
+> [Notifier Facade Pattern](../../pattern/NOTIFIER-FACADE-PATTERN.md#the-log-drivers).

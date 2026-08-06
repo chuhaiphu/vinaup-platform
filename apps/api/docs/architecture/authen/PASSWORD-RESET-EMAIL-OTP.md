@@ -105,6 +105,10 @@ sequenceDiagram
 > **Revoke every session** — same transaction as the [link flow](./PASSWORD-RESET-EMAIL-LINK.md), so
 > a stolen-then-reset account kicks the attacker out.
 
+> **The code leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
+> the code is written into the application log so the flow runs end to end without a mail provider →
+> [Notifier Facade Pattern](../../pattern/NOTIFIER-FACADE-PATTERN.md#the-log-drivers).
+
 > **Rate limiting is out of scope.** The attempt cap protects one row; it does not limit how many codes
 > an anonymous caller can trigger, nor how many accounts they can probe. It becomes mandatory the moment
 > codes travel over SMS, where every request costs money.

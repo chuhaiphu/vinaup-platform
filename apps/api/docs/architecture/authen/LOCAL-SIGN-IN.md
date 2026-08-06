@@ -1,12 +1,12 @@
 # Local Sign-In
 
-Two ways in, both vouched for by us (hence *local* — no federated provider is involved), both ending in
+Two ways in, both vouched for by us (hence _local_ — no federated provider is involved), both ending in
 the same two named steps that every other flow refers back to:
 
-| Mode | Route(s) | Proves you by |
-| ---- | -------- | ------------- |
-| **Password** | `POST /auth/local-sign-in` | something you **know** — the password behind `Auth(LOCAL)` |
-| **OTP** | `POST /auth/otp-sign-in/request` → `POST /auth/otp-sign-in` | something you **have** — the SIM behind `User.phone` |
+| Mode         | Route(s)                                                    | Proves you by                                              |
+| ------------ | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| **Password** | `POST /auth/local-sign-in`                                  | something you **know** — the password behind `Auth(LOCAL)` |
+| **OTP**      | `POST /auth/otp-sign-in/request` → `POST /auth/otp-sign-in` | something you **have** — the SIM behind `User.phone`       |
 
 The two named steps:
 
@@ -79,7 +79,7 @@ sequenceDiagram
         Auth->>DB: consume any earlier live SIGN_IN_OTP for this user
         Note over Auth: code = 6 random digits (CSPRNG)
         Auth->>DB: Verification.create(kind=SIGN_IN_OTP,<br/>tokenHash=sha256(code), expiresAt=+5m, attempts=0)
-        Auth-)N: sendSignInOtp(phone, code) — fire-and-forget
+        Auth-)N: sendSignInOtpToPhone(phone, code) — fire-and-forget
     else no user / disabled
         Note over Auth: do nothing (silent)
     end
@@ -110,24 +110,24 @@ sequenceDiagram
 > and here — unlike a registration form — nothing about the product requires answering "is this number
 > registered".
 
-> **No `Auth` row is involved.** An OTP is a second *proof* of an identity we already vouch for, not a
+> **No `Auth` row is involved.** An OTP is a second _proof_ of an identity we already vouch for, not a
 > second credential provider, so nothing is written to `Auth`.
 > [why that distinction holds](../DB-DIAGRAM.md#provider-names-the-authority-not-the-field-you-typed).
 
 > **The code leaves through the notifier**, which resolves `PHONE_DRIVER` at boot.
-> If`PHONE_DRIVER=log`, the code is written into the application log so the flow can runs end to end without a provider account →
-> [Notifier Pattern](../../pattern/NOTIFIER-PATTERN.md#the-log-drivers).
+> If `PHONE_DRIVER=log`, the code is written into the application log so the flow runs end to end without a provider account →
+> [Notifier Facade Pattern](../../pattern/NOTIFIER-FACADE-PATTERN.md#the-log-drivers).
 
 ---
 
 ## Issue tokens — what gets minted
 
-| Token | Shape | Lifetime | Stored server-side | Carried client → server |
-| ----- | ----- | -------- | ------------------ | ----------------------- |
-| **Access** | stateless JWT `{ sub: userId }`, signed with `JWT_SECRET` | 15 min | nothing | `atk` cookie (web) — `Authorization: Bearer` (mobile) |
-| **Refresh** | opaque, 32 random bytes hex | 7 days | `Session.tokenHash` — SHA-256 | `rtk` cookie (web) — response body (mobile) |
+| Token       | Shape                                                     | Lifetime | Stored server-side            | Carried client → server                               |
+| ----------- | --------------------------------------------------------- | -------- | ----------------------------- | ----------------------------------------------------- |
+| **Access**  | stateless JWT `{ sub: userId }`, signed with `JWT_SECRET` | 15 min   | nothing                       | `atk` cookie (web) — `Authorization: Bearer` (mobile) |
+| **Refresh** | opaque, 32 random bytes hex                               | 7 days   | `Session.tokenHash` — SHA-256 | `rtk` cookie (web) — response body (mobile)           |
 
-*Why* the refresh token is opaque rather than a JWT is argued in
+_Why_ the refresh token is opaque rather than a JWT is argued in
 [Token Refresh](./TOKEN-REFRESH.md).
 
 > **Token delivery per platform**, switched on the `x-request-platform: mobile` header

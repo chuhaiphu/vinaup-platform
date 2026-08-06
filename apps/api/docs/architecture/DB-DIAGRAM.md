@@ -56,7 +56,7 @@ erDiagram
         uuid     userId FK
         string   tokenHash "refresh-token SHA-256 — never the raw token"
         datetime expiresAt "7d"
-        datetime revokedAt "nullable — logout / sign-out-all / password change"
+        datetime revokedAt "nullable — logout / sign-out-all / password reset"
         string   ipAddress
         string   userAgent
         datetime createdAt
@@ -88,7 +88,7 @@ erDiagram
 | ------ | ----------- |
 | **User** | A person's identity. `phone` is the anchor — required, unique, and **proven by OTP before the row exists** ([Sign-Up](./authen/SIGN-UP.md)). `email` is an **optional second identity** attached later and written only once proven ([Link Email](./authen/LINK-EMAIL.md)). `status = DISABLED` blocks sign-in while retaining everything the user created. |
 | **Auth** | A credential — one row per login method. Today exactly one exists (`LOCAL` = our own password), so every user has one row carrying a bcrypt `passwordHash`. |
-| **Session** | A signed-in device, holding the hashed **refresh token** only. Carries `ipAddress` / `userAgent`, soft-revoked on logout, sign-out-all, and every password change or reset. |
+| **Session** | A signed-in device, holding the hashed **refresh token** only. Carries `ipAddress` / `userAgent`, soft-revoked on logout, sign-out-all, and every password reset. |
 | **Verification** | A **one-time** challenge — a sign-up code, a sign-in code, an email-verification code, or a password-reset link/code. Short-lived, single-use (`consumedAt`), attempt-capped, hash-only. |
 
 ---

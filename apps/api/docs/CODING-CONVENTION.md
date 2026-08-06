@@ -149,7 +149,7 @@ nothing to argue about. Run `npm run format`. Current settings:
 | `singleQuote` | `true` |
 | `semi` | `true` |
 | `trailingComma` | `all` |
-| `printWidth` | `120` |
+| `printWidth` | `108` |
 | `tabWidth` | `2` |
 
 ---

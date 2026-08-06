@@ -2,7 +2,7 @@
 
 ## What
 
-The **Factory pattern** moves object creation into a dedicated function — a *factory* — whose only job is to build and return the object, all construction logic lives in one place. The caller asks the factory for a ready-made instance instead of calling `new` itself.
+The **Factory pattern** moves object creation into a dedicated function — a _factory_ — whose only job is to build and return the object, all construction logic lives in one place. The caller asks the factory for a ready-made instance instead of calling `new` itself.
 
 In NestJS this pattern has a specific name and shape. Before using it, three terms must be kept apart — they sit at different layers and are **not** alternatives to each other:
 
@@ -15,15 +15,25 @@ Role       Provider                   — NestJS's word for ANYTHING registered
                                         with the container so it can be
                                         injected.
    │
-Recipe     useClass · useValue ·      — HOW the container should build one
-           useFactory · useExisting     given provider.
+Recipe     useClass - useValue      — HOW the container should build one
+           - useFactory              given provider.
 ```
 
-The Factory pattern shows up at the bottom layer: a provider declared with **`useFactory`** is called a **factory provider**. So, precisely:
+Each recipe answers that "how" differently:
 
-- *"provider"* is a NestJS role.
-- *"Factory"* is the design pattern.
-- *"factory provider"* = the Factory pattern applied inside NestJS's DI system.
+| Recipe                                | What the container does                                       | Use when                                                                            |
+| ------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `useClass` (shorthand `[FooService]`) | calls `new FooService(...)`, injecting its constructor params | it is **our** class and the container can construct it from injectable dependencies |
+| `useValue`                            | registers a ready-made value as-is                            | a constant, a static config object, or a mock in tests                              |
+| `useFactory`                          | calls a function and registers whatever it **returns**        | neither of the above can produce the value                                          |
+
+Most services need only `useClass` or its shorthand — the container can `new CarService(prismaService)` on its own.
+
+The Factory pattern lives in the last row: a provider declared with **`useFactory`** is a **factory provider**. So, precisely:
+
+- _"provider"_ is a NestJS role.
+- _"Factory"_ is the design pattern.
+- _"factory provider"_ = the Factory pattern applied inside NestJS's DI system.
 
 ---
 
@@ -38,60 +48,168 @@ export const prisma = new PrismaClient({
 });
 ```
 
-It runs, but breaks on four fronts:
+It runs, but breaks on three fronts:
 
-| Problem | Consequence |
-| --- | --- |
-| `process.env` read ad-hoc | a typo fails silently at the call site, not where config is defined |
-| hand-imported global | cannot be swapped for a fake in tests |
-| anyone can `new PrismaClient()` again | each `new` opens a separate connection pool → connections exhausted |
-
-DI fixes the coupling and the sharing; the Factory pattern fixes the **construction** part — building an object whose inputs are only known at runtime.
+| Problem                               | Consequence                                                                               | How to solve it                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `process.env` read ad-hoc             | a typo fails silently at the call site, not where config is defined                       | one typed `registerAs` namespace: the URL is injected through `databaseConfig.KEY` |
+| hand-imported global                  | cannot be swapped for a fake in tests                                                     | a token the container owns, so a test overrides it with `useValue`                 |
+| anyone can `new PrismaClient()` again | every client opens its **own** connection pool on its first query → connections exhausted | one singleton provider ⇒ one pool → [Module Pattern](MODULE-PATTERN.md)            |
 
 ---
 
-## The four ways to register a provider
+## Import time vs instantiation time
 
-`useFactory` is one of four recipes. Picking the right one starts with knowing what each does:
+### The JavaScript and Node.js underneath
 
-| Recipe | What the container does | Use when |
-| --- | --- | --- |
-| `useClass` (shorthand `[FooService]`) | calls `new FooService(...)`, injecting its constructor params | it is **our** class and the container can construct it from injectable dependencies |
-| `useValue` | injects a ready-made value as-is | a constant, a static config object, or a mock in tests |
-| `useFactory` | runs a function and registers whatever it **returns** | the value cannot be produced by just newing a class (see below) |
-| `useExisting` | makes a second token alias an existing one | giving one provider a second name |
+> An **expression** is evaluated where it sits. A **function body** is not evaluated when the function
+> is defined — only when the function is **called**.
 
-Most services we write need only `useClass`/shorthand — the container can `new CarService(prismaService)` on its own.
+```ts
+const adapter = new PrismaPg({ … });      // an expression        → the `new` runs HERE
+const build = () => new PrismaPg({ … });  // a function definition → the `new` has NOT run
+build();                                  // the call             → NOW the `new` runs
+```
+
+A module file is code that Node **executes** at runtime. The first time anything imports a file, Node
+runs it top to bottom **exactly once**, then caches the result.
+
+That pass is what the phrase **"import time"** points at. Its precise name is **module evaluation**.
+
+| Moment                                  | Program                    | What it does                                                                                                                              |
+| --------------------------------------- | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Compile time**                        | `tsc`, run by `nest build` | rewrites `src/*.ts` → `dist/*.js`: strips types, `import` becomes `require()`, a decorator becomes a **function call** to run at runtime. |
+| **Module evaluation** — _"import time"_ | `node`, first milliseconds | executes each `dist/*.js` once, resolving the `require()` graph                                                                           |
+| **Instantiation time**                  | `node`, immediately after  | `NestFactory` builds the providers                                                                                                        |
+
+```
+t+112ms  process starts     — tsc finished long ago, dist/*.js already on disk
+t+112ms  module evaluation  — Node executes prisma.module.js
+t+121ms  module evaluation  — Node executes prisma.service.js
+t+137ms  all files loaded   — the container does not exist yet
+t+142ms  instantiation      — the factory body runs → new PrismaPg()
+t+154ms  container ready
+```
+
+### In Nest.js `@Module`
+
+`@Module({ … })` is one of those decorators-turned-function-calls, and its argument is an object
+literal. To make the call, Node must evaluate that argument first — the whole object, `providers`
+array included — during module evaluation. So every entry in `providers` meets the same question:
+**an expression, or a function body?** The three recipes below register the same `'DATABASE'` token
+and differ **only** in their answer:
+
+```ts
+@Module({
+  providers: [
+    // ─── useClass (shorthand) — a class REFERENCE ─────────────────────────
+    // Reading the name `PrismaService` constructs nothing.
+    // The container records the class and constructs it at instantiation time.
+    PrismaService,
+
+    // ─── useValue — an EXPRESSION, and the trap ───────────────────────────
+    // `new PrismaPg(...)` is evaluated during module evaluation.
+    // At that moment nothing has resolved `databaseConfig`, so there is no URL to pass.
+    // The trap in this case !!!: the adapter is built and stays wrong for the whole life of the process.
+    { provide: 'DATABASE', useValue: new PrismaPg({ connectionString: /* no config yet */ }) },
+
+    // ─── useFactory — a FUNCTION BODY, and the fix ────────────────────────
+    // The arrow function is only *defined* here, the `new` inside it has not run.
+    // The container calls the body at instantiation time,
+    // after resolving every token in `inject` and passing them as the parameters
+    // so `conf.url` exists by the time the `new` runs.
+    {
+      provide: 'DATABASE',
+      useFactory: (conf: ConfigType<typeof databaseConfig>) =>
+        new PrismaPg({ connectionString: conf.url }),
+      inject: [databaseConfig.KEY],
+    },
+  ],
+})
+```
+
+### What the container does at instantiation time
+
+```
+ONE `node dist/src/main` PROCESS
+══════════════════════════════════════════════════════════════════════════
+
+  MODULE EVALUATION — "import time"
+  ────────────────────────────────────────────────────────────────────────
+    Node executes each dist/*.js once, so every @Module({ … }) call runs.
+    Evaluating its object literal:
+        useClass    →  records a class reference
+        useFactory  →  defines a function, body untouched
+        useValue    →  CONSTRUCTS the object right now
+    The Nest.js container does not exist yet.
+
+                            ▼   all files loaded
+
+  INSTANTIATION TIME
+  ────────────────────────────────────────────────────────────────────────
+    The container builds providers on demand.
+    Construction (Instantiation) is PULLED by whoever needs it.
+
+      build PrismaService
+        │
+        │  its constructor names        →  @Inject('DATABASE')
+        │
+        ├─ 'DATABASE' has no instance yet
+        │    │
+        │    │  its `inject` list       →  databaseConfig.KEY
+        │    │
+        │    ├─ build databaseConfig    →  { url: process.env.DATABASE_URL }
+        │    │
+        │    └─ CALL the factory body   →  new PrismaPg({ connectionString })  ①
+        │
+        └─ every param resolved         →  new PrismaService(adapter)          ②
+
+    ① must finish before ② — ② cannot begin without its argument.
+```
+
+Two consequences follow:
+
+- **A provider nobody injects is never built** — its `useFactory` body never runs at all.
+- **Each provider is built at most once** (providers are singletons), so the second consumer receives
+  the very instance the first consumer caused to be built.
 
 ---
 
-## When we actually need a factory
+## When a factory is required
 
-> The value cannot be produced by the container simply newing a class from its injectable constructor parameters.
+`useFactory` is never a first choice. It is what remains after the other two recipes both fail. Take the example, `PrismaPg`, whose constructor takes exactly one
+parameter:
 
-That happens in four situations:
+```ts
+new PrismaPg({ connectionString: 'postgresql://user:pass@localhost:5432/mydb' });
+//             ^ the parameter's declared type is { connectionString: string }
+```
 
-1. **The value needs a runtime input** — e.g. a `connectionString` taken from config. We cannot write the value into the `providers` array ahead of time; it must wait until the container can supply the config.
-2. **The object comes from a third-party library** (`PrismaPg`, `Stripe`, `Redis`, `S3Client`). The container does not know what arguments its constructor expects, so we must describe construction ourself.
-3. **Construction needs logic** — branching on `NODE_ENV`, choosing options, or `await`-ing async setup before returning.
-4. **We want to inject a non-class value** computed from other providers.
+Now try each recipe on it:
 
-**Why this happens — who calls `new` decides everything.** The moment we write
-`providers: [PrismaPg]` we are no longer the one calling `new` — we hand that job to the
-**container**. That single fact is the root of the whole section:
+| Recipe     | Written as                      | Why it cannot build `PrismaPg`                                                                                                                                                                                                                                              |
+| ---------- | ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useClass` | `providers: [PrismaPg]`         | the **container** has to produce that `{ connectionString }` object itself, and the only way it produces anything is by looking a parameter's declared type up among the classes registered in `providers`. `{ connectionString: string }` is not a class and is registered nowhere |
+| `useValue` | `useValue: new PrismaPg({ … })` | **we** type the `{ connectionString }` object ourselves, but the expression runs during module evaluation, when `databaseConfig` has not been resolved yet                                                                                                                  |
 
-| We write | Who runs `new`? | What can go in the constructor? |
-| --- | --- | --- |
-| `new PrismaPg({ ... })` by hand | **we** | anything we want — we pass the argument werself |
-| `providers: [PrismaPg]` (shorthand `useClass`) | **the container** | **only** what the container can resolve **by token** |
+|              | **the argument** — what goes inside `new PrismaPg(…)` | **the moment** — when that `new` runs                |
+| ------------ | ----------------------------------------------------- | ---------------------------------------------------- |
+| `useClass`   | ✗ the container has nothing to pass                   | ✓ instantiation time, config already resolved        |
+| `useValue`   | ✓ we type it ourselves                                | ✗ module evaluation, config does not exist yet       |
+| `useFactory` | ✓ we type it ourselves                                | ✓ the container calls the body at instantiation time |
 
-We delegated `new` to the container, and the container does **not** pass arbitrary
-values. It builds the class by reading **each** constructor parameter's *type* and looking that
-type up as a registered **provider** (a class/value it knows, identified by a **token**). A parameter it has no token for, it cannot supply.
+### The token rule — whoever calls `new` decides what may go in the constructor
 
-`MyPg` below is a deliberate **contrast** to `PrismaPg`: same role (an adapter), but written
-*as our own injectable class whose constructor parameter is itself a provider* — which is exactly
-what lets the container run `new` for us, no factory needed.
+| We write                                       | Who runs `new`?   | What may go in the constructor            |
+| ---------------------------------------------- | ----------------- | ----------------------------------------- |
+| `new PrismaPg({ … })` by hand                  | **we**            | anything — we pass the argument ourselves |
+| `providers: [PrismaPg]` (shorthand `useClass`) | **the container** | **only** what it can resolve **by token** |
+
+Writing `providers: [X]` hands `new` to the container, and the container passes no arbitrary values.
+It reads each constructor parameter's _type_ and looks that type up as a registered **provider** — a
+class or value it knows, identified by a **token**. A parameter it has no token for, it cannot supply.
+
+`MyPg` below is the deliberate contrast of `PrismaPg`, written as our own injectable class whose constructor parameter is itself a provider, no factory needed.
 
 ```ts
 // @Injectable() → MyConfigService IS a provider (its token = the class itself).
@@ -100,11 +218,10 @@ class MyConfigService {}
 
 @Injectable()
 class MyPg {
-  constructor(private config: MyConfigService) {}   // parameter type = a registered provider → has a token
+  constructor(private config: MyConfigService) {} // parameter type = a provider → has a token
 }
 
 @Module({
-  // Both MyConfigService and MyPg are providers.
   // To build MyPg the container reads its constructor parameter type (MyConfigService),
   // finds that same provider by token, and injects it. No factory needed.
   providers: [MyConfigService, MyPg],
@@ -112,30 +229,22 @@ class MyPg {
 class MyModule {}
 ```
 
-`PrismaPg` breaks that rule on **both** counts, so `providers: [PrismaPg]` is impossible:
+`PrismaPg` fails the token rule, so `providers: [PrismaPg]` is impossible:
 
-```ts
-// Its constructor takes ONE argument: a plain options object — not a provider.
-new PrismaPg({ connectionString: 'postgresql://user:pass@localhost:5432/mydb' });
-```
+- **It is third-party.** Not our code, so it carries no `@Injectable()` and the container cannot
+  register it as a `useClass` provider in the first place.
 
-- **Its constructor parameter is an object literal of raw values** (`{ connectionString: string }`),
-  not a provider — the container has no token for "an object with a connectionString", so when it
-  tries `new PrismaPg(???)` it has nothing to supply. This is the *deciding* difference from `MyPg`:
-  `MyPg`'s parameter type **is** a provider (resolvable), `PrismaPg`'s is **not**. Note this reason
-  stands **even if `PrismaPg` were `@Injectable()`** — adding the decorator would not invent a token
-  for that object, so `providers: [PrismaPg]` would still fail here.
-- `PrismaPg` is a **third-party class**: it is not from our codebase, hence does not have `@Injectable()`, so DI container cannot introspect or register it as a `useClass` provider in the first place.
+- **Even if it can be registered as `useClass`, its parameter has no token.** `{ connectionString: string }` is a plain object type, and a token
+  only exists for something registered in `providers`.
 
-**either one alone** already rules out `providers: [PrismaPg]`.
 
-A factory bridges the gap — *we* write the `new` call, and the container injects only the part that
-**is** a provider (the config):
-
+**The only solution here is a factory:**
 ```ts
 {
   provide: 'DATABASE',
   useFactory: (conf: ConfigType<typeof databaseConfig>) =>
+    // _we_ write the `new PrismaPg(...)` call, so producing `{ connectionString }` never becomes the container's job
+    // and the function in `useFactory` body is called at instantiation time, so `conf.url` already holds a value when it runs.
     new PrismaPg({ connectionString: conf.url }),  // raw value WE pass in
   inject: [databaseConfig.KEY],                    // the provider the container resolves
 }
@@ -143,63 +252,12 @@ A factory bridges the gap — *we* write the `new` call, and the container injec
 
 ---
 
-## import time vs instantiation time
-
-This is the idea behind the phrase *"a factory (not a class)… unknown at import time."* It rests on one plain JavaScript rule:
-
-> An **expression** runs the moment it is evaluated. A **function body** does not run when defined — only when the function is **called**.
-
-```ts
-const x = new PrismaPg({ ... });        // runs IMMEDIATELY (bare expression)
-const f = () => new PrismaPg({ ... });  // defines a function; body NOT run yet
-f();                                     // NOW the body runs
-```
-
-When Node imports `prisma.module.ts`, it must evaluate the object passed to `@Module({...})` — which means **every bare expression inside `providers` runs immediately**:
-
-```ts
-// useValue: a bare expression → `new` runs at IMPORT time
-{ provide: 'DATABASE', useValue: new PrismaPg({ connectionString: ??? }) }
-//   at this moment the injected config does not exist yet → no URL → broken
-
-// useFactory: a function → defined now, body runs LATER, with config injected
-{ provide: 'DATABASE',
-  useFactory: (conf) => new PrismaPg({ connectionString: conf.url }),
-  inject: [databaseConfig.KEY] }
-```
-
-What runs when, per recipe:
-
-| Declaration | At import time | Object actually built |
-| --- | --- | --- |
-| `useValue: new X(...)` | the `new` runs (bare expression) | at import time |
-| `useFactory: (c) => new X(...)` | only the function is defined | at instantiation time (container calls it) |
-| `useClass: X` / `[X]` | only a class reference is recorded | at instantiation time (container news it) |
-
-The app boots in two phases — this is why running "later" is safe:
-
-```
-Phase 1 — Load / import       (import time)
-  Node executes each module file; @Module({...}) is evaluated.
-  → every bare expression in `providers` runs here.
-  → no DI container has resolved config yet.
-
-        ▼  (all files loaded)
-
-Phase 2 — Bootstrap / instantiate   (instantiation time)
-  NestFactory builds the container and walks the dependency graph:
-  → resolves config (databaseConfig.KEY)
-  → CALLS each useFactory with the resolved config
-  → news each useClass; creates PrismaService (singleton)
-```
-
-`useValue: new PrismaPg(...)` is wrong because it builds the object in Phase 1, before config exists. `useFactory` defers construction to Phase 2, where the container can inject config.
-
----
-
 ## In this codebase
 
-We use the Factory pattern once — to build the Postgres connection behind every query. The value flows through four stages, from `.env` to an injectable `PrismaService`:
+We use the Factory pattern in three places: the Postgres adapter below, plus the two bindings in
+[`NotifierModule`](NOTIFIER-FACADE-PATTERN.md#question-1-at-boot--which-driver-does-each-contract-use)
+that pick one driver per contract. The Postgres case shows the full shape — the value flows through
+four stages, from `.env` to an injectable `PrismaService`:
 
 ```
 .env  DATABASE_URL=postgresql://user:pass@host/db
@@ -229,7 +287,7 @@ ConfigModule.forRoot({ isGlobal: true, load: [appConfig, authConfig] }),
 ```ts
 // src/_core/configs/database.config.ts
 export default registerAs('database', (): DatabaseConfig => ({
-  url: process.env.DATABASE_URL!,   // populated by step ① — undefined without it
+  url: process.env.DATABASE_URL!, // populated by step ① — undefined without it
 }));
 ```
 
@@ -268,25 +326,13 @@ export class PrismaService extends PrismaClient {
 
 Two independent axes — complementary, not alternatives:
 
-| | Reads `.env`? | `ConfigService` visibility | Calls |
-| --- | --- | --- | --- |
-| `forRoot` + `isGlobal: true`  | ✅ | app-wide | once |
-| `forRoot` + `isGlobal: false` | ✅ | local (importing module must re-import) | once |
-| `forFeature(xConfig)`         | ❌ (relies on `forRoot`) | local | any number |
+|                               | Reads `.env`?            | `ConfigService` visibility              | Calls      |
+| ----------------------------- | ------------------------ | --------------------------------------- | ---------- |
+| `forRoot` + `isGlobal: true`  | ✅                       | app-wide                                | once       |
+| `forRoot` + `isGlobal: false` | ✅                       | local (importing module must re-import) | once       |
+| `forFeature(xConfig)`         | ❌ (relies on `forRoot`) | local                                   | any number |
 
-`forRoot` is the *bootstrap* (reads `.env`); `forFeature` only *adds a config slice* that step ③ injects. No `forRoot` → `.env` never read → the namespace's values are `undefined`.
-
----
-
-## Why
-
-**A factory exists because the value is unknown when the `providers` array is evaluated.** The connection string arrives through injected config, available only in Phase 2. `useClass` cannot express "build me from this injected config"; `useFactory` + `inject` can.
-
-**The configuration namespace gives one typed source of truth**, so the URL is injected through `databaseConfig.KEY` instead of `process.env.DATABASE_URL` scattered across the code.
-
-**The third-party adapter is constructed in exactly one place** — the rest of the app depends on `PrismaService`, never on `PrismaPg` or `pg`.
-
-**One factory ⇒ one connection pool.** Providers are singletons, so the adapter and `PrismaService` are built once. Re-declaring `PrismaService` in a feature module would open a second pool. → [Module Pattern](MODULE-PATTERN.md)
+`forRoot` is the _bootstrap_ (reads `.env`); `forFeature` only _adds a config slice_ that step ③ injects. No `forRoot` → `.env` never read → the namespace's values are `undefined`.
 
 ---
 
@@ -295,7 +341,7 @@ Two independent axes — complementary, not alternatives:
 1. **Bootstrap config once in `AppModule`** with `ConfigModule.forRoot({ isGlobal: true, load: [...] })` — the only step that reads `.env`.
 2. **Define each config as a `registerAs` namespace** returning a typed object; expose its values only through the generated `.KEY` token.
 3. **Make the namespace injectable where consumed** with `ConfigModule.forFeature(xConfig)` in that module's `imports`.
-4. **Build runtime-configured or third-party dependencies with a factory provider** — `{ provide, useFactory, inject }`, keeping `inject` order aligned with the factory parameters. Reach for `useFactory` only when `useClass`/`useValue` cannot construct the value (runtime input, third-party object, async setup, or computed value).
+4. **Reach for a factory provider only when the argument or the moment forces it** — `{ provide, useFactory, inject }`, keeping `inject` order aligned with the factory parameters. → [When a factory is required](#when-a-factory-is-required)
 5. **Wrap the constructed client in an `@Injectable()` service and export only that** — consumers depend on the service, never on the underlying adapter or driver.
 
 ---

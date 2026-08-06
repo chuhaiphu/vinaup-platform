@@ -2,7 +2,7 @@
 
 Silent renewal: trade the refresh token for a fresh access token. No rotation.
 
-> **Why the refresh token is opaque, not a JWT.** It must be **revocable** (logout, password change) and
+> **Why the refresh token is opaque, not a JWT.** It must be **revocable** (logout, password reset) and
 > is **looked up** on every refresh, so its validity depends on server state — exactly the case where a
 > reference token is correct and a self-verifying one is not; signing it as a JWT and storing
 > `SHA-256(jwt)` would only throw both JWT powers away, since the value is hashed into an opaque blob and

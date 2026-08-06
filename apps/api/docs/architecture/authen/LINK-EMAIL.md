@@ -96,3 +96,7 @@ sequenceDiagram
 > **Changing or removing a linked email is a separate flow, not built.** `email` and `phone` are absent
 > from the profile-update schema on purpose, and `EMAIL_ALREADY_LINKED` makes re-running this flow a
 > `409` rather than a silent overwrite.
+
+> **The code leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
+> the code is written into the application log so the flow runs end to end without a mail provider →
+> [Notifier Facade Pattern](../../pattern/NOTIFIER-FACADE-PATTERN.md#the-log-drivers).
