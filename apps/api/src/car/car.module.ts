@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageModule } from 'src/storage/storage.module';
 
 import { CarAssignmentController } from './controllers/car-assignment.controller';
 import { CarMaintenanceLogController } from './controllers/car-maintenance-log.controller';
@@ -17,6 +18,7 @@ import { CarService } from './services/car.service';
     // dependency whose provider is visible in THIS module's scope — without this
     // import, building the services would fail at startup.
     PrismaModule,
+    StorageModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
     ],

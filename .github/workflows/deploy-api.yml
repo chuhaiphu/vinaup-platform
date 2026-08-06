@@ -7,6 +7,9 @@ on:
 env:
   DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
   DOCKER_CONTAINER_NAME: vinaup-api
+  MAIL_DRIVER: ${{ vars.MAIL_DRIVER }}
+  PHONE_DRIVER: ${{ vars.PHONE_DRIVER }}
+  STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
 
 jobs:
   build-and-deploy:
@@ -67,6 +70,9 @@ jobs:
           export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
           export JWT_SECRET="${{ secrets.JWT_SECRET }}"
           export DOCKER_CONTAINER_NAME="${{ env.DOCKER_CONTAINER_NAME }}"
+          export MAIL_DRIVER="${{ env.MAIL_DRIVER }}"
+          export PHONE_DRIVER="${{ env.PHONE_DRIVER }}"
+          export STORAGE_PUBLIC_BASE_URL="${{ env.STORAGE_PUBLIC_BASE_URL }}"
 
           # Pull the latest images
           docker compose pull

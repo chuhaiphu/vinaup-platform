@@ -9,13 +9,26 @@ import { DocumentLockedAfterSignException } from 'src/_common/exceptions/documen
 import { TourCalculationCancelLogNotFoundException, TourCalculationNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { TourCalculationCancelLogResponse } from '../dtos/tour-calculation-cancel-log.response.dto';
-import { TourCalculationResponse, TourCalculationWithMeta } from '../dtos/tour-calculation.response.dto';
+import {
+  toTourCalculationCancelLogResponse,
+  tourCalculationCancelLogQueryArgs,
+  type TourCalculationCancelLogResponse,
+} from '../dtos/tour-calculation-cancel-log.response.dto';
+import {
+  toTourCalculationResponse,
+  tourCalculationQueryArgs,
+  type TourCalculationResponse,
+  type TourCalculationWithMeta,
+} from '../dtos/tour-calculation.response.dto';
 
 @Injectable()
 export class TourCalculationService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   private async isAnyReceiverSigned(
     client: Prisma.TransactionClient | PrismaService,
@@ -37,17 +50,14 @@ export class TourCalculationService {
   ): Promise<TourCalculationWithMeta> {
     const tourCalculation = await this.prismaService.tourCalculation.findUnique({
       where: { tourId },
-      include: {
-        createdBy: true,
-        tour: true,
-      },
+      ...tourCalculationQueryArgs,
     });
     if (!tourCalculation) {
       throw new TourCalculationNotFoundException();
     }
     const anyReceiverSigned = await this.isAnyReceiverSigned(this.prismaService, tourCalculation.id);
     return {
-      ...tourCalculation,
+      ...toTourCalculationResponse(tourCalculation, this.storageService),
       meta: { canEdit: !anyReceiverSigned },
     };
   }
@@ -66,15 +76,13 @@ export class TourCalculationService {
 
     const cancelLogs = await this.prismaService.tourCalculationCancelLog.findMany({
       where: { tourCalculationId },
-      include: {
-        canceledByUser: true,
-      },
+      ...tourCalculationCancelLogQueryArgs,
       orderBy: {
         createdAt: 'desc',
       },
     });
 
-    return cancelLogs;
+    return cancelLogs.map((cancelLog) => toTourCalculationCancelLogResponse(cancelLog, this.storageService));
   }
 
   async findTourCalculationCancelLogById(
@@ -82,16 +90,14 @@ export class TourCalculationService {
   ): Promise<TourCalculationCancelLogResponse> {
     const cancelLog = await this.prismaService.tourCalculationCancelLog.findUnique({
       where: { id },
-      include: {
-        canceledByUser: true,
-      },
+      ...tourCalculationCancelLogQueryArgs,
     });
 
     if (!cancelLog) {
       throw new TourCalculationCancelLogNotFoundException();
     }
 
-    return cancelLog;
+    return toTourCalculationCancelLogResponse(cancelLog, this.storageService);
   }
 
   async updateTourCalculation(
@@ -116,14 +122,11 @@ export class TourCalculationService {
         return transaction.tourCalculation.update({
           where: { id: tourCalculationId },
           data: updateTourCalculationReq,
-          include: {
-            createdBy: true,
-            tour: true,
-          },
+          ...tourCalculationQueryArgs,
         });
       }
     );
 
-    return updatedTourCalculation;
+    return toTourCalculationResponse(updatedTourCalculation, this.storageService);
   }
 }

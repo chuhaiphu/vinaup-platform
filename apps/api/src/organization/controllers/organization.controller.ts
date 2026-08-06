@@ -2,15 +2,27 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
   HttpStatus,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   Post,
   Put,
   Request,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
+import { ALLOWED_MIME_REGEX, MAX_FILE_SIZE_BYTES } from 'src/_common/constants/storage.constant';
+import {
+  FileTooLargeException,
+  FileTypeInvalidException,
+} from 'src/_common/exceptions/storage.exception';
 import type {
   AuthenticatedRequest,
   HttpResponse,
@@ -137,5 +149,36 @@ export class OrganizationController {
       statusCode: HttpStatus.OK,
       message: 'Organization deleted successfully',
     };
+  }
+
+  // The logo is UPLOADED here, not named by the client: the server derives the storage key
+  // and the response carries the public URL. → docs/pattern/STORAGE-PATTERN.md
+  @UseGuards(JwtAuthGuard)
+  @Post('/:id/avatar')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async updateAvatar(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: MAX_FILE_SIZE_BYTES,
+            errorMessage: 'FILE_TOO_LARGE',
+          }),
+          new FileTypeValidator({
+            fileType: ALLOWED_MIME_REGEX,
+            errorMessage: 'FILE_TYPE_INVALID',
+          }),
+        ],
+        exceptionFactory: (error: string) => {
+          if (error === 'FILE_TOO_LARGE') throw new FileTooLargeException();
+          throw new FileTypeInvalidException();
+        },
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<HttpResponse<OrganizationResponse>> {
+    const data = await this.organizationService.updateAvatar(id, file);
+    return { statusCode: HttpStatus.OK, message: 'Organization avatar updated successfully', data };
   }
 }

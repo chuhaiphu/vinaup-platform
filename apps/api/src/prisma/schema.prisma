@@ -16,7 +16,7 @@ model User {
   description                  String?
   phone                        String?
   province                     String?
-  avatarUrl                    String?
+  avatarKey                    String?
   verifiedByUserId             String?
   verifiedBy                   User?                  @relation("VerifiedByUser", fields: [verifiedByUserId], references: [id])
   verifiedUsers                User[]                 @relation("VerifiedByUser")
@@ -93,7 +93,7 @@ model Organization {
   name                       String
   email                      String?
   phone                      String
-  avatarUrl                  String?
+  avatarKey                  String?
   website                    String?
   address                    String?
   province                   String
@@ -137,7 +137,7 @@ model OrganizationMember {
   email                             String?
   phone                             String
   address                           String?
-  avatarUrl                         String?
+  avatarKey                         String?
   status                            String
   joinedAt                          DateTime                           @db.Timestamptz(3)
   createdByUserId                   String?
@@ -551,7 +551,7 @@ model TourSettlementCancelLog {
 
 model Signature {
   id  String  @id @default(uuid())
-  url String?
+  signatureKey String?
 
   // SENDER, RECEIVER
   signatureRole String
@@ -665,9 +665,9 @@ model Car {
   updatedAt            DateTime             @updatedAt @db.Timestamptz(3)
   createdByUserId      String?
   status               String               @default("READY")
-  featureImageUrl      String?
+  featureImageKey      String?
   youtubeUrl           String?
-  additionalImageUrls  String[]
+  additionalImageKeys  String[]
   manufacturer         String?
   model                String?
   seatCount            Int?
@@ -719,7 +719,7 @@ model CarAssignmentEvent {
   organizationMemberId String?
   organizationMember   OrganizationMember? @relation(fields: [organizationMemberId], references: [id], onDelete: SetNull)
   memberName           String
-  memberAvatarUrl      String?
+  memberAvatarKey      String?
   note                 String?
   performedAt          DateTime            @default(now()) @db.Timestamptz(3)
   createdAt            DateTime            @default(now()) @db.Timestamptz(3)

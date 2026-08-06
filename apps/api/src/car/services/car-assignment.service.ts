@@ -6,13 +6,25 @@ import type { CreateCarAssignmentRequestInterface } from '@vinaup-platform/valid
 import { CAR_ASSIGNMENT_EVENT_ACTION } from 'src/_common/constants/car.constant';
 import { CarAssignmentMemberNotFoundException, CarNotFoundException } from 'src/_common/exceptions/car.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import type { CarAssignmentEventResponse } from '../dtos/car-assignment-event.response.dto';
-import { carAssignmentQueryArgs, type CarAssignmentResponse } from '../dtos/car-assignment.response.dto';
+import {
+  carAssignmentEventQueryArgs,
+  toCarAssignmentEventResponse,
+  type CarAssignmentEventResponse,
+} from '../dtos/car-assignment-event.response.dto';
+import {
+  carAssignmentQueryArgs,
+  toCarAssignmentResponse,
+  type CarAssignmentResponse,
+} from '../dtos/car-assignment.response.dto';
 
 @Injectable()
 export class CarAssignmentService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findCarAssignmentsByCarId(carId: string): Promise<CarAssignmentResponse[]> {
     return this.findActiveAssignmentsByCarId(carId);
@@ -21,19 +33,24 @@ export class CarAssignmentService {
   async findCarAssignmentsByOrganizationMemberId(
     organizationMemberId: string,
   ): Promise<CarAssignmentResponse[]> {
-    return this.prismaService.carAssignment.findMany({
+    const rows = await this.prismaService.carAssignment.findMany({
       where: { organizationMemberId },
       orderBy: { startTime: 'desc' },
       ...carAssignmentQueryArgs,
     });
+
+    return rows.map((row) => toCarAssignmentResponse(row, this.storageService));
   }
 
   // ─── History: the append-only audit trail for one car ────────────────────────
   async findCarAssignmentEventsByCarId(carId: string): Promise<CarAssignmentEventResponse[]> {
-    return this.prismaService.carAssignmentEvent.findMany({
+    const rows = await this.prismaService.carAssignmentEvent.findMany({
       where: { carId },
       orderBy: { performedAt: 'desc' },
+      ...carAssignmentEventQueryArgs,
     });
+
+    return rows.map((row) => toCarAssignmentEventResponse(row, this.storageService));
   }
 
   async createCarAssignment(
@@ -55,7 +72,7 @@ export class CarAssignmentService {
     // ─── Step 3: Load target members — validate existence AND snapshot ───
     const targetMemberList = await this.prismaService.organizationMember.findMany({
       where: { id: { in: targetMemberIdList }, organizationId: car.organizationId },
-      select: { id: true, name: true, avatarUrl: true },
+      select: { id: true, name: true, avatarKey: true },
     });
 
     if (targetMemberList.length !== targetMemberIdList.length) {
@@ -69,7 +86,7 @@ export class CarAssignmentService {
       select: {
         id: true,
         organizationMemberId: true,
-        organizationMember: { select: { name: true, avatarUrl: true } },
+        organizationMember: { select: { name: true, avatarKey: true } },
       },
     });
     const activeMemberIdSet = new Set(activeAssignmentList.map((a) => a.organizationMemberId));
@@ -115,7 +132,7 @@ export class CarAssignmentService {
             action: CAR_ASSIGNMENT_EVENT_ACTION.ASSIGNED,
             organizationMemberId: member.id,
             memberName: member.name,
-            memberAvatarUrl: member.avatarUrl,
+            memberAvatarKey: member.avatarKey,
             note: createCarAssignmentReq.note,
             performedAt,
           })),
@@ -125,7 +142,7 @@ export class CarAssignmentService {
             action: CAR_ASSIGNMENT_EVENT_ACTION.UNASSIGNED,
             organizationMemberId: assignment.organizationMemberId,
             memberName: assignment.organizationMember.name,
-            memberAvatarUrl: assignment.organizationMember.avatarUrl,
+            memberAvatarKey: assignment.organizationMember.avatarKey,
             performedAt,
           })),
         ],
@@ -137,10 +154,12 @@ export class CarAssignmentService {
   }
 
   private async findActiveAssignmentsByCarId(carId: string): Promise<CarAssignmentResponse[]> {
-    return this.prismaService.carAssignment.findMany({
+    const rows = await this.prismaService.carAssignment.findMany({
       where: { carId },
       orderBy: { startTime: 'desc' },
       ...carAssignmentQueryArgs,
     });
+
+    return rows.map((row) => toCarAssignmentResponse(row, this.storageService));
   }
 }

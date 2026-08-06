@@ -16,9 +16,10 @@ import {
 } from 'src/_common/exceptions/trip.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import {
-  tripAssignmentQueryArgs,
+  toTripAssignmentResponse, tripAssignmentQueryArgs,
   type ConflictingTrip,
   type TripAssignmentMeta,
   type TripAssignmentResponse,
@@ -35,7 +36,10 @@ interface OverlappingTripAssignment {
 
 @Injectable()
 export class TripAssignmentService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findTripAssignmentsByTripId(tripId: string): Promise<TripAssignmentWithMeta[]> {
     const trip = await this.prismaService.trip.findUnique({
@@ -53,10 +57,17 @@ export class TripAssignmentService {
 
     const overlappingTripAssignments = await this.findOverlappingTripAssignments(tripId, trip);
 
-    return tripAssignments.map((tripAssignment) => ({
-      ...tripAssignment,
-      meta: this.attachMeta(tripAssignment, overlappingTripAssignments),
-    }));
+    return tripAssignments.map((tripAssignment) => {
+      const tripAssignmentResponse = toTripAssignmentResponse(
+        tripAssignment,
+        this.storageService,
+      );
+
+      return {
+        ...tripAssignmentResponse,
+        meta: this.attachMeta(tripAssignmentResponse, overlappingTripAssignments),
+      };
+    });
   }
 
   async createTripAssignment(
@@ -76,7 +87,7 @@ export class TripAssignmentService {
 
     // A brand-new turn has no car and no members, so it cannot conflict yet.
     return {
-      ...created,
+      ...toTripAssignmentResponse(created, this.storageService),
       meta: { canEdit: true, carConflictingTrips: [], conflictingTripsByMemberId: {} },
     };
   }
@@ -133,9 +144,11 @@ export class TripAssignmentService {
       existing.tripId,
       existing.trip,
     );
+    const updatedTripAssignment = toTripAssignmentResponse(updated, this.storageService);
+
     return {
-      ...updated,
-      meta: this.attachMeta(updated, overlappingTripAssignments),
+      ...updatedTripAssignment,
+      meta: this.attachMeta(updatedTripAssignment, overlappingTripAssignments),
     };
   }
 

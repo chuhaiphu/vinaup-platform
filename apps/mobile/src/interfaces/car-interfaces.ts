@@ -53,6 +53,8 @@ export interface CarResponse {
   meta?: CarMeta;
 }
 
+export type CarWithMeta = CarResponse & { meta: CarMeta };
+
 export interface CarTripAssignmentResponse {
   id: string;
   tripId: string;
@@ -64,8 +66,6 @@ export interface CarTripAssignmentResponse {
   };
 }
 
-// Current state only: an in-effect (car, member) pairing. The audit trail of who
-// was assigned/unassigned and when lives in CarAssignmentEventResponse.
 export interface CarAssignmentResponse {
   id: string;
   carId: string;
@@ -78,8 +78,6 @@ export interface CarAssignmentResponse {
   updatedAt: string;
 }
 
-// One append-only history row. memberName/memberAvatarUrl are snapshots taken when
-// the event happened, so history stays readable after a member is renamed/deleted.
 export interface CarAssignmentEventResponse {
   id: string;
   carId: string;

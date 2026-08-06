@@ -197,15 +197,15 @@ The membership/permission family below is the shared vocabulary of the org RBAC 
 | ----------------------- | ---- | ----------------------------- | --------------------------------------------------------------------------- |
 | `FUEL_PRICE_FETCH_FAILED`| 422 | `FuelPriceFetchFailedException`| [`fuel-price.service.ts`](../../src/fuel-price/fuel-price.service.ts) — the upstream VNExpress source failed |
 
-### Upload · `upload.exception.ts`
+### Storage — `storage.exception.ts`
 
-| `error` code             | HTTP | Exception class                | Thrown by                                                       |
-| ------------------------ | ---- | ------------------------------ | -------------------------------------------------------------- |
-| `UPLOAD_FILE_REQUIRED`   | 400  | `UploadFileRequiredException`  | [`upload.controller.ts`](../../src/upload/upload.controller.ts) — raised by `ParseFilePipe` when no file is sent |
-| `UPLOAD_INVALID_FILE_TYPE`| 415 | `UploadInvalidFileTypeException`| [`upload.controller.ts`](../../src/upload/upload.controller.ts) — `FileTypeValidator` (magic-number) rejects the type |
-| `UPLOAD_FILE_TOO_LARGE`  | 413  | `UploadFileTooLargeException`  | [`upload.controller.ts`](../../src/upload/upload.controller.ts) — `MaxFileSizeValidator` rejects the size |
-| `UPLOAD_PATH_REQUIRED`   | 400  | `UploadPathRequiredException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
-| `UPLOAD_FILE_NOT_FOUND`  | 404  | `UploadFileNotFoundException`  | [`upload.service.ts`](../../src/upload/upload.service.ts)      |
+Raised by the file-upload endpoints. The first two come from the `ParseFilePipe` at each controller boundary, so they are identical wherever a file is accepted. → [Storage Pattern](../pattern/STORAGE-PATTERN.md)
+
+| `error` code        | HTTP | Exception class            | Thrown by                                                                          |
+| ------------------- | ---- | -------------------------- | ---------------------------------------------------------------------------------- |
+| `FILE_TYPE_INVALID` | 415  | `FileTypeInvalidException` | every upload controller — `FileTypeValidator` rejects the magic-number-detected type, and the fallback when no file is sent at all |
+| `FILE_TOO_LARGE`    | 413  | `FileTooLargeException`    | every upload controller — `MaxFileSizeValidator` rejects the size                  |
+| `UPLOAD_FAILED`     | 500  | `UploadFailedException`    | every upload service — `StorageService.put` threw, so nothing was stored           |
 
 ### Document — cross-cutting signing lock · `document.exception.ts`
 

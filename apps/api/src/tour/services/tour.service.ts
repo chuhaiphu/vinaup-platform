@@ -16,12 +16,16 @@ import { OrganizationNotFoundException } from 'src/_common/exceptions/organizati
 import { TourCalculationNotFoundException, TourImplementationNotFoundException, TourNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { TourResponse } from '../dtos/tour.response.dto';
+import { toTourResponse, tourQueryArgs, type TourResponse } from '../dtos/tour.response.dto';
 
 @Injectable()
 export class TourService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findToursByOrganizationId(
     organizationId: string,
@@ -38,17 +42,10 @@ export class TourService {
     const tours = await this.prismaService.tour.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourCalculation: true,
-        tourImplementation: true,
-        tourSettlement: true,
-      },
+      ...tourQueryArgs,
     });
 
-    return tours;
+    return tours.map((row) => toTourResponse(row, this.storageService));
   }
 
   async createTour(
@@ -142,7 +139,7 @@ export class TourService {
       ],
     });
 
-    return newTour;
+    return toTourResponse(newTour, this.storageService);
   }
 
   async findTourById(id: string): Promise<TourResponse> {
@@ -176,7 +173,7 @@ export class TourService {
       throw new TourNotFoundException();
     }
 
-    return tour;
+    return toTourResponse(tour, this.storageService);
   }
 
   async updateTour(
@@ -194,17 +191,10 @@ export class TourService {
     const updatedTour = await this.prismaService.tour.update({
       where: { id },
       data: updateTourReq,
-      include: {
-        createdBy: true,
-        organization: true,
-        organizationCustomer: true,
-        tourCalculation: true,
-        tourImplementation: true,
-        tourSettlement: true,
-      },
+      ...tourQueryArgs,
     });
 
-    return updatedTour;
+    return toTourResponse(updatedTour, this.storageService);
   }
 
   async deleteTourById(id: string): Promise<void> {

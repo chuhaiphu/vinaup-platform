@@ -12,6 +12,3 @@ export const manageReceiverSignaturesSchema = z.strictObject({
     }),
 });
 
-export const updateSignatureUrlSchema = z.strictObject({
-  url: z.string().trim().min(1),
-});

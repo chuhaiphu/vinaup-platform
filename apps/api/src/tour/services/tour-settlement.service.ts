@@ -9,13 +9,26 @@ import { DocumentLockedAfterSignException } from 'src/_common/exceptions/documen
 import { TourSettlementCancelLogNotFoundException, TourSettlementNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { TourSettlementCancelLogResponse } from '../dtos/tour-settlement-cancel-log.response.dto';
-import { TourSettlementResponse, TourSettlementWithMeta } from '../dtos/tour-settlement.response.dto';
+import {
+  toTourSettlementCancelLogResponse,
+  tourSettlementCancelLogQueryArgs,
+  type TourSettlementCancelLogResponse,
+} from '../dtos/tour-settlement-cancel-log.response.dto';
+import {
+  toTourSettlementResponse,
+  tourSettlementQueryArgs,
+  type TourSettlementResponse,
+  type TourSettlementWithMeta,
+} from '../dtos/tour-settlement.response.dto';
 
 @Injectable()
 export class TourSettlementService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   private async isAnyReceiverSigned(
     client: Prisma.TransactionClient | PrismaService,
@@ -37,17 +50,14 @@ export class TourSettlementService {
   ): Promise<TourSettlementWithMeta> {
     const tourSettlement = await this.prismaService.tourSettlement.findUnique({
       where: { tourId },
-      include: {
-        createdBy: true,
-        tour: true,
-      },
+      ...tourSettlementQueryArgs,
     });
     if (!tourSettlement) {
       throw new TourSettlementNotFoundException();
     }
     const anyReceiverSigned = await this.isAnyReceiverSigned(this.prismaService, tourSettlement.id);
     return {
-      ...tourSettlement,
+      ...toTourSettlementResponse(tourSettlement, this.storageService),
       meta: { canEdit: !anyReceiverSigned },
     };
   }
@@ -70,14 +80,13 @@ export class TourSettlementService {
         throw new DocumentLockedAfterSignException('Tour Settlement cannot be updated after any receiver signed');
       }
 
-      return transaction.tourSettlement.update({
+      const updatedTourSettlement = await transaction.tourSettlement.update({
         where: { id: tourSettlementId },
         data: updateTourSettlementReq,
-        include: {
-          createdBy: true,
-          tour: true,
-        },
+        ...tourSettlementQueryArgs,
       });
+
+      return toTourSettlementResponse(updatedTourSettlement, this.storageService);
     });
   }
 
@@ -96,15 +105,15 @@ export class TourSettlementService {
     const cancelLogs =
       await this.prismaService.tourSettlementCancelLog.findMany({
         where: { tourSettlementId },
-        include: {
-          canceledByUser: true,
-        },
+        ...tourSettlementCancelLogQueryArgs,
         orderBy: {
           createdAt: 'desc',
         },
       });
 
-    return cancelLogs;
+    return cancelLogs.map((cancelLog) =>
+      toTourSettlementCancelLogResponse(cancelLog, this.storageService),
+    );
   }
 
   async findTourSettlementCancelLogById(
@@ -113,15 +122,13 @@ export class TourSettlementService {
     const cancelLog =
       await this.prismaService.tourSettlementCancelLog.findUnique({
         where: { id },
-        include: {
-          canceledByUser: true,
-        },
+        ...tourSettlementCancelLogQueryArgs,
       });
 
     if (!cancelLog) {
       throw new TourSettlementCancelLogNotFoundException();
     }
 
-    return cancelLog;
+    return toTourSettlementCancelLogResponse(cancelLog, this.storageService);
   }
 }

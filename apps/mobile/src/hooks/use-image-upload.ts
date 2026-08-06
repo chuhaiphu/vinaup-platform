@@ -3,14 +3,13 @@ import { useMutationFn, type ApiError } from 'fetchwire';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
-import type { UploadImageResponse } from '@/interfaces/upload-interfaces';
 import { generateErrorMessage } from '@/utils/generator/string-generator/generate-error-message';
 
 interface UseImageUploadParams {
   /** Upload request, injected by the caller so the hook stays decoupled from any endpoint. */
-  uploadFn: (asset: ImagePickerAsset) => Promise<UploadImageResponse>;
-  /** Storage-delete request keyed by URL. Optional: only callers that own persisted images need it. */
-  deleteFn?: (url: string) => Promise<void>;
+  uploadFn: (asset: ImagePickerAsset) => Promise<unknown>;
+  /** Removal request keyed by the image's public URL. Optional. */
+  deleteFn?: (url: string) => Promise<unknown>;
 }
 
 /**
@@ -24,8 +23,8 @@ interface UseImageUploadParams {
  * - `isUploading`  — an add is in flight (covers upload and the optional onUploaded step).
  * - `deletingImage` — URL currently being removed, or `null`.
  *
- * @param params.uploadFn - Performs the upload and resolves to the created image record.
- * @param params.deleteFn - Removes the stored file by URL; omit when there is nothing to clean up.
+ * @param params.uploadFn - Performs the upload; the endpoint persists it on the owning entity.
+ * @param params.deleteFn - Removes the image by its public URL; omit when nothing to clean up.
  * @returns Upload/remove actions plus the in-progress flags.
  */
 export function useImageUpload({ uploadFn, deleteFn }: UseImageUploadParams) {
@@ -42,14 +41,13 @@ export function useImageUpload({ uploadFn, deleteFn }: UseImageUploadParams) {
 
   const upload = async (
     asset: ImagePickerAsset,
-    onUploaded?: (url: string) => Promise<unknown> | void,
-  ): Promise<string | null> => {
+    onUploaded?: () => Promise<unknown> | void,
+  ): Promise<boolean> => {
     setIsUploading(true);
     try {
-      const uploadedImage = await performUpload(asset);
-      const url = uploadedImage?.url ?? null;
-      if (url) await onUploaded?.(url);
-      return url;
+      await performUpload(asset);
+      await onUploaded?.();
+      return true;
     } finally {
       setIsUploading(false);
     }
@@ -58,9 +56,9 @@ export function useImageUpload({ uploadFn, deleteFn }: UseImageUploadParams) {
   const remove = async (url: string, onRemoved: () => Promise<unknown> | void) => {
     setDeletingImage(url);
     try {
+      // The endpoint both detaches the image and deletes the stored file.
+      await deleteFn?.(url);
       await onRemoved();
-      // Best effort to clean up the stored file, but don't block the UI.
-      void deleteFn?.(url)?.catch(() => {});
     } finally {
       setDeletingImage(null);
     }

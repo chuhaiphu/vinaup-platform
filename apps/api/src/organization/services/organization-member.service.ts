@@ -4,6 +4,7 @@ import type {
   UpdateOrganizationMemberRequestInterface,
 } from '@vinaup-platform/validation';
 
+import { EXTENSION_BY_MIME } from 'src/_common/constants/storage.constant';
 import {
   OrganizationMemberAlreadyLinkedException,
   OrganizationMemberDeleteForbiddenException,
@@ -11,14 +12,23 @@ import {
   OrganizationNotFoundException,
   OrganizationRoleNotFoundException,
 } from 'src/_common/exceptions/organization.exception';
+import { UploadFailedException } from 'src/_common/exceptions/storage.exception';
 import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { organizationMemberQueryArgs, type OrganizationMemberResponse } from '../dtos/organization-member.response.dto';
+import {
+  organizationMemberQueryArgs,
+  toOrganizationMemberResponse,
+  type OrganizationMemberResponse,
+} from '../dtos/organization-member.response.dto';
 
 @Injectable()
 export class OrganizationMemberService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
   private async assertMemberRelationsExist(input: {
     organizationId?: string;
     organizationRoleId?: string;
@@ -73,7 +83,6 @@ export class OrganizationMemberService {
           phone: createOrganizationMemberReq.phone,
           email: createOrganizationMemberReq.email,
           address: createOrganizationMemberReq.address,
-          avatarUrl: createOrganizationMemberReq.avatarUrl,
           status: createOrganizationMemberReq.status,
           organizationRoleId: createOrganizationMemberReq.organizationRoleId,
           userId: createOrganizationMemberReq.userId,
@@ -82,7 +91,7 @@ export class OrganizationMemberService {
         },
         ...organizationMemberQueryArgs,
       });
-    return newOrganizationMember;
+    return toOrganizationMemberResponse(newOrganizationMember, this.storageService);
   }
 
   async updateOrganizationMember(
@@ -126,7 +135,6 @@ export class OrganizationMemberService {
           phone: updateOrganizationMemberReq.phone,
           email: updateOrganizationMemberReq.email,
           address: updateOrganizationMemberReq.address,
-          avatarUrl: updateOrganizationMemberReq.avatarUrl,
           status: updateOrganizationMemberReq.status,
           organizationRoleId: updateOrganizationMemberReq.organizationRoleId,
           userId: updateOrganizationMemberReq.userId,
@@ -135,7 +143,7 @@ export class OrganizationMemberService {
         },
         ...organizationMemberQueryArgs,
       });
-    return updatedOrganizationMember;
+    return toOrganizationMemberResponse(updatedOrganizationMember, this.storageService);
   }
 
   async deleteOrganizationMember(
@@ -172,7 +180,9 @@ export class OrganizationMemberService {
         where: { organizationId },
         ...organizationMemberQueryArgs,
       });
-    return organizationMembers;
+    return organizationMembers.map((organizationMember) =>
+      toOrganizationMemberResponse(organizationMember, this.storageService),
+    );
   }
 
   async getOrganizationMemberById(id: string): Promise<OrganizationMemberResponse> {
@@ -186,6 +196,41 @@ export class OrganizationMemberService {
       throw new OrganizationMemberNotFoundException();
     }
 
-    return organizationMember;
+    return toOrganizationMemberResponse(organizationMember, this.storageService);
+  }
+
+  async updateAvatar(
+    id: string,
+    file: Express.Multer.File,
+  ): Promise<OrganizationMemberResponse> {
+    const existing = await this.prismaService.organizationMember.findUnique({
+      where: { id },
+      select: { avatarKey: true, organizationId: true },
+    });
+    if (!existing) {
+      throw new OrganizationMemberNotFoundException();
+    }
+
+    // Server-generated key; the extension comes from the VERIFIED mime type, never from the
+    // uploaded filename. → docs/pattern/STORAGE-PATTERN.md
+    const extension = EXTENSION_BY_MIME[file.mimetype];
+    const avatarKey = `organizations/${existing.organizationId}/members/${id}-${Date.now()}.${extension}`;
+
+    try {
+      await this.storageService.put(avatarKey, file.buffer, file.mimetype);
+    } catch {
+      throw new UploadFailedException();
+    }
+
+    const updatedOrganizationMember = await this.prismaService.organizationMember.update({
+      where: { id },
+      data: { avatarKey },
+      ...organizationMemberQueryArgs,
+    });
+
+    // A member avatar is NEVER pruned: CarAssignmentEvent.memberAvatarKey snapshots it, so the
+    // history would break. → docs/pattern/STORAGE-PATTERN.md
+
+    return toOrganizationMemberResponse(updatedOrganizationMember, this.storageService);
   }
 }

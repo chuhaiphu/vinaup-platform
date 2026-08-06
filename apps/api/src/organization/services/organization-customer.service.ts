@@ -9,12 +9,16 @@ import {
   OrganizationNotFoundException,
 } from 'src/_common/exceptions/organization.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { organizationCustomerQueryArgs, type OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
+import { toOrganizationCustomerResponse, organizationCustomerQueryArgs, type OrganizationCustomerResponse } from '../dtos/organization-customer.response.dto';
 
 @Injectable()
 export class OrganizationCustomerService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
   private async assertOrganizationExists(organizationId: string): Promise<void> {
     const organization = await this.prismaService.organization.findUnique({
       where: { id: organizationId },
@@ -41,7 +45,7 @@ export class OrganizationCustomerService {
         },
         ...organizationCustomerQueryArgs,
       });
-    return newOrganizationCustomer;
+    return toOrganizationCustomerResponse(newOrganizationCustomer, this.storageService);
   }
 
   async getOrganizationCustomersByOrganizationId(
@@ -52,7 +56,9 @@ export class OrganizationCustomerService {
         where: { organizationId },
         ...organizationCustomerQueryArgs,
       });
-    return organizationCustomers;
+    return organizationCustomers.map((organizationCustomer) =>
+      toOrganizationCustomerResponse(organizationCustomer, this.storageService),
+    );
   }
 
   async updateOrganizationCustomer(
@@ -92,6 +98,6 @@ export class OrganizationCustomerService {
         ...organizationCustomerQueryArgs,
       });
 
-    return updatedOrganizationCustomer;
+    return toOrganizationCustomerResponse(updatedOrganizationCustomer, this.storageService);
   }
 }

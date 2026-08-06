@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageModule } from 'src/storage/storage.module';
 
 import { OrganizationCustomerController } from './controllers/organization-customer.controller';
 import { OrganizationMemberController } from './controllers/organization-member.controller';
@@ -21,6 +22,7 @@ import { OrganizationService } from './services/organization.service';
     // resolves a dependency whose provider is visible in THIS module's scope — without
     // this import, building the services would fail at startup.
     PrismaModule,
+    StorageModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
     ],

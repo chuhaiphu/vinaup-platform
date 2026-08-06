@@ -15,12 +15,16 @@ import type {
 import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { invoiceQueryArgs, type InvoiceResponse } from './dtos/invoice.response.dto';
+import { toInvoiceResponse, invoiceQueryArgs, type InvoiceResponse } from './dtos/invoice.response.dto';
 
 @Injectable()
 export class InvoiceService {
-  constructor(private readonly prismaService: PrismaService) { }
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) { }
 
   async findInvoicesByOrganizationId(
     organizationId: string,
@@ -71,7 +75,7 @@ export class InvoiceService {
       ...invoiceQueryArgs,
     });
 
-    return invoices;
+    return invoices.map((row) => toInvoiceResponse(row, this.storageService));
   }
 
   async createInvoice(
@@ -86,7 +90,7 @@ export class InvoiceService {
       },
       ...invoiceQueryArgs,
     });
-    return newInvoice;
+    return toInvoiceResponse(newInvoice, this.storageService);
   }
 
   async updateInvoice(
@@ -106,7 +110,7 @@ export class InvoiceService {
       data: updateInvoiceReq,
       ...invoiceQueryArgs,
     });
-    return updatedInvoice;
+    return toInvoiceResponse(updatedInvoice, this.storageService);
   }
 
   async deleteInvoiceById(id: string): Promise<void> {
@@ -133,6 +137,6 @@ export class InvoiceService {
       throw new InvoiceNotFoundException();
     }
 
-    return invoice;
+    return toInvoiceResponse(invoice, this.storageService);
   }
 }

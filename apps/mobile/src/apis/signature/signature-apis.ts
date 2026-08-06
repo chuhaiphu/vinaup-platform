@@ -1,16 +1,14 @@
+import type { ImagePickerAsset } from 'expo-image-picker';
 import { wireData } from 'fetchwire';
 
+import { uploadImageTo } from '@/apis/upload/upload-apis';
 import {
   ManageReceiverSignaturesRequest,
-  UpdateSignatureUrlRequest,
   SignatureResponse,
 } from '@/interfaces/signature-interfaces';
 
-export async function updateSignatureUrl(id: string, data: UpdateSignatureUrlRequest) {
-  return wireData<SignatureResponse>(`/signature/${id}/url`, {
-    method: 'PATCH',
-    body: JSON.stringify(data),
-  });
+export async function uploadSignatureImage(id: string, asset: ImagePickerAsset) {
+  return uploadImageTo<SignatureResponse>(`/signature/${id}/image`, asset);
 }
 
 export async function manageReceiverSignatures(data: ManageReceiverSignaturesRequest) {

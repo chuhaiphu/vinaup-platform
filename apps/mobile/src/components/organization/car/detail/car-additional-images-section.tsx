@@ -1,7 +1,7 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { StyleSheet, View } from 'react-native';
 
-import { deleteImageByUrl, uploadImage } from '@/apis/upload/upload-apis';
+import { removeCarAdditionalImage, uploadCarAdditionalImage } from '@/apis/upload/upload-apis';
 import { ImageUpload } from '@/components/commons/image-upload/image-upload';
 import { COLORS, FONT_SIZES, RADIUS, SPACING } from '@/constants/style-constants';
 import { useImageUpload } from '@/hooks/use-image-upload';
@@ -10,23 +10,17 @@ import { useCarDetailContext } from '@/providers/organization/car/car-detail-pro
 const MAX_ADDITIONAL_IMAGES = 4;
 
 export function CarAdditionalImagesSection() {
-  const { car, handleUpdateCar, isRefreshingCar } = useCarDetailContext();
+  const { car, refreshCar, isRefreshingCar } = useCarDetailContext();
   const { upload, remove, isUploading, deletingImage } = useImageUpload({
-    uploadFn: uploadImage,
-    deleteFn: deleteImageByUrl,
+    uploadFn: (asset) => uploadCarAdditionalImage(car.id, asset),
+    deleteFn: (imageUrl) => removeCarAdditionalImage(car.id, imageUrl),
   });
 
   const isBusy = isUploading || deletingImage !== null || isRefreshingCar;
 
-  const handlePick = (asset: ImagePickerAsset) =>
-    upload(asset, (url) =>
-      handleUpdateCar({ additionalImageUrls: [...car.additionalImageUrls, url] }),
-    );
+  const handlePick = (asset: ImagePickerAsset) => upload(asset, refreshCar);
 
-  const handleRemove = (url: string) =>
-    remove(url, () =>
-      handleUpdateCar({ additionalImageUrls: car.additionalImageUrls.filter((u) => u !== url) }),
-    );
+  const handleRemove = (url: string) => remove(url, refreshCar);
 
   return (
     <View style={styles.sectionContainer}>

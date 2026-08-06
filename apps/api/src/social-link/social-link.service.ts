@@ -6,12 +6,16 @@ import type {
 
 import { SocialLinkNotFoundException, SocialLinkOwnerRequiredException } from 'src/_common/exceptions/social-link.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { socialLinkQueryArgs, type SocialLinkResponse } from './dtos/social-link.response.dto';
+import { toSocialLinkResponse, socialLinkQueryArgs, type SocialLinkResponse } from './dtos/social-link.response.dto';
 
 @Injectable()
 export class SocialLinkService {
-  constructor(private prismaService: PrismaService) { }
+  constructor(
+    private prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) { }
 
   async createSocialLink(
     createSocialLinkReq: CreateSocialLinkRequestInterface,
@@ -24,7 +28,7 @@ export class SocialLinkService {
       ...socialLinkQueryArgs,
     });
 
-    return socialLink;
+    return toSocialLinkResponse(socialLink, this.storageService);
   }
 
   async updateSocialLink(
@@ -50,7 +54,7 @@ export class SocialLinkService {
       ...socialLinkQueryArgs,
     });
 
-    return socialLink;
+    return toSocialLinkResponse(socialLink, this.storageService);
   }
 
   async deleteSocialLinkById(id: string): Promise<void> {
@@ -77,23 +81,27 @@ export class SocialLinkService {
       throw new SocialLinkNotFoundException();
     }
 
-    return socialLink;
+    return toSocialLinkResponse(socialLink, this.storageService);
   }
 
   async findSocialLinksByOrganizationId(
     organizationId: string,
   ): Promise<SocialLinkResponse[]> {
-    return this.prismaService.socialLink.findMany({
+    const rows = await this.prismaService.socialLink.findMany({
       where: { organizationId },
       ...socialLinkQueryArgs,
     });
+
+    return rows.map((row) => toSocialLinkResponse(row, this.storageService));
   }
 
   async findSocialLinksByUserId(userId: string): Promise<SocialLinkResponse[]> {
-    return this.prismaService.socialLink.findMany({
+    const rows = await this.prismaService.socialLink.findMany({
       where: { userId: userId },
       ...socialLinkQueryArgs,
     });
+
+    return rows.map((row) => toSocialLinkResponse(row, this.storageService));
   }
 
   private assertValidOwner(

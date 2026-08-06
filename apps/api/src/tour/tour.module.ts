@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageModule } from 'src/storage/storage.module';
 
 import { TourCalculationController } from './controllers/tour-calculation.controller';
 import { TourImplementationAssignmentController } from './controllers/tour-implementation-assignment.controller';
@@ -20,6 +21,7 @@ import { TourService } from './services/tour.service';
     // ─── PrismaModule: make PrismaService injectable in this module ───────────────
     // The tour services below inject PrismaService for DB access.
     PrismaModule,
+    StorageModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
     ],

@@ -47,6 +47,8 @@ lerna-debug.log*
 
 # Runtime data
 local-uploads
+# Where the local-disk storage driver writes in dev (docs/pattern/STORAGE-PATTERN.md)
+/storage
 test-deploy-local.sh
 
 pids

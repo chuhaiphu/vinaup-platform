@@ -4,6 +4,7 @@ import { APP_FILTER } from '@nestjs/core';
 
 import appConfig from './_core/configs/app.config';
 import authConfig from './_core/configs/auth.config';
+import storageConfig from './_core/configs/storage.config';
 import { AppExceptionFilter } from './_core/filters/app-exception.filter';
 import { AuthExceptionFilter } from './_core/filters/auth-exception.filter';
 import { AppController } from './app.controller';
@@ -20,7 +21,6 @@ import { SignatureModule } from './signature/signature.module';
 import { SocialLinkModule } from './social-link/social-link.module';
 import { TourModule } from './tour/tour.module';
 import { TripModule } from './trip/trip.module';
-import { UploadModule } from './upload/upload.module';
 import { UserModule } from './user/user.module';
 import { WageModule } from './wage/wage.module';
 
@@ -44,15 +44,16 @@ import { WageModule } from './wage/wage.module';
     //
     // WHY it must run first:
     // Without forRoot → .env never read → forFeature config values are undefined.
+    //
+    // storageConfig is loaded HERE to mount static assets outside production.
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [appConfig, authConfig],
+      load: [appConfig, authConfig, storageConfig],
     }),
     ProjectModule,
     TourModule,
     InvoiceModule,
     OrganizationModule,
-    UploadModule,
     SocialLinkModule,
     SignatureModule,
     BookingModule,

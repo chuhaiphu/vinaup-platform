@@ -14,12 +14,16 @@ import { OrganizationNotFoundException } from 'src/_common/exceptions/organizati
 import { TourImplementationNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { bookingQueryArgs, type BookingResponse, type BookingWithMeta } from './dtos/booking.response.dto';
+import { toBookingResponse, bookingQueryArgs, type BookingResponse, type BookingWithMeta } from './dtos/booking.response.dto';
 
 @Injectable()
 export class BookingService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findBookingsByOrganizationId(
     organizationId: string,
@@ -63,7 +67,7 @@ export class BookingService {
 
     const bookingsWithMeta: BookingWithMeta[] =
       bookings.map((booking) => ({
-        ...booking,
+        ...toBookingResponse(booking, this.storageService),
         meta: {
           isSender: true,
           canEdit: !signedSenderDocumentIds.has(booking.id),
@@ -126,7 +130,7 @@ export class BookingService {
       ],
     });
 
-    return newBooking;
+    return toBookingResponse(newBooking, this.storageService);
   }
 
   async updateBooking(
@@ -161,7 +165,7 @@ export class BookingService {
       ...bookingQueryArgs,
     });
 
-    return updatedBooking;
+    return toBookingResponse(updatedBooking, this.storageService);
   }
 
   async deleteBookingById(id: string): Promise<void> {
@@ -229,7 +233,7 @@ export class BookingService {
     );
 
     return {
-      ...booking,
+      ...toBookingResponse(booking, this.storageService),
       meta: {
         isSender,
         canEdit: isSender && !isSenderSigned,
@@ -282,7 +286,7 @@ export class BookingService {
 
     const bookingsWithMeta: BookingWithMeta[] =
       bookings.map((booking) => ({
-        ...booking,
+        ...toBookingResponse(booking, this.storageService),
         meta: {
           isSender: false,
           canEdit: false,
@@ -312,6 +316,6 @@ export class BookingService {
       ...bookingQueryArgs,
     });
 
-    return bookings;
+    return bookings.map((row) => toBookingResponse(row, this.storageService));
   }
 }

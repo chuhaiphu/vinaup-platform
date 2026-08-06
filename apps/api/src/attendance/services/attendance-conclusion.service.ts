@@ -14,15 +14,19 @@ import {
 import { OrganizationMemberNotFoundException } from 'src/_common/exceptions/organization.exception';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import {
-  attendanceConclusionQueryArgs,
+  toAttendanceConclusionResponse, attendanceConclusionQueryArgs,
   type AttendanceConclusionResponse,
 } from '../dtos/attendance-conclusion.response.dto';
 
 @Injectable()
 export class AttendanceConclusionService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async create(
     input: CreateAttendanceConclusionRequestInterface,
@@ -70,7 +74,7 @@ export class AttendanceConclusionService {
         await this.closeOpenAttendanceRecords(tx, input.organizationMemberId, input.workDate);
       }
 
-      return attendanceConclusion;
+      return toAttendanceConclusionResponse(attendanceConclusion, this.storageService);
     });
   }
 
@@ -99,7 +103,7 @@ export class AttendanceConclusionService {
         await this.closeOpenAttendanceRecords(tx, existing.organizationMemberId, existing.workDate);
       }
 
-      return attendanceConclusion;
+      return toAttendanceConclusionResponse(attendanceConclusion, this.storageService);
     });
   }
 
@@ -121,7 +125,7 @@ export class AttendanceConclusionService {
     organizationId: string,
     filter: AttendanceRecordFilterRequestInterface,
   ): Promise<AttendanceConclusionResponse[]> {
-    return this.prismaService.attendanceConclusion.findMany({
+    const rows = await this.prismaService.attendanceConclusion.findMany({
       where: {
         organizationId,
         ...(filter.workDateFrom && filter.workDateTo
@@ -131,6 +135,8 @@ export class AttendanceConclusionService {
       orderBy: [{ workDate: 'desc' }, { organizationMemberId: 'asc' }],
       ...attendanceConclusionQueryArgs,
     });
+
+    return rows.map((row) => toAttendanceConclusionResponse(row, this.storageService));
   }
 
   private async closeOpenAttendanceRecords(

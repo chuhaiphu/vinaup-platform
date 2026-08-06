@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageModule } from 'src/storage/storage.module';
 
 import { WageController } from './wage.controller';
 import { WageService } from './wage.service';
@@ -11,6 +12,7 @@ import { WageService } from './wage.service';
     // ─── PrismaModule: make PrismaService injectable in this module ───────────────
     // WageService injects PrismaService for DB access.//
     PrismaModule,
+    StorageModule,
     AuthModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
     ],

@@ -9,12 +9,16 @@ import { BusyDateRange } from "src/_common/dtos/response/busy-days.response.dto"
 import { WageNotFoundException } from "src/_common/exceptions/wage.exception";
 import { generateDateOverlapClause } from "src/_common/utils/generator/generate-date-overlap-clause";
 import { PrismaService } from "src/prisma/prisma.service";
+import { StorageService } from "src/storage/storage.service";
 
-import { wageQueryArgs, type WageResponse } from "./dtos/wage.response.dto";
+import { toWageResponse, wageQueryArgs, type WageResponse } from "./dtos/wage.response.dto";
 
 @Injectable()
 export class WageService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findWagesByCurrentUser(
     currentUserId: string,
@@ -22,7 +26,7 @@ export class WageService {
   ): Promise<WageResponse[]> {
     const dateFilterClause = generateDateOverlapClause(filter);
 
-    return this.prismaService.wage.findMany({
+    const wages = await this.prismaService.wage.findMany({
       where: {
         createdByUserId: currentUserId,
         ...dateFilterClause,
@@ -31,6 +35,8 @@ export class WageService {
       orderBy: { createdAt: "desc" },
       ...wageQueryArgs,
     });
+
+    return wages.map((wage) => toWageResponse(wage, this.storageService));
   }
 
   async findBusyDaysByCurrentUser(
@@ -57,14 +63,14 @@ export class WageService {
 
     if (!wage) throw new WageNotFoundException();
 
-    return wage;
+    return toWageResponse(wage, this.storageService);
   }
 
   async createWage(
     createWageReq: CreateWageRequestInterface,
     currentUserId: string,
   ): Promise<WageResponse> {
-    return this.prismaService.wage.create({
+    const wage = await this.prismaService.wage.create({
       data: {
         ...createWageReq,
         createdByUserId: currentUserId,
@@ -72,6 +78,8 @@ export class WageService {
       },
       ...wageQueryArgs,
     });
+
+    return toWageResponse(wage, this.storageService);
   }
 
   async updateWage(
@@ -84,11 +92,13 @@ export class WageService {
 
     if (!existing) throw new WageNotFoundException();
 
-    return this.prismaService.wage.update({
+    const wage = await this.prismaService.wage.update({
       where: { id },
       data: updateWageReq,
       ...wageQueryArgs,
     });
+
+    return toWageResponse(wage, this.storageService);
   }
 
   async deleteWageById(id: string): Promise<void> {

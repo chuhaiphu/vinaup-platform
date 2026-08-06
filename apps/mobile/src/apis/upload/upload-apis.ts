@@ -2,7 +2,7 @@ import { File as FsFile, UploadType } from 'expo-file-system';
 import type { ImagePickerAsset } from 'expo-image-picker';
 import { ApiError, getWireConfig, wireData } from 'fetchwire';
 
-import { UploadImageResponse } from '@/interfaces/upload-interfaces';
+import type { CarWithMeta } from '@/interfaces/car-interfaces';
 
 /**
  *
@@ -23,8 +23,12 @@ import { UploadImageResponse } from '@/interfaces/upload-interfaces';
  * It performs the multipart request in native code:
  *   - It uploads from the file path — a re-openable source it can re-read to retry.
  *    (the same way a browser re-reads a Blob).
+ *
  */
-export async function uploadImage(asset: ImagePickerAsset): Promise<UploadImageResponse> {
+export async function uploadImageTo<TResponse>(
+  path: string,
+  asset: ImagePickerAsset,
+): Promise<TResponse> {
   const config = getWireConfig();
 
   // We run outside wireApi's pipeline, so assemble by hand the headers it would have attached.
@@ -40,7 +44,7 @@ export async function uploadImage(asset: ImagePickerAsset): Promise<UploadImageR
 
   let result;
   try {
-    result = await new FsFile(asset.uri).upload(`${config.baseUrl}/upload`, {
+    result = await new FsFile(asset.uri).upload(`${config.baseUrl}${path}`, {
       httpMethod: 'POST',
       uploadType: UploadType.MULTIPART,
       fieldName: 'file',
@@ -57,20 +61,22 @@ export async function uploadImage(asset: ImagePickerAsset): Promise<UploadImageR
   if (result.status < 200 || result.status >= 300) {
     throw config.transformError?.(json) ?? new ApiError('Upload failed', 'UPLOAD_FAILED');
   }
-  return (config.transformResponse ? config.transformResponse(json) : json) as UploadImageResponse;
+  return (config.transformResponse ? config.transformResponse(json) : json) as TResponse;
 }
 
-export async function deleteImage(path: string) {
-  return wireData<void>('/upload', {
+export function uploadCarFeatureImage(carId: string, asset: ImagePickerAsset) {
+  return uploadImageTo<CarWithMeta>(`/car/${carId}/feature-image`, asset);
+}
+
+export function uploadCarAdditionalImage(carId: string, asset: ImagePickerAsset) {
+  return uploadImageTo<CarWithMeta>(`/car/${carId}/additional-images`, asset);
+}
+
+// The client only ever holds public URLs, so removal names the image by URL and the server
+// resolves it back to the stored key.
+export function removeCarAdditionalImage(carId: string, imageUrl: string) {
+  return wireData<CarWithMeta>(`/car/${carId}/additional-images`, {
     method: 'DELETE',
-    body: JSON.stringify({ path }),
+    body: JSON.stringify({ imageUrl }),
   });
-}
-
-export async function deleteImageByUrl(url: string) {
-  // ─── Derive relative path from a media URL ─────
-  // Server build: url = `${mediaBaseUrl}/user_<id>/<file>`, path = `user_<id>/<file>`.
-  // Strip scheme + host so it works regardless of the media domain.
-  const path = url.replace(/^https?:\/\/[^/]+\//, '');
-  return deleteImage(path);
 }

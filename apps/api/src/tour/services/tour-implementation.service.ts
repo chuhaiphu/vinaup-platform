@@ -10,16 +10,20 @@ import {
   TourImplementationNotFoundException,
 } from 'src/_common/exceptions/tour.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import { TourImplementationAccessService } from './tour-implementation-access.service';
 import { TourImplementationAssignmentService } from './tour-implementation-assignment.service';
 import {
-  MemberAssignedTourImplementationResponse,
-  MemberAssignedTourImplementationWithMeta,
+  memberAssignedTourImplementationQueryArgs,
+  toMemberAssignedTourImplementationResponse,
+  type MemberAssignedTourImplementationResponse,
+  type MemberAssignedTourImplementationWithMeta,
 } from '../dtos/member-assigned-tour-implementation.response.dto';
 import {
-  TourImplementationResponse,
-  TourImplementationWithMeta,
+  toTourImplementationResponse,
+  type TourImplementationResponse,
+  type TourImplementationWithMeta,
 } from '../dtos/tour-implementation.response.dto';
 
 @Injectable()
@@ -31,6 +35,7 @@ export class TourImplementationService {
     // — one owner each, no duplication, no cycle (this service depends on both, never the reverse).
     private readonly tourImplementationAssignmentService: TourImplementationAssignmentService,
     private readonly tourImplementationAccessService: TourImplementationAccessService,
+      private readonly storageService: StorageService,
   ) {}
 
   async findTourImplementationByTourId(
@@ -77,7 +82,7 @@ export class TourImplementationService {
       );
 
     return {
-      ...tourImplementation,
+      ...toTourImplementationResponse(tourImplementation, this.storageService),
       tourImplementationAssignments,
       meta: { canEdit },
     };
@@ -93,7 +98,7 @@ export class TourImplementationService {
       include: {
         createdBy: true,
         tour: true,
-        membersAssigned: true,
+        membersAssigned: memberAssignedTourImplementationQueryArgs,
         tourImplementationAssignments: {
           include: {
             usersAssigned: {
@@ -110,7 +115,7 @@ export class TourImplementationService {
 
     // TourImplementationAccessGuard already asserted access, so this caller may edit the records.
     return {
-      ...updatedTourImplementation,
+      ...toTourImplementationResponse(updatedTourImplementation, this.storageService),
       tourImplementationAssignments:
         await this.tourImplementationAssignmentService.attachConflictMetaToTourImplementationAssignments(
           updatedTourImplementation.id,
@@ -127,15 +132,16 @@ export class TourImplementationService {
   ): Promise<MemberAssignedTourImplementationWithMeta[]> {
     const membersAssigned = await this.prismaService.memberAssignedTourImplementation.findMany({
       where: { tourImplementationId },
-      include: {
-        organizationMember: true,
-      },
+      ...memberAssignedTourImplementationQueryArgs,
     });
     const canEdit = await this.tourImplementationAccessService.canManage(
       tourImplementationId,
       currentUserId,
     );
-    return membersAssigned.map((m) => ({ ...m, meta: { canEdit } }));
+    return membersAssigned.map((memberAssigned) => ({
+      ...toMemberAssignedTourImplementationResponse(memberAssigned, this.storageService),
+      meta: { canEdit },
+    }));
   }
 
   async manageMembersAssigned(
@@ -179,9 +185,13 @@ export class TourImplementationService {
       });
     }
 
-    return this.prismaService.memberAssignedTourImplementation.findMany({
+    const membersAssigned = await this.prismaService.memberAssignedTourImplementation.findMany({
       where: { tourImplementationId },
-      include: { organizationMember: true },
+      ...memberAssignedTourImplementationQueryArgs,
     });
+
+    return membersAssigned.map((memberAssigned) =>
+      toMemberAssignedTourImplementationResponse(memberAssigned, this.storageService),
+    );
   }
 }

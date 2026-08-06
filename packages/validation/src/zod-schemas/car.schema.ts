@@ -15,9 +15,7 @@ const carFields = z.strictObject({
   category: z.string().trim().min(1).nullish(),
   description: z.string().trim().min(1).nullish(),
   status: z.enum(CAR_STATUS).optional(), // NOT NULL column with @default → .optional()
-  featureImageUrl: z.string().trim().min(1).nullish(),
   youtubeUrl: z.string().trim().min(1).nullish(),
-  additionalImageUrls: z.array(z.string()).optional(), // NOT NULL list column → .optional()
   inServiceDate: z.iso.datetime().nullish(),
   bankMortgageAmount: z.number().nullish(),
   fuelConsumption: z.number().nullish(),

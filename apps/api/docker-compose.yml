@@ -6,8 +6,17 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
       - JWT_SECRET=${JWT_SECRET}
       - VERSION=${VERSION}
+      # ── Notifier (see docs/pattern/NOTIFIER-FACADE-PATTERN.md) ──
+      # Unset or misspelled = the app refuses to boot; 'log' is rejected in production.
+      - MAIL_DRIVER=${MAIL_DRIVER}
+      - PHONE_DRIVER=${PHONE_DRIVER}
+      # ── Storage (see docs/pattern/STORAGE-PATTERN.md) ──
+      # Base of every public file URL; nginx serves this host from the bind mount below.
+      - STORAGE_PUBLIC_BASE_URL=${STORAGE_PUBLIC_BASE_URL}
     volumes:
-      - media_data:/app/public/media
+      # The driver writes to <cwd>/storage, and cwd is the Dockerfile's WORKDIR /app/apps/api.
+      # media_data binds the host dir that nginx-proxy-manager also mounts read-only.
+      - media_data:/app/apps/api/storage
     depends_on:
       - db
     restart: unless-stopped

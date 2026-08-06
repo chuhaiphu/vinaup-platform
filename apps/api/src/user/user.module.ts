@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 
 import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
+import { StorageModule } from 'src/storage/storage.module';
 
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
@@ -12,6 +13,7 @@ import { UserService } from './user.service';
     // UserService injects PrismaService for DB access.//
     PrismaModule,
     AuthModule,
+    StorageModule,
     // ─── ValidatorsModule: register the custom request-DTO validators ───
     ],
   controllers: [UserController],

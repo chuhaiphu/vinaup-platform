@@ -4,12 +4,25 @@ import {
   Get,
   HttpStatus,
   Param,
-  Patch,
+  FileTypeValidator,
+  MaxFileSizeValidator,
+  ParseFilePipe,
   Post,
   Request,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 
+import {
+  ALLOWED_MIME_REGEX,
+  MAX_FILE_SIZE_BYTES,
+} from 'src/_common/constants/storage.constant';
+import {
+  FileTooLargeException,
+  FileTypeInvalidException,
+} from 'src/_common/exceptions/storage.exception';
 import type {
   AuthenticatedRequest,
   HttpResponse,
@@ -18,28 +31,44 @@ import { JwtAuthGuard } from 'src/_core/guards/jwt-auth.guard';
 
 import { ManageReceiverSignaturesRequest } from './dtos/manage-receiver-signatures.request.dto';
 import { SignatureResponse } from './dtos/signature.response.dto';
-import { UpdateSignatureUrlRequest } from './dtos/update-signature-url.request.dto';
 import { SignatureService } from './signature.service';
 
 @Controller('signature')
 export class SignatureController {
   constructor(private readonly signatureService: SignatureService) {}
 
+  // The signature image is UPLOADED here, not named by the client: the server derives the
+  // storage key and the response carries the public URL. → docs/pattern/STORAGE-PATTERN.md
   @UseGuards(JwtAuthGuard)
-  @Patch('/:id/url')
-  async updateUrl(
+  @Post('/:id/image')
+  @UseInterceptors(FileInterceptor('file'))
+  async updateImage(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-    @Body() updateSignatureUrlRequest: UpdateSignatureUrlRequest
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: MAX_FILE_SIZE_BYTES,
+            errorMessage: 'FILE_TOO_LARGE',
+          }),
+          new FileTypeValidator({
+            fileType: ALLOWED_MIME_REGEX,
+            errorMessage: 'FILE_TYPE_INVALID',
+          }),
+        ],
+        exceptionFactory: (error: string) => {
+          if (error === 'FILE_TOO_LARGE') throw new FileTooLargeException();
+          throw new FileTypeInvalidException();
+        },
+      })
+    )
+    file: Express.Multer.File
   ): Promise<HttpResponse<SignatureResponse>> {
-    const data = await this.signatureService.updateSignatureUrl(
-      id,
-      updateSignatureUrlRequest,
-      req.user.userId
-    );
+    const data = await this.signatureService.updateSignatureImage(id, file, req.user.userId);
     return {
       statusCode: HttpStatus.OK,
-      message: 'Signature URL updated successfully',
+      message: 'Signature image updated successfully',
       data,
     };
   }

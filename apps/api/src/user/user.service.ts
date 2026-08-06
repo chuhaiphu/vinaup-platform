@@ -7,12 +7,19 @@ import type {
 import { genSalt, hash } from 'bcrypt';
 
 import { AUTH_PROVIDER } from 'src/_common/constants/auth.constant';
+import { EXTENSION_BY_MIME } from 'src/_common/constants/storage.constant';
 import { AuthExistedException } from 'src/_common/exceptions/auth.exception';
+import { UploadFailedException } from 'src/_common/exceptions/storage.exception';
 import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import type { UserResponse } from './dtos/user.response.dto';
+import {
+  embeddedUserQueryArgs,
+  toEmbeddedUserResponse,
+  type UserResponse,
+} from './dtos/user.response.dto';
 
 
 const SYSTEM_RECEIPT_PAYMENT_CATEGORIES = [
@@ -22,7 +29,10 @@ const SYSTEM_RECEIPT_PAYMENT_CATEGORIES = [
 
 @Injectable()
 export class UserService {
-  constructor(private prismaService: PrismaService) {}
+  constructor(
+    private prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   private async getUserOrganizationCounts(userId: string) {
     const [organizationOwnedCount, organizationLinkedCount] = await Promise.all([
@@ -51,6 +61,7 @@ export class UserService {
 
     const newUser = await this.prismaService.user.create({
       data: createUserData,
+      ...embeddedUserQueryArgs,
     });
     await this.prismaService.user.update({
       where: { id: newUser.id },
@@ -81,7 +92,7 @@ export class UserService {
     });
 
     return {
-      ...newUser,
+      ...toEmbeddedUserResponse(newUser, this.storageService),
       organizationOwnedCount: 0,
       organizationLinkedCount: 0,
     };
@@ -102,10 +113,11 @@ export class UserService {
     const updatedUser = await this.prismaService.user.update({
       where: { id: userId },
       data: updateUserRequest,
+      ...embeddedUserQueryArgs,
     });
     const organizationCounts = await this.getUserOrganizationCounts(userId);
     return {
-      ...updatedUser,
+      ...toEmbeddedUserResponse(updatedUser, this.storageService),
       ...organizationCounts,
     };
   }
@@ -113,12 +125,13 @@ export class UserService {
   async findUserById(userId: string): Promise<UserResponse> {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
+      ...embeddedUserQueryArgs,
     });
     if (!user) {
       throw new UserNotFoundException();
     }
     const organizationCounts = await this.getUserOrganizationCounts(userId);
-    return { ...user, ...organizationCounts };
+    return { ...toEmbeddedUserResponse(user, this.storageService), ...organizationCounts };
   }
 
   async searchUsers(params: UserFilterRequestInterface): Promise<UserResponse[]> {
@@ -142,10 +155,11 @@ export class UserService {
     const users = await this.prismaService.user.findMany({
       where: { OR: conditions },
       orderBy: { name: 'asc' },
+      ...embeddedUserQueryArgs,
     });
     const results = await Promise.all(
       users.map(async (user) => ({
-        ...user,
+        ...toEmbeddedUserResponse(user, this.storageService),
         ...(await this.getUserOrganizationCounts(user.id)),
       }))
     );
@@ -158,6 +172,7 @@ export class UserService {
   ): Promise<UserResponse | null> {
     const user = await this.prismaService.user.findUnique({
       where: { email },
+      ...embeddedUserQueryArgs,
     });
     if (!user) {
       throw new UserNotFoundException();
@@ -166,7 +181,72 @@ export class UserService {
       return null;
     }
     const organizationCounts = await this.getUserOrganizationCounts(user.id);
-    return { ...user, ...organizationCounts };
+    return { ...toEmbeddedUserResponse(user, this.storageService), ...organizationCounts };
   }
 
+  async updateAvatar(userId: string, file: Express.Multer.File): Promise<UserResponse> {
+    const existing = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (!existing) {
+      throw new UserNotFoundException();
+    }
+
+    // Server-generated key; the extension comes from the VERIFIED mime type, never from the
+    // uploaded filename. → docs/pattern/STORAGE-PATTERN.md
+    const extension = EXTENSION_BY_MIME[file.mimetype];
+    const avatarKey = `users/${userId}/avatar-${Date.now()}.${extension}`;
+
+    try {
+      await this.storageService.put(avatarKey, file.buffer, file.mimetype);
+    } catch {
+      throw new UploadFailedException();
+    }
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { avatarKey },
+      ...embeddedUserQueryArgs,
+    });
+
+    // Best-effort prune of the previous object — a cleanup failure must NOT fail the request
+    if (existing.avatarKey) {
+      try {
+        await this.storageService.delete(existing.avatarKey);
+      } catch {
+        // swallow — an orphaned object is a cleanup problem, not a user-facing one
+      }
+    }
+
+    const organizationCounts = await this.getUserOrganizationCounts(userId);
+    return { ...toEmbeddedUserResponse(updatedUser, this.storageService), ...organizationCounts };
+  }
+
+  async removeAvatar(userId: string): Promise<UserResponse> {
+    const existing = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { avatarKey: true },
+    });
+    if (!existing) {
+      throw new UserNotFoundException();
+    }
+
+    const updatedUser = await this.prismaService.user.update({
+      where: { id: userId },
+      data: { avatarKey: null },
+      ...embeddedUserQueryArgs,
+    });
+
+    if (existing.avatarKey) {
+      try {
+        await this.storageService.delete(existing.avatarKey);
+      } catch {
+        // swallow — an orphaned object is a cleanup problem, not a user-facing one
+      }
+    }
+
+    const organizationCounts = await this.getUserOrganizationCounts(userId);
+    return { ...toEmbeddedUserResponse(updatedUser, this.storageService), ...organizationCounts };
+  }
 }

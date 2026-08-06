@@ -14,19 +14,29 @@ import {
   ORGANIZATION_ROLE_CODE,
   ORGANIZATION_ROLE_DESCRIPTION,
 } from 'src/_common/constants/organization.constant';
+import { EXTENSION_BY_MIME } from 'src/_common/constants/storage.constant';
 import {
   OrganizationNotFoundException,
   OrganizationNotMemberException,
 } from 'src/_common/exceptions/organization.exception';
+import { UploadFailedException } from 'src/_common/exceptions/storage.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import type { OrganizationAbilityResponse } from '../dtos/organization-ability.response.dto';
 import type { OrganizationIndustryResponse } from '../dtos/organization-industry.response.dto';
-import { organizationQueryArgs, type OrganizationResponse } from '../dtos/organization.response.dto';
+import {
+  organizationQueryArgs,
+  toOrganizationResponse,
+  type OrganizationResponse,
+} from '../dtos/organization.response.dto';
 
 @Injectable()
 export class OrganizationService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findOrganizationsByCurrentUser(
     currentUserId: string
@@ -49,7 +59,7 @@ export class OrganizationService {
     const organizationsWithCounts = await Promise.all(
       organizations.map(async (org) => {
         const counts = await this.getOrganizationMemberCounts(org.id);
-        return { ...org, ...counts };
+        return { ...toOrganizationResponse(org, this.storageService), ...counts };
       })
     );
 
@@ -67,7 +77,7 @@ export class OrganizationService {
     }
 
     const counts = await this.getOrganizationMemberCounts(id);
-    return { ...existingOrganization, ...counts };
+    return { ...toOrganizationResponse(existingOrganization, this.storageService), ...counts };
   }
 
   async getMyAbilityInOrganization(
@@ -120,10 +130,13 @@ export class OrganizationService {
   }
 
   async findAllOrganizations(): Promise<OrganizationResponse[]> {
-    return this.prismaService.organization.findMany({
+    const organizations = await this.prismaService.organization.findMany({
       orderBy: { createdAt: 'desc' },
       ...organizationQueryArgs,
     });
+    return organizations.map((organization) =>
+      toOrganizationResponse(organization, this.storageService),
+    );
   }
 
   async createOrganization(
@@ -182,7 +195,11 @@ export class OrganizationService {
 
     await this.createSocialLinksForOrganization(newOrganization.id, currentUserId);
     await this.createDefaultReceiptPaymentCategoriesForOrganization(newOrganization.id);
-    return { ...newOrganization, memberCount: 1, memberLinkedCount: 1 };
+    return {
+      ...toOrganizationResponse(newOrganization, this.storageService),
+      memberCount: 1,
+      memberLinkedCount: 1,
+    };
   }
 
   async updateOrganization(
@@ -203,7 +220,7 @@ export class OrganizationService {
       ...organizationQueryArgs,
     });
     const counts = await this.getOrganizationMemberCounts(id);
-    return { ...updatedOrganization, ...counts };
+    return { ...toOrganizationResponse(updatedOrganization, this.storageService), ...counts };
   }
 
   async deleteOrganization(id: string): Promise<void> {
@@ -298,5 +315,44 @@ export class OrganizationService {
       });
       await new Promise((resolve) => setTimeout(resolve, 1));
     }
+  }
+
+  async updateAvatar(id: string, file: Express.Multer.File): Promise<OrganizationResponse> {
+    const existing = await this.prismaService.organization.findUnique({
+      where: { id },
+      select: { avatarKey: true },
+    });
+    if (!existing) {
+      throw new OrganizationNotFoundException();
+    }
+
+    // Server-generated key; the extension comes from the VERIFIED mime type, never from the
+    // uploaded filename. → docs/pattern/STORAGE-PATTERN.md
+    const extension = EXTENSION_BY_MIME[file.mimetype];
+    const avatarKey = `organizations/${id}/logo-${Date.now()}.${extension}`;
+
+    try {
+      await this.storageService.put(avatarKey, file.buffer, file.mimetype);
+    } catch {
+      throw new UploadFailedException();
+    }
+
+    const updatedOrganization = await this.prismaService.organization.update({
+      where: { id },
+      data: { avatarKey },
+      ...organizationQueryArgs,
+    });
+
+    // Best-effort prune of the previous object — a cleanup failure must NOT fail the request
+    if (existing.avatarKey) {
+      try {
+        await this.storageService.delete(existing.avatarKey);
+      } catch {
+        // swallow — an orphaned object is a cleanup problem, not a user-facing one
+      }
+    }
+
+    const counts = await this.getOrganizationMemberCounts(id);
+    return { ...toOrganizationResponse(updatedOrganization, this.storageService), ...counts };
   }
 }

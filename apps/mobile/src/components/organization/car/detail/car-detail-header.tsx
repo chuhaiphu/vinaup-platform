@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { uploadImage } from '@/apis/upload/upload-apis';
+import { uploadCarFeatureImage } from '@/apis/upload/upload-apis';
 import { VinaupPenLine } from '@/components/icons/vinaup-pen-line.native';
 import VinaupVan from '@/components/icons/vinaup-van.native';
 import {
@@ -25,7 +25,9 @@ import { useCarDetailContext } from '@/providers/organization/car/car-detail-pro
 export function CarDetailHeader() {
   const { car, isUpdatingCar, isRefreshingCar, handleUpdateCar } = useCarDetailContext();
   const modalRef = useRef<SlideSheetRef>(null);
-  const { upload, isUploading } = useImageUpload({ uploadFn: uploadImage });
+  const { upload, isUploading } = useImageUpload({
+    uploadFn: (asset) => uploadCarFeatureImage(car.id, asset),
+  });
   const isLoading = isUpdatingCar || isRefreshingCar || isUploading;
 
   const title = car.name ?? 'Xe chưa đặt tên';
@@ -35,13 +37,7 @@ export function CarDetailHeader() {
   const categorySeatLine = [car.category, seatCountLabel].filter(Boolean).join(' - ') || '—';
 
   const handleConfirm = async (data: CarInfoModalData, closeModal: () => void) => {
-    let featureImageUrl: string | undefined;
-
-    if (data.pickedImage) {
-      const url = await upload(data.pickedImage);
-      if (!url) return;
-      featureImageUrl = url;
-    }
+    if (data.pickedImage && !(await upload(data.pickedImage))) return;
 
     handleUpdateCar(
       {
@@ -52,7 +48,6 @@ export function CarDetailHeader() {
         category: data.category,
         seatCount: data.seatCount,
         inServiceDate: data.inServiceDate,
-        ...(featureImageUrl ? { featureImageUrl } : {}),
       },
       closeModal,
     );

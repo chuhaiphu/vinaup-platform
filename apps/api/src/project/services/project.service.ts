@@ -9,13 +9,17 @@ import { BusyDateRange } from "src/_common/dtos/response/busy-days.response.dto"
 import { ProjectNotFoundException } from "src/_common/exceptions/project.exception";
 import { generateDateOverlapClause } from "src/_common/utils/generator/generate-date-overlap-clause";
 import { PrismaService } from "src/prisma/prisma.service";
+import { StorageService } from 'src/storage/storage.service';
 
-import { projectQueryArgs, type ProjectResponse } from "../dtos/project.response.dto";
+import { toProjectResponse, projectQueryArgs, type ProjectResponse } from "../dtos/project.response.dto";
 
 
 @Injectable()
 export class ProjectService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findProjectsByCurrentUser(
     currentUserId: string,
@@ -36,7 +40,7 @@ export class ProjectService {
       orderBy: { createdAt: "desc" },
       ...projectQueryArgs,
     });
-    return projects;
+    return projects.map((row) => toProjectResponse(row, this.storageService));
   }
 
   async findProjectsByOrganizationId(
@@ -59,7 +63,7 @@ export class ProjectService {
       ...projectQueryArgs,
     });
 
-    return projects;
+    return projects.map((row) => toProjectResponse(row, this.storageService));
   }
 
   async findBusyDaysByCurrentUser(
@@ -90,7 +94,7 @@ export class ProjectService {
       },
       ...projectQueryArgs,
     });
-    return newProject;
+    return toProjectResponse(newProject, this.storageService);
   }
 
   async updateProject(
@@ -110,7 +114,7 @@ export class ProjectService {
       data: updateProjectReq,
       ...projectQueryArgs,
     });
-    return updatedProject;
+    return toProjectResponse(updatedProject, this.storageService);
   }
 
   async deleteProjectById(id: string): Promise<void> {
@@ -137,6 +141,6 @@ export class ProjectService {
       throw new ProjectNotFoundException();
     }
 
-    return project;
+    return toProjectResponse(project, this.storageService);
   }
 }

@@ -4,10 +4,10 @@ import {
   DOCUMENT_TYPE,
   type DocumentType,
   type ManageReceiverSignaturesRequestInterface,
-  type UpdateSignatureUrlRequestInterface,
 } from '@vinaup-platform/validation';
 
 import { SIGNATURE_ROLE } from 'src/_common/constants/signature.constant';
+import { EXTENSION_BY_MIME } from 'src/_common/constants/storage.constant';
 import { BookingNotFoundException } from 'src/_common/exceptions/booking.exception';
 import { DocumentLockedAfterSignException } from 'src/_common/exceptions/document.exception';
 import { InvoiceNotFoundException } from 'src/_common/exceptions/invoice.exception';
@@ -23,16 +23,25 @@ import {
   SignatureReceiverIncludesSenderException,
   SignatureUnsupportedDocumentTypeException,
 } from 'src/_common/exceptions/signature.exception';
+import { UploadFailedException } from 'src/_common/exceptions/storage.exception';
 import { TourCalculationNotFoundException, TourSettlementNotFoundException } from 'src/_common/exceptions/tour.exception';
 import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { Prisma, Signature } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { signatureQueryArgs, type SignatureResponse } from './dtos/signature.response.dto';
+import {
+  signatureQueryArgs,
+  toSignatureResponse,
+  type SignatureResponse,
+} from './dtos/signature.response.dto';
 
 @Injectable()
 export class SignatureService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   private buildResetSignatureData() {
     return {
@@ -62,7 +71,7 @@ export class SignatureService {
     if (!signature) {
       throw new SignatureNotFoundException();
     }
-    return signature;
+    return toSignatureResponse(signature, this.storageService);
   }
 
   async findSignaturesByDocumentId(
@@ -72,7 +81,7 @@ export class SignatureService {
       where: { documentId },
       ...signatureQueryArgs,
     });
-    return signatures;
+    return signatures.map((signature) => toSignatureResponse(signature, this.storageService));
   }
 
   private async assertCanSign(existingSignature: {
@@ -182,13 +191,14 @@ export class SignatureService {
         });
       }
 
-      return transaction.signature.findMany({
+      const signatures = await transaction.signature.findMany({
         where: {
           documentId: manageReceiverSignaturesReq.documentId,
           documentType: manageReceiverSignaturesReq.documentType,
         },
         ...signatureQueryArgs,
       });
+      return signatures.map((signature) => toSignatureResponse(signature, this.storageService));
     });
   }
 
@@ -249,15 +259,15 @@ export class SignatureService {
     }
   }
 
-  async updateSignatureUrl(
+  async updateSignatureImage(
     id: string,
-    updateSignatureUrlRequest: UpdateSignatureUrlRequestInterface,
+    file: Express.Multer.File,
     currentUserId: string
   ): Promise<SignatureResponse> {
     const existingSignature = await this.findSignatureByIdOrThrow(id);
 
-    // If targetUserId is specified, only that user can update URL
-    // If not specified, anyone in the organization can update URL
+    // If targetUserId is specified, only that user can replace the image
+    // If not specified, anyone in the organization can replace it
     if (
       existingSignature.targetUserId &&
       existingSignature.targetUserId !== currentUserId
@@ -265,16 +275,33 @@ export class SignatureService {
       throw new SignatureNotAuthorizedException();
     }
 
-    // Only update URL, don't change isSigned status
+    // Server-generated key; the extension comes from the VERIFIED mime type
+    const extension = EXTENSION_BY_MIME[file.mimetype];
+    const signatureKey = `signatures/${existingSignature.id}-${Date.now()}.${extension}`;
+
+    try {
+      await this.storageService.put(signatureKey, file.buffer, file.mimetype);
+    } catch {
+      throw new UploadFailedException();
+    }
+
+    // Only point at the new image, don't change isSigned status
     const updatedSignature = await this.prismaService.signature.update({
       where: { id: existingSignature.id },
-      data: {
-        url: updateSignatureUrlRequest.url,
-      },
+      data: { signatureKey },
       ...signatureQueryArgs,
     });
 
-    return updatedSignature;
+    // Best-effort prune of the previous object — a cleanup failure must NOT fail the request
+    if (existingSignature.signatureKey) {
+      try {
+        await this.storageService.delete(existingSignature.signatureKey);
+      } catch {
+        // swallow — an orphaned object is a cleanup problem, not a user-facing one
+      }
+    }
+
+    return toSignatureResponse(updatedSignature, this.storageService);
   }
 
   async signSignature(
@@ -326,7 +353,7 @@ export class SignatureService {
 
     await this.syncBookingStatusAfterSign(existingSignature.documentId, existingSignature.documentType, existingSignature.signatureRole);
 
-    return updatedSignature;
+    return toSignatureResponse(updatedSignature, this.storageService);
   }
 
   private async assertReceiverIsClientOrgMember(
@@ -427,7 +454,7 @@ export class SignatureService {
           throw new SignatureNotFoundException();
         }
 
-        return updatedSignature;
+        return toSignatureResponse(updatedSignature, this.storageService);
       }
 
       let snapshotData: Prisma.InputJsonValue;
@@ -519,7 +546,7 @@ export class SignatureService {
         throw new SignatureNotFoundException();
       }
 
-      return updatedSignature;
+      return toSignatureResponse(updatedSignature, this.storageService);
     });
   }
 }

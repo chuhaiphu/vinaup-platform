@@ -16,6 +16,7 @@ import {
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { TourImplementationAssignment, UserAssignedTourImplementation } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import { TourImplementationAccessService } from './tour-implementation-access.service';
 import {
@@ -24,7 +25,11 @@ import {
   TourImplementationAssignmentResponse,
   TourImplementationAssignmentWithMeta,
 } from '../dtos/tour-implementation-assignment.response.dto';
-import { UserAssignedTourImplementationResponse } from '../dtos/user-assigned-tour-implementation.response.dto';
+import {
+  toUserAssignedTourImplementationResponse,
+  userAssignedTourImplementationQueryArgs,
+  type UserAssignedTourImplementationResponse,
+} from '../dtos/user-assigned-tour-implementation.response.dto';
 
 // Normalized shape of one overlapping assignment returned by findOverlappingTourImplementationAssignments:
 // assigned-user relation rows are flattened to a plain id list for the meta builder.
@@ -38,6 +43,7 @@ export class TourImplementationAssignmentService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tourImplementationAccessService: TourImplementationAccessService,
+    private readonly storageService: StorageService,
   ) {}
 
   private async findAssignmentByIdOrThrow(assignmentId: string): Promise<TourImplementationAssignment> {
@@ -244,13 +250,10 @@ export class TourImplementationAssignmentService {
         customPhone: payload.customPhone,
         currentOption: payload.currentOption,
       },
-      include: {
-        user: true,
-        tourImplementationAssignment: true,
-      },
+      ...userAssignedTourImplementationQueryArgs,
     });
 
-    return userAssigned;
+    return toUserAssignedTourImplementationResponse(userAssigned, this.storageService);
   }
 
   async updateUserAssignedToTourImplementation(
@@ -268,13 +271,10 @@ export class TourImplementationAssignmentService {
     const updatedRecord = await this.prismaService.userAssignedTourImplementation.update({
       where: { id: userAssignedId },
       data: payload,
-      include: {
-        user: true,
-        tourImplementationAssignment: true,
-      },
+      ...userAssignedTourImplementationQueryArgs,
     });
 
-    return updatedRecord;
+    return toUserAssignedTourImplementationResponse(updatedRecord, this.storageService);
   }
 
   async removeUserAssignedFromTourImplementation(

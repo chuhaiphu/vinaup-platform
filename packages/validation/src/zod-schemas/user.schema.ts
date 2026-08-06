@@ -8,7 +8,6 @@ export const createUserSchema = z.strictObject({
   password: z.string().min(1),
   name: z.string().trim().min(1),
   province: z.string().trim().min(1).nullish(),
-  avatarUrl: z.string().trim().min(1).nullish(),
 });
 
 export const updateUserSchema = createUserSchema

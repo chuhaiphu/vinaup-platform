@@ -9,7 +9,6 @@ export const createOrganizationSchema = z.strictObject({
   phone: z.string().trim().min(1),
   address: z.string().trim().min(1).nullish(),
   website: z.string().trim().min(1).nullish(),
-  avatarUrl: z.string().trim().min(1).nullish(),
   province: z.string().trim().min(1),
   organizationIndustryId: z.string().trim().min(1),
 });
@@ -39,7 +38,6 @@ export const createOrganizationMemberSchema = z.strictObject({
   address: z.string().trim().min(1).nullish(),
   email: z.email().nullish(),
   status: z.string().trim().min(1),
-  avatarUrl: z.string().trim().min(1).nullish(),
   joinedAt: z.iso.datetime(),
   organizationRoleId: z.string().trim().min(1), // existence is checked in the service, not here
   userId: z.string().trim().min(1).nullish(), // existence is checked in the service, not here

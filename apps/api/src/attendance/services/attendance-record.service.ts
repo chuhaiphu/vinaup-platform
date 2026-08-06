@@ -27,15 +27,19 @@ import {
 import { generateCalendarDate } from 'src/_common/utils/generator/generate-calendar-date';
 import { Prisma } from 'src/prisma/generated/client';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
 import {
-  attendanceRecordQueryArgs,
+  toAttendanceRecordResponse, attendanceRecordQueryArgs,
   type AttendanceRecordResponse,
 } from '../dtos/attendance-record.response.dto';
 
 @Injectable()
 export class AttendanceRecordService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   // Check-in: server stamps the instant and derives the frozen workDate.
   async checkIn(
@@ -55,7 +59,7 @@ export class AttendanceRecordService {
     const isCheckInOut = input.mode === ATTENDANCE_MODE.CHECK_IN_OUT;
 
     try {
-      return await this.prismaService.attendanceRecord.create({
+      const row = await this.prismaService.attendanceRecord.create({
         data: {
           organizationId: input.organizationId,
           organizationMemberId: member.id,
@@ -72,6 +76,8 @@ export class AttendanceRecordService {
         },
         ...attendanceRecordQueryArgs,
       });
+
+      return toAttendanceRecordResponse(row, this.storageService);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new AttendanceHasOpenRecordException();
@@ -100,7 +106,7 @@ export class AttendanceRecordService {
     }
     await this.assertDayNotLocked(member.id, openAttendanceRecord.workDate);
 
-    return this.prismaService.attendanceRecord.update({
+    const row = await this.prismaService.attendanceRecord.update({
       where: { id: openAttendanceRecord.id },
       data: {
         checkOutAt: new Date(),
@@ -112,6 +118,8 @@ export class AttendanceRecordService {
       },
       ...attendanceRecordQueryArgs,
     });
+
+    return toAttendanceRecordResponse(row, this.storageService);
   }
 
   // Edit is ownership-enforced here (never through the role matrix),
@@ -124,12 +132,14 @@ export class AttendanceRecordService {
     const existing = await this.findOwnAttendanceRecord(recordId, currentUserId);
     await this.assertDayNotLocked(existing.organizationMemberId, existing.workDate);
 
-    return this.prismaService.attendanceRecord.update({
+    const row = await this.prismaService.attendanceRecord.update({
       where: { id: recordId },
       // Passed through as parsed: an omitted field stays as it was, an explicit null clears it.
       data: input,
       ...attendanceRecordQueryArgs,
     });
+
+    return toAttendanceRecordResponse(row, this.storageService);
   }
 
   async deleteAttendanceRecord(recordId: string, currentUserId: string): Promise<void> {
@@ -143,7 +153,7 @@ export class AttendanceRecordService {
     currentUserId: string,
     filter: AttendanceRecordFilterRequestInterface,
   ): Promise<AttendanceRecordResponse[]> {
-    return this.prismaService.attendanceRecord.findMany({
+    const rows = await this.prismaService.attendanceRecord.findMany({
       where: {
         createdByUserId: currentUserId,
         ...(filter.organizationId ? { organizationId: filter.organizationId } : {}),
@@ -156,13 +166,15 @@ export class AttendanceRecordService {
       orderBy: { checkInAt: 'desc' },
       ...attendanceRecordQueryArgs,
     });
+
+    return rows.map((row) => toAttendanceRecordResponse(row, this.storageService));
   }
 
   async findByOrganizationId(
     organizationId: string,
     filter: AttendanceRecordFilterRequestInterface,
   ): Promise<AttendanceRecordResponse[]> {
-    return this.prismaService.attendanceRecord.findMany({
+    const rows = await this.prismaService.attendanceRecord.findMany({
       where: {
         organizationId,
         ...(filter.status ? { status: filter.status } : {}),
@@ -174,6 +186,8 @@ export class AttendanceRecordService {
       orderBy: { checkInAt: 'desc' },
       ...attendanceRecordQueryArgs,
     });
+
+    return rows.map((row) => toAttendanceRecordResponse(row, this.storageService));
   }
 
   private async findOwnAttendanceRecord(recordId: string, currentUserId: string) {

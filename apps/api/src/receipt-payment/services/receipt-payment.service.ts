@@ -30,9 +30,10 @@ import {
 import { TripNotFoundException } from 'src/_common/exceptions/trip.exception';
 import { WageNotFoundException } from 'src/_common/exceptions/wage.exception';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 import { TourImplementationAccessService } from 'src/tour/services/tour-implementation-access.service';
 
-import { receiptPaymentQueryArgs, type ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
+import { toReceiptPaymentResponse, receiptPaymentQueryArgs, type ReceiptPaymentResponse } from '../dtos/receipt-payment.response.dto';
 
 // The parent-reference fields of a receipt payment — the axis Flow 3 selects a plane from.
 interface ReceiptPaymentParentInput {
@@ -53,6 +54,7 @@ export class ReceiptPaymentService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly tourImplementationAccessService: TourImplementationAccessService,
+    private readonly storageService: StorageService,
   ) {}
 
   private async assertReceiptPaymentRelationsExist(input: {
@@ -351,13 +353,15 @@ export class ReceiptPaymentService {
       // Because The create above runs after the initial include query,
       // newReceiptPayment has an empty tourImplementationReceiptPayments array.
       // we query receiptPayment again to ensure tourImplementationReceiptPayments is populated in the response.
-      return this.prismaService.receiptPayment.findUniqueOrThrow({
+      const receiptPayment = await this.prismaService.receiptPayment.findUniqueOrThrow({
         where: { id: newReceiptPayment.id },
         ...receiptPaymentQueryArgs,
       });
+
+      return toReceiptPaymentResponse(receiptPayment, this.storageService);
     }
 
-    return newReceiptPayment;
+    return toReceiptPaymentResponse(newReceiptPayment, this.storageService);
   }
 
   async updateReceiptPayment(
@@ -396,7 +400,7 @@ export class ReceiptPaymentService {
       data: restUpdateReceiptPaymentReq,
       ...receiptPaymentQueryArgs,
     });
-    return updatedReceiptPayment;
+    return toReceiptPaymentResponse(updatedReceiptPayment, this.storageService);
   }
 
   async deleteReceiptPaymentById(id: string, currentUserId: string): Promise<void> {
@@ -435,7 +439,7 @@ export class ReceiptPaymentService {
       },
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentById(id: string, currentUserId: string): Promise<ReceiptPaymentResponse> {
@@ -450,7 +454,7 @@ export class ReceiptPaymentService {
       throw new ReceiptPaymentNotFoundException();
     }
 
-    return receiptPayment;
+    return toReceiptPaymentResponse(receiptPayment, this.storageService);
   }
 
   async findReceiptPaymentsByProjectId(
@@ -468,7 +472,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByProjectIds(
@@ -488,7 +492,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByInvoiceIds(
@@ -508,7 +512,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByInvoiceId(
@@ -526,7 +530,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByTourCalculationId(
@@ -544,7 +548,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByTourImplementationId(
@@ -608,7 +612,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByTourSettlementId(
@@ -626,7 +630,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByOrganizationId(
@@ -653,7 +657,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByWageId(
@@ -663,11 +667,13 @@ export class ReceiptPaymentService {
     await this.assertReceiptPaymentRelationsExist({ wageId });
     await this.assertReceiptPaymentAccessByParent({ wageId }, currentUserId, null);
 
-    return this.prismaService.receiptPayment.findMany({
+    const rows = await this.prismaService.receiptPayment.findMany({
       where: { wageId },
       orderBy: { createdAt: 'desc' },
       ...receiptPaymentQueryArgs,
     });
+
+    return rows.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByWageIds(
@@ -679,11 +685,15 @@ export class ReceiptPaymentService {
       await this.assertReceiptPaymentAccessByParent({ wageId }, currentUserId, null);
     }
 
-    return this.prismaService.receiptPayment.findMany({
+    const receiptPayments = await this.prismaService.receiptPayment.findMany({
       where: { wageId: { in: wageIds } },
       orderBy: { createdAt: 'desc' },
       ...receiptPaymentQueryArgs,
     });
+
+    return receiptPayments.map((receiptPayment) =>
+      toReceiptPaymentResponse(receiptPayment, this.storageService),
+    );
   }
 
   async findReceiptPaymentsByBookingId(
@@ -701,7 +711,7 @@ export class ReceiptPaymentService {
       ...receiptPaymentQueryArgs,
     });
 
-    return receiptPayments;
+    return receiptPayments.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByCarMaintenanceLogId(
@@ -711,11 +721,13 @@ export class ReceiptPaymentService {
     await this.assertReceiptPaymentRelationsExist({ carMaintenanceLogId });
     await this.assertReceiptPaymentAccessByParent({ carMaintenanceLogId }, currentUserId, null);
 
-    return this.prismaService.receiptPayment.findMany({
+    const rows = await this.prismaService.receiptPayment.findMany({
       where: { carMaintenanceLogId },
       orderBy: { createdAt: 'desc' },
       ...receiptPaymentQueryArgs,
     });
+
+    return rows.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 
   async findReceiptPaymentsByTripId(
@@ -725,10 +737,12 @@ export class ReceiptPaymentService {
     await this.assertReceiptPaymentRelationsExist({ tripId });
     await this.assertReceiptPaymentAccessByParent({ tripId }, currentUserId, null);
 
-    return this.prismaService.receiptPayment.findMany({
+    const rows = await this.prismaService.receiptPayment.findMany({
       where: { tripId },
       orderBy: { createdAt: 'desc' },
       ...receiptPaymentQueryArgs,
     });
+
+    return rows.map((row) => toReceiptPaymentResponse(row, this.storageService));
   }
 }

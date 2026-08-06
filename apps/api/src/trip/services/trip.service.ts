@@ -10,12 +10,16 @@ import { OrganizationNotFoundException } from 'src/_common/exceptions/organizati
 import { TripNotFoundException } from 'src/_common/exceptions/trip.exception';
 import { generateDateOverlapClause } from 'src/_common/utils/generator/generate-date-overlap-clause';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { StorageService } from 'src/storage/storage.service';
 
-import { tripListQueryArgs, tripQueryArgs, type TripResponse } from '../dtos/trip.response.dto';
+import { tripListQueryArgs, toTripResponse, tripQueryArgs, type TripResponse } from '../dtos/trip.response.dto';
 
 @Injectable()
 export class TripService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly storageService: StorageService,
+  ) {}
 
   async findTripsByOrganizationId(
     organizationId: string,
@@ -29,11 +33,13 @@ export class TripService {
       ...dateFilterClause,
     };
 
-    return this.prismaService.trip.findMany({
+    const rows = await this.prismaService.trip.findMany({
       where: whereClause,
       orderBy: { createdAt: 'desc' },
       ...tripListQueryArgs,
     });
+
+    return rows.map((row) => toTripResponse(row, this.storageService));
   }
 
   private async assertOrganizationExists(organizationId: string): Promise<void> {
@@ -50,7 +56,7 @@ export class TripService {
   ): Promise<TripResponse> {
     await this.assertOrganizationExists(createTripReq.organizationId);
 
-    return this.prismaService.trip.create({
+    const trip = await this.prismaService.trip.create({
       data: {
         ...createTripReq,
         createdByUserId: currentUserId,
@@ -58,6 +64,8 @@ export class TripService {
       },
       ...tripQueryArgs,
     });
+
+    return toTripResponse(trip, this.storageService);
   }
 
   async findTripById(id: string): Promise<TripResponse> {
@@ -70,7 +78,7 @@ export class TripService {
       throw new TripNotFoundException();
     }
 
-    return trip;
+    return toTripResponse(trip, this.storageService);
   }
 
   async updateTrip(
@@ -89,11 +97,13 @@ export class TripService {
       await this.assertOrganizationExists(updateTripReq.organizationId);
     }
 
-    return this.prismaService.trip.update({
+    const trip = await this.prismaService.trip.update({
       where: { id },
       data: updateTripReq,
       ...tripQueryArgs,
     });
+
+    return toTripResponse(trip, this.storageService);
   }
 
   async deleteTripById(id: string): Promise<void> {

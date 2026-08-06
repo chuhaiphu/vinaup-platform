@@ -2,17 +2,29 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   Get,
   HttpStatus,
+  MaxFileSizeValidator,
   Param,
+  ParseFilePipe,
   Post,
   Put,
   Query,
   Request,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { PERMISSION_ACTION, PERMISSION_RESOURCE } from '@vinaup-platform/permission';
+import { memoryStorage } from 'multer';
 
+import { ALLOWED_MIME_REGEX, MAX_FILE_SIZE_BYTES } from 'src/_common/constants/storage.constant';
+import {
+  FileTooLargeException,
+  FileTypeInvalidException,
+} from 'src/_common/exceptions/storage.exception';
 import type {
   AuthenticatedRequest,
   HttpResponse,
@@ -110,5 +122,36 @@ export class OrganizationMemberController {
       statusCode: HttpStatus.OK,
       message: 'Organization member deleted successfully',
     };
+  }
+
+  // The avatar is UPLOADED here; a member avatar is never pruned because
+  // CarAssignmentEvent snapshots it. → docs/pattern/STORAGE-PATTERN.md
+  @UseGuards(JwtAuthGuard)
+  @Post('/:id/avatar')
+  @UseInterceptors(FileInterceptor('file', { storage: memoryStorage() }))
+  async updateAvatar(
+    @Param('id') id: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({
+            maxSize: MAX_FILE_SIZE_BYTES,
+            errorMessage: 'FILE_TOO_LARGE',
+          }),
+          new FileTypeValidator({
+            fileType: ALLOWED_MIME_REGEX,
+            errorMessage: 'FILE_TYPE_INVALID',
+          }),
+        ],
+        exceptionFactory: (error: string) => {
+          if (error === 'FILE_TOO_LARGE') throw new FileTooLargeException();
+          throw new FileTypeInvalidException();
+        },
+      }),
+    )
+    file: Express.Multer.File,
+  ): Promise<HttpResponse<OrganizationMemberResponse>> {
+    const data = await this.organizationMemberService.updateAvatar(id, file);
+    return { statusCode: HttpStatus.OK, message: 'Member avatar updated successfully', data };
   }
 }

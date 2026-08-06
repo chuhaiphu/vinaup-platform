@@ -89,7 +89,7 @@ export {
   updateReceiptPaymentCategorySchema,
   updateReceiptPaymentSchema,
 } from './zod-schemas/receipt-payment.schema';
-export { manageReceiverSignaturesSchema, updateSignatureUrlSchema } from './zod-schemas/signature.schema';
+export { manageReceiverSignaturesSchema } from './zod-schemas/signature.schema';
 export {
   createProjectCategorySchema,
   createProjectSchema,
@@ -169,7 +169,6 @@ export type {
 } from './interfaces/receipt-payment.interface';
 export type {
   ManageReceiverSignaturesRequestInterface,
-  UpdateSignatureUrlRequestInterface,
 } from './interfaces/signature.interface';
 export type {
   CreateProjectCategoryRequestInterface,
