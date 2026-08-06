@@ -4,12 +4,9 @@ on:
     tags:
       - 'api/v*.*.*'  # Namespaced tag so future apps (e.g. web/v*.*.*) can't collide
 
+# Only literals belong here: this block is resolved before the job declares its environment.
 env:
-  DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
   DOCKER_CONTAINER_NAME: vinaup-api
-  MAIL_DRIVER: ${{ vars.MAIL_DRIVER }}
-  PHONE_DRIVER: ${{ vars.PHONE_DRIVER }}
-  STORAGE_PUBLIC_BASE_URL: ${{ vars.STORAGE_PUBLIC_BASE_URL }}
 
 jobs:
   build-and-deploy:
@@ -43,12 +40,23 @@ jobs:
         file: apps/api/Dockerfile
         push: true
         tags: |
-          ${{ env.DOCKER_IMAGE }}:${{ steps.version.outputs.VERSION }}
-          ${{ env.DOCKER_IMAGE }}:latest
+          ${{ vars.DOCKER_IMAGE }}:${{ steps.version.outputs.VERSION }}
+          ${{ vars.DOCKER_IMAGE }}:latest
         build-args: |
           VERSION=${{ steps.version.outputs.VERSION }}
           DATABASE_URL=postgresql://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@${{ secrets.VPS_HOST }}:5432/${{ secrets.POSTGRES_DB }}?schema=public
           
+    - name: Copy docker-compose.yml to VPS
+      uses: appleboy/scp-action@v1
+      with:
+        host: ${{ secrets.VPS_HOST }}
+        username: ${{ secrets.VPS_USERNAME }}
+        key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+        port: 2222
+        source: apps/api/docker-compose.yml
+        target: /opt/apps/vinaup.com
+        strip_components: 2
+
     - name: Deploy to VPS using Docker Compose (Secure - No .env file)
       uses: appleboy/ssh-action@v1.2.5
       with:
@@ -63,16 +71,16 @@ jobs:
           mkdir -p /opt/apps/vinaup.com/media
 
           # Set environment variables directly in shell
-          export DOCKER_IMAGE="${{ env.DOCKER_IMAGE }}"
+          export DOCKER_IMAGE="${{ vars.DOCKER_IMAGE }}"
           export VERSION="${{ steps.version.outputs.VERSION }}"
           export POSTGRES_DB="${{ secrets.POSTGRES_DB }}"
           export POSTGRES_USER="${{ secrets.POSTGRES_USER }}"
           export POSTGRES_PASSWORD="${{ secrets.POSTGRES_PASSWORD }}"
           export JWT_SECRET="${{ secrets.JWT_SECRET }}"
           export DOCKER_CONTAINER_NAME="${{ env.DOCKER_CONTAINER_NAME }}"
-          export MAIL_DRIVER="${{ env.MAIL_DRIVER }}"
-          export PHONE_DRIVER="${{ env.PHONE_DRIVER }}"
-          export STORAGE_PUBLIC_BASE_URL="${{ env.STORAGE_PUBLIC_BASE_URL }}"
+          export MAIL_DRIVER="${{ vars.MAIL_DRIVER }}"
+          export PHONE_DRIVER="${{ vars.PHONE_DRIVER }}"
+          export STORAGE_PUBLIC_BASE_URL="${{ vars.STORAGE_PUBLIC_BASE_URL }}"
 
           # Pull the latest images
           docker compose pull
@@ -84,7 +92,7 @@ jobs:
           docker compose up -d
           
           # Clean up old images (keep latest 3 versions)
-          docker images ${{ env.DOCKER_IMAGE }} --format "table {{.Tag}}\t{{.ID}}" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
+          docker images ${{ vars.DOCKER_IMAGE }} --format "table {{.Tag}}\t{{.ID}}" | tail -n +4 | awk '{print $2}' | xargs -r docker rmi || true
           
           # Show running containers
           docker compose ps
