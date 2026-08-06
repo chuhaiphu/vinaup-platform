@@ -36,12 +36,12 @@ Step 1 — Extract token   (from the `req` the guard passed in)
 Step 2 — Verify signature & expiry
   └─ checked automatically against appConf.jwt.secret
      expired or tampered → Passport sets info.name = 'TokenExpiredError' | 'JsonWebTokenError'
-     → JwtAuthGuard.handleRequest throws TokenInvalidException
+     → JwtAuthGuard.handleRequest throws AccessTokenInvalidException
 
 Step 3 — Resolve caller (validate)
   └─ query DB: does this userId still exist?
      exists  → return { userId }  → becomes req.user
-     missing → return null        → JwtAuthGuard.handleRequest throws TokenInvalidException
+     missing → return null        → JwtAuthGuard.handleRequest throws AccessTokenInvalidException
 ```
 
 ```ts
@@ -78,7 +78,7 @@ validate(payload)
                          ▼
    Passport → JwtAuthGuard.handleRequest(error, user, info)
                          ├─ user = { userId } → handleRequest returns it → Passport sets req.user
-                         └─ user = null       → handleRequest throws TokenInvalidException
+                         └─ user = null       → handleRequest throws AccessTokenInvalidException
 ```
 
 ---

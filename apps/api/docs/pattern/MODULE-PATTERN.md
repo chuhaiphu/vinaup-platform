@@ -61,6 +61,7 @@ These modules are imported by most feature modules; each encapsulates a cross-cu
 | ------------------ | -------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `PrismaModule`     | `PrismaService`                  | the single database gateway (constructs the `@prisma/adapter-pg` adapter via a `'DATABASE'` factory provider) |
 | `AuthModule`       | `PassportModule`, `JwtModule`    | makes JWT authentication usable in any module                                                                 |
+| `NotifierModule`   | `NotifierService`                | outbound messages (mail, SMS); the channel contracts and their drivers stay internal → [Notifier Pattern](NOTIFIER-PATTERN.md) |
 
 `PrismaModule` is intentionally absent from `AppModule` because `AppController`/`AppService` do not use the database; although `PrismaModule` is invisible to `AppModule`, it is visible to other modules because they imported it.
 

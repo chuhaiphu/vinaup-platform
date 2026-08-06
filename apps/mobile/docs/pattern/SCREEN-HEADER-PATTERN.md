@@ -435,7 +435,7 @@ Both are accepted in **both sites** — a `_layout.tsx` and a screen component �
 Expo Router states a preference for the screen site: _"When configuring header inside page components,
 prefer using `Stack.Title`, `Stack.Toolbar`, `Stack.Header` and `Stack.Screen.*` components."_
 
-### A composition component is a declaration
+### Header composition component
 
 It does three things and nothing else:
 
@@ -494,7 +494,7 @@ route the options belong to, and `options` carries them all in one object.
 </Stack.Screen>
 ```
 
-#### Which declaration wins
+#### Header declaration order
 
 The same option can be set from both sites at once — a layout's `options` object and a screen's composition
 component. The precedence is fixed, and has nothing to do with render order:

@@ -291,7 +291,7 @@ Throw a meaningful exception; the global exception filters shape the response. *
 |-----------|-------|
 | Invalid input / state | `BadRequestException` (400) |
 | Authorization denied | `ForbiddenException` (403) |
-| Authentication failed | `TokenInvalidException` (401 — token dead: routes through the cookie-clearing filter, drops the `atk` cookie) / `InvalidCredentialsException` (401 — wrong credentials at sign-in: a plain 401 that does **not** clear a cookie) |
+| Authentication failed | `AccessTokenInvalidException` (401 — the access JWT expired/forged: clears `atk`, **keeps** the session so the client can refresh) / `RefreshTokenInvalidException` (401 — the session is dead: clears **both** cookies) — these two route through the cookie-clearing filter. A 401 that is NOT a token death (wrong credentials at sign-in) → `InvalidCredentialsException`, a plain 401 that clears nothing |
 | Missing resource | `NotFoundException` (404) |
 
 Resource and business exceptions **extend the built-in that carries their status** (`NotFoundException`, `ForbiddenException`, `BadRequestException`, `ConflictException`) and override only the body to `{ error, message, statusCode }`. The **auth** exceptions (`auth.exception.ts`) instead extend `HttpException` directly — never `UnauthorizedException` — so a 401 can't be pulled into the cookie-clearing filter by subclassing. The `message` is written in **English** (developer-facing, for logs) — the client never renders it; it localizes off the stable `error` code.

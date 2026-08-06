@@ -9,29 +9,48 @@ An exception filter is a centralized handler that catches exceptions raised anyw
 Two filters, registered globally, handle everything thrown. Each exception is handled by **exactly one filter**, not a chain — and an empty `@Catch()` matches every exception, so the catch-all could otherwise swallow the one the specific filter should handle. NestJS resolves this with declaration order; see [Resolution order](#resolution-order).
 
 ```
-throw TokenInvalidException  →  AuthExceptionFilter   @Catch(TokenInvalidException)
-throw anything else          →  AppExceptionFilter    @Catch()   (matches every type)
+throw AccessTokenInvalidException   →  AuthExceptionFilter   @Catch(AccessTokenInvalidException, RefreshTokenInvalidException)
+throw RefreshTokenInvalidException  →  AuthExceptionFilter   @Catch(AccessTokenInvalidException, RefreshTokenInvalidException)
+throw anything else                 →  AppExceptionFilter    @Catch()   (matches every type)
 ```
 
-`AuthExceptionFilter` lists **only** `TokenInvalidException` — the one exception that needs a cookie side effect. Any other auth failure — including a plain 401 like `InvalidCredentialsException` at sign-in — is a normal `HttpException` and falls to the catch-all, so no cookie is touched.
+`AuthExceptionFilter` lists **only** the two token exceptions that need a cookie side effect. Any other auth failure — including a plain 401 like `InvalidCredentialsException` at sign-in — is a normal `HttpException` and falls to the catch-all, so no cookie is touched.
 
 #### Auth-specific filter
 
-`AuthExceptionFilter` exists because a **token** failure has a side effect — **clearing the access-token cookie** so a stale/invalid token stops being resent by the browser. This API is **single-token** (an access token in an `atk` cookie; there is no refresh cookie), so the filter clears exactly that one cookie:
+`AuthExceptionFilter` exists because a **token** failure has a side effect — **clearing session cookies** so a stale/invalid token stops being resent. The API issues **two** cookies (`atk`, and `rtk` path-scoped to `/auth`), so *which* one to clear depends on *which* token failed, and the filter branches on the exception type:
+
+- **`AccessTokenInvalidException`** (the 15-minute `atk` expired or is forged — the routine case) → clear **only** the access cookie. The refresh token is still valid and the client needs it to call `/auth/refresh`.
+- **`RefreshTokenInvalidException`** (the session is genuinely dead) → clear **both**; the client must sign in again.
 
 ```ts
 // src/_core/filters/auth-exception.filter.ts
-@Catch(TokenInvalidException)
+@Catch(AccessTokenInvalidException, RefreshTokenInvalidException)
 export class AuthExceptionFilter implements ExceptionFilter {
-  catch(exception: TokenInvalidException, host: ArgumentsHost) {
+  catch(
+    exception: AccessTokenInvalidException | RefreshTokenInvalidException,
+    host: ArgumentsHost,
+  ) {
     const response = host.switchToHttp().getResponse<Response>();
-    // A token failure invalidates the session → drop the access cookie so the
-    // browser stops resending an invalid token. Options must match those used
-    // to set it (path included), or the browser keeps the cookie.
+    // Every auth failure invalidates the access token → always drop atk.
+    // Options must match those used to set it (path included), or the browser keeps the cookie.
     response.clearCookie(
       this.authConf.cookies.accessToken.name,
       this.authConf.cookies.accessToken.options,
     );
+    // Only a dead SESSION drops rtk — a bare access-token failure must keep it.
+    //
+    // The `path: '/auth'` scope does NOT make clearing rtk safe here: under RFC 6265 `path`
+    // only controls when the browser SENDS a cookie, while a Set-Cookie deletion is accepted
+    // regardless of the request path. So an "atk expired" 401 on a business route WOULD wipe
+    // rtk without this branch — ending the session every 15 minutes and making /auth/refresh
+    // unreachable.
+    if (!(exception instanceof AccessTokenInvalidException)) {
+      response.clearCookie(
+        this.authConf.cookies.refreshToken.name,
+        this.authConf.cookies.refreshToken.options,
+      );
+    }
     // Write the response directly — returning here would let Nest drop the
     // Set-Cookie header on a 4xx.
     response.status(exception.getStatus()).json(exception.getResponse());
@@ -84,25 +103,35 @@ import { APP_FILTER } from '@nestjs/core';
 providers: [
   AppService,
   { provide: APP_FILTER, useClass: AppExceptionFilter },  // @Catch()                     — declared first, the fallback
-  { provide: APP_FILTER, useClass: AuthExceptionFilter },  // @Catch(TokenInvalidException) — handles its bound type
+  { provide: APP_FILTER, useClass: AuthExceptionFilter },  // @Catch(token exceptions)     — handles its bound types
 ],
 ```
 
-`AuthExceptionFilter` therefore handles `TokenInvalidException` (and clears the cookie); every other exception falls through to the catch-all. Keep both filters bound at this one site with the catch-all first — that ordering is what the rule requires.
+`AuthExceptionFilter` therefore handles the two token exceptions (and clears cookies); every other exception falls through to the catch-all. Keep both filters bound at this one site with the catch-all first — that ordering is what the rule requires.
 
 #### Custom exceptions
 
-Resource and business exceptions **extend the built-in that carries their status** (`NotFoundException`, `ForbiddenException`, `BadRequestException`, `ConflictException`), overriding only the body to add a stable `error` code. **Auth is the exception**: the classes in `auth.exception.ts` extend `HttpException` directly, never `UnauthorizedException`. Why the split? A filter side effect must be opt-in — **listed explicitly** in that filter's `@Catch(...)`. Subclassing a built-in to piggyback into a catch list is invisible at the throw site and silently drags in side effects: routing a sign-in failure through `UnauthorizedException` would let `AuthExceptionFilter` clear the access cookie on an attempt that never had a session — which is why wrong credentials is its own `InvalidCredentialsException` (extends `HttpException`), kept **out** of the auth filter's catch list. `NotFoundException` and friends are safe to extend only because no filter catches them.
+Resource and business exceptions **extend the built-in that carries their status** (`NotFoundException`, `ForbiddenException`, `BadRequestException`, `ConflictException`), overriding only the body to add a stable `error` code. **Auth is the exception**: the classes in `auth.exception.ts` extend `HttpException` directly, never `UnauthorizedException`. Why the split? A filter side effect must be opt-in — **listed explicitly** in that filter's `@Catch(...)`. Subclassing a built-in to piggyback into a catch list is invisible at the throw site and silently drags in side effects: routing a sign-in failure through `UnauthorizedException` would let `AuthExceptionFilter` clear session cookies on an attempt that never had a session — which is why wrong credentials is its own `InvalidCredentialsException` (extends `HttpException`), kept **out** of the auth filter's catch list. `NotFoundException` and friends are safe to extend only because no filter catches them.
 
 Each domain owns one exception file under `src/_common/exceptions/<domain>.exception.ts`; every class carries a stable machine `error` code. → the full catalog is [Error Code Reference](../reference/ERROR-CODE-REFERENCE.md).
 
 ```ts
 // src/_common/exceptions/auth.exception.ts
-// Routed into AuthExceptionFilter (clears the access cookie):
-export class TokenInvalidException extends HttpException {
+// Routed into AuthExceptionFilter — clears atk only, the session survives:
+export class AccessTokenInvalidException extends HttpException {
   constructor(message: string) {
     super(
-      { error: 'TOKEN_INVALID', message, statusCode: HttpStatus.UNAUTHORIZED },
+      { error: 'ACCESS_TOKEN_INVALID', message, statusCode: HttpStatus.UNAUTHORIZED },
+      HttpStatus.UNAUTHORIZED,
+    );
+  }
+}
+
+// Routed into AuthExceptionFilter — the session is dead, clears atk + rtk:
+export class RefreshTokenInvalidException extends HttpException {
+  constructor(message: string) {
+    super(
+      { error: 'REFRESH_TOKEN_INVALID', message, statusCode: HttpStatus.UNAUTHORIZED },
       HttpStatus.UNAUTHORIZED,
     );
   }
@@ -110,19 +139,10 @@ export class TokenInvalidException extends HttpException {
 
 // A plain 401 — NOT in any filter's catch list, so no cookie is cleared:
 export class InvalidCredentialsException extends HttpException {
-  constructor(message: string) {
+  constructor() {
     super(
-      { error: 'AUTH_INVALID_CREDENTIALS', message, statusCode: HttpStatus.UNAUTHORIZED },
+      { error: 'AUTH_CREDENTIALS_INVALID', statusCode: HttpStatus.UNAUTHORIZED },
       HttpStatus.UNAUTHORIZED,
-    );
-  }
-}
-
-export class AuthExistedException extends HttpException {
-  constructor(message: string) {
-    super(
-      { error: 'AUTH_ACCOUNT_EXISTED', message, statusCode: HttpStatus.CONFLICT },
-      HttpStatus.CONFLICT,
     );
   }
 }
@@ -132,15 +152,15 @@ export class AuthExistedException extends HttpException {
 
 ## Why
 
-Centralising error-to-response conversion lets business code throw a meaningful exception — no need for a response builder inside the services layer. A single catch-all guarantees that no unexpected error reaches the client as a stack trace. The auth filter is separate because a token failure has a side effect (clearing the cookie) that the generic handler should not carry.
+Centralising error-to-response conversion lets business code throw a meaningful exception — no need for a response builder inside the services layer. A single catch-all guarantees that no unexpected error reaches the client as a stack trace. The auth filter is separate because a token failure has a side effect (clearing session cookies) that the generic handler should not carry.
 
 ---
 
 ## How
 
 1. **Throw, don't format** — in services and guards, `throw` a meaningful exception; never build the error response by hand.
-2. **Use the right status** — `BadRequestException` (400) for invalid input/state, `ForbiddenException` (403) for an authorization denial, `TokenInvalidException` / a plain 401 like `InvalidCredentialsException` (401) for authentication, `NotFoundException` (404) for a missing resource.
-3. **Only `TokenInvalidException` clears the cookie** — a token failure drops the `atk` cookie; a 401 that isn't a token death (wrong credentials at sign-in) is a plain `HttpException` and must NOT enter the cookie-clearing filter.
+2. **Use the right status** — `BadRequestException` (400) for invalid input/state, `ForbiddenException` (403) for an authorization denial, `AccessTokenInvalidException` / `RefreshTokenInvalidException` / a plain 401 like `InvalidCredentialsException` (401) for authentication, `NotFoundException` (404) for a missing resource.
+3. **Only the two token exceptions clear cookies** — `AccessTokenInvalidException` (access JWT failed → clears `atk` only, keeps the session) and `RefreshTokenInvalidException` (refresh token dead → clears both). A 401 that isn't a token death (wrong credentials at sign-in) is a plain `HttpException`; it must NOT enter the cookie-clearing filter.
 4. **Add a dedicated filter only when an error class needs a side effect or a body the catch-all cannot provide** — otherwise let `AppExceptionFilter` handle it. When one does, list the specific exception classes in its `@Catch(...)`; never subclass a built-in to route into it.
 5. **Default to a custom code** for anything on the business surface, and record it. → [Error Code Reference](../reference/ERROR-CODE-REFERENCE.md), [Coding Convention §9](../CODING-CONVENTION.md#9-error-handling)
 

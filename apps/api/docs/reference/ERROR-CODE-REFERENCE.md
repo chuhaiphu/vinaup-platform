@@ -54,16 +54,28 @@ The authoritative catalog. Each domain owns one file under [`src/_common/excepti
 
 Codes are `SCREAMING_SNAKE_CASE`, shaped `<DOMAIN>_<REASON>`, unique across this reference. The `message` is written in **English** (developer-facing, for logs); the client never shows it — it localizes off the stable `error` code. A handful of throw sites today use a mismatched built-in status (e.g. a "not found" raised as `ForbiddenException`); the status below is the **normalized** one each code settles on.
 
-### Auth — tokens & credentials · `auth.exception.ts`
+### Auth — tokens & credentials - `auth.exception.ts`
 
-| `error` code               | HTTP | Exception class                | Thrown by                                                                                                                                                                                    |
-| -------------------------- | ---- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TOKEN_INVALID`            | 401  | `TokenInvalidException`        | [`jwt-auth.guard.ts`](../../src/_core/guards/jwt-auth.guard.ts), [`auth.controller.ts`](../../src/auth/auth.controller.ts), [`auth.service.ts`](../../src/auth/auth.service.ts) |
-| `AUTH_INVALID_CREDENTIALS` | 401  | `InvalidCredentialsException`  | [`auth.service.ts`](../../src/auth/auth.service.ts) — wrong email/password at sign-in. A plain 401 that does **not** clear cookies (see [Exception Filter Pattern](../pattern/EXCEPTION-FILTER-PATTERN.md)) |
-| `AUTH_PROVIDER_NOT_FOUND`  | 401  | `AuthProviderNotFoundException`| [`auth.service.ts`](../../src/auth/auth.service.ts)                                                                                                                                          |
-| `AUTH_ACCOUNT_EXISTED`     | 409  | `AuthExistedException`         | [`user.service.ts`](../../src/user/user.service.ts) — registration with an email already taken                                                                                              |
+The behavioral contract behind each code is in the [auth flows](../architecture/authen/).
 
-Only `TOKEN_INVALID` routes through the cookie-clearing `AuthExceptionFilter`; every other auth code is a normal `HttpException` handled by the catch-all.
+| `error` code                 | HTTP | Exception class                    | Thrown by                                                                                                                                                                                    |
+| ---------------------------- | ---- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ACCESS_TOKEN_INVALID`       | 401  | `AccessTokenInvalidException`      | [`jwt-auth.guard.ts`](../../src/_core/guards/jwt-auth.guard.ts) — the access JWT is expired, forged, or its user is gone. Clears `atk` and **keeps** the session so the client can refresh |
+| `REFRESH_TOKEN_INVALID`      | 401  | `RefreshTokenInvalidException`     | [`auth.controller.ts`](../../src/auth/auth.controller.ts) (token missing), [`auth.service.ts`](../../src/auth/auth.service.ts) (no live `Session`) — clears **both** cookies |
+| `AUTH_CREDENTIALS_INVALID`   | 401  | `InvalidCredentialsException`      | [`auth.service.ts`](../../src/auth/auth.service.ts) — unknown identifier, no `Auth(LOCAL)` row, or wrong password at sign-in; all four collapse to this one code. A plain 401 that does **not** clear cookies |
+| `CURRENT_PASSWORD_INVALID`   | 401  | `CurrentPasswordInvalidException`  | [`auth.service.ts`](../../src/auth/auth.service.ts) — the step-up check on link-email |
+| `ACCOUNT_DISABLED`           | 403  | `AccountDisabledException`         | [`auth.service.ts`](../../src/auth/auth.service.ts) — `user.status = DISABLED` at the sign-in user-status gate |
+| `RESET_TOKEN_INVALID`        | 400  | `ResetTokenInvalidException`       | [`auth.service.ts`](../../src/auth/auth.service.ts) — the reset link token or reset code is missing, expired, consumed, or attempt-capped; one generic code for all, deliberately |
+| `SIGN_UP_OTP_INVALID`        | 400  | `SignUpOtpInvalidException`        | [`auth.service.ts`](../../src/auth/auth.service.ts) — the sign-up code is missing, expired, consumed, attempt-capped, or wrong |
+| `SIGN_IN_OTP_INVALID`        | 400  | `SignInOtpInvalidException`        | [`auth.service.ts`](../../src/auth/auth.service.ts) — the OTP sign-in code is missing, expired, consumed, attempt-capped, or wrong |
+| `EMAIL_VERIFICATION_INVALID` | 400  | `EmailVerificationInvalidException`| [`auth.service.ts`](../../src/auth/auth.service.ts) — the link-email code is missing, expired, consumed, or attempt-capped |
+| `PHONE_ALREADY_USED`         | 409  | `PhoneAlreadyUsedException`        | [`auth.service.ts`](../../src/auth/auth.service.ts) — sign-up with a phone already registered, and the `P2002` from a lost race |
+| `EMAIL_ALREADY_USED`         | 409  | `EmailAlreadyUsedException`        | [`auth.service.ts`](../../src/auth/auth.service.ts) — the address belongs to another account, checked at both send and consume |
+| `EMAIL_ALREADY_LINKED`       | 409  | `EmailAlreadyLinkedException`      | [`auth.service.ts`](../../src/auth/auth.service.ts) — the caller already has a linked email; changing it is a separate flow |
+
+Only the two **token** codes route through the cookie-clearing `AuthExceptionFilter`, and they clear
+different cookies ([Exception Filter Pattern](../pattern/EXCEPTION-FILTER-PATTERN.md)). Every other auth
+code is a normal `HttpException` handled by the catch-all.
 
 ### User · `user.exception.ts`
 

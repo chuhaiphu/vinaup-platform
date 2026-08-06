@@ -72,11 +72,11 @@ Route Handler
 If any guard fails, the remaining guards and the handler are skipped. The exception to "exactly one
 authorization guard" is the service-enforced routes — receipt-payment reads and mutations (plane selected in
 the service) and a signature mutation (per-operation edge checked in the service) — each carrying
-**only** `JwtAuthGuard` ([RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md) Flow 3).
+**only** `JwtAuthGuard` ([RBAC-ReBAC-FLOW](../architecture/author/RBAC-ReBAC-FLOW.md) Flow 3).
 
 This document covers the guard **mechanics** — the lifecycle, `JwtAuthGuard`, and how an
 authorization guard composes. The authorization **rules** each guard enforces live in
-[RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) and [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
+[RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) and [RBAC-ReBAC-FLOW](../architecture/author/RBAC-ReBAC-FLOW.md).
 
 ---
 
@@ -138,10 +138,10 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (error instanceof Error) throw error;
     if (info) {
       if (info.name === 'TokenExpiredError' || info.name === 'JsonWebTokenError')
-        throw new TokenInvalidException('Token is invalid or has expired');
-      throw new TokenInvalidException(info.message);
+        throw new AccessTokenInvalidException('Token is invalid or has expired');
+      throw new AccessTokenInvalidException(info.message);
     }
-    if (!user) throw new TokenInvalidException('User is no longer valid');
+    if (!user) throw new AccessTokenInvalidException('User is no longer valid');
     return user;
   }
 }
@@ -188,7 +188,7 @@ export class OrganizationPermissionGuard implements CanActivate {
 
 The step-by-step logic each guard runs — the RBAC five steps, the tour-implementation-access resolution, the
 receipt-payment service selection — is documented once, authoritatively, in
-[RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md); it is not duplicated here.
+[RBAC-ReBAC-FLOW](../architecture/author/RBAC-ReBAC-FLOW.md); it is not duplicated here.
 
 ---
 
@@ -220,7 +220,7 @@ Evaluating access before the handler keeps security decisions out of business lo
 
 1. **Authenticate every protected route** with `@UseGuards(JwtAuthGuard)`; read the caller as `req.user.userId`.
 2. **Add exactly one authorization guard** after `JwtAuthGuard`, and stamp its decorator: `OrganizationPermissionGuard` + `@CheckAbility` (org RBAC) **or** `TourImplementationAccessGuard` + `@CheckTourImplementationAccess` (tour ReBAC). Never both ([RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) §6).
-3. **Do not put the rule in the guard's caller** — the guard owns the decision; the service assumes it already passed. The rules themselves live in [RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) / [RBAC-ReBAC-FLOW](../architecture/RBAC-ReBAC-FLOW.md).
+3. **Do not put the rule in the guard's caller** — the guard owns the decision; the service assumes it already passed. The rules themselves live in [RBAC-ReBAC-PATTERN](RBAC-ReBAC-PATTERN.md) / [RBAC-ReBAC-FLOW](../architecture/author/RBAC-ReBAC-FLOW.md).
 4. **Throw the right exception** — a denial is a `ForbiddenException` subclass with a stable code (see [ERROR-CODE-REFERENCE](../reference/ERROR-CODE-REFERENCE.md) and [EXCEPTION-FILTER-PATTERN.md](EXCEPTION-FILTER-PATTERN.md)).
 5. **Name guards & order the chain by convention**. → [Coding Convention §1.1](../CODING-CONVENTION.md), [§8](../CODING-CONVENTION.md)
 

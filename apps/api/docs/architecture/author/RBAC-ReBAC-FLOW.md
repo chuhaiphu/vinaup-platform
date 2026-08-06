@@ -1,10 +1,10 @@
 # RBAC & ReBAC Enforcement Flow
 
 What one request goes through at runtime. The models, data and engines behind it are in
-[RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md); this doc is only the walk-through.
+[RBAC-ReBAC-PATTERN](../../pattern/RBAC-ReBAC-PATTERN.md); this doc is only the walk-through.
 
 A request takes **one** of three flows, decided by the route's plane
-([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §6):
+([RBAC-ReBAC-PATTERN](../../pattern/RBAC-ReBAC-PATTERN.md) §6):
 
 | The route acts on…                                            | Flow                                       |
 | ------------------------------------------------------------- | ------------------------------------------ |
@@ -219,7 +219,7 @@ in this class.
 Every `ReceiptPayment` route that touches a specific record — **reads and mutations alike** — carries
 **only** `JwtAuthGuard`, no authorization guard, because which plane governs it depends on the parent the
 receipt payment attaches to, a fact known only once the service reads it
-([RBAC-ReBAC-PATTERN](../pattern/RBAC-ReBAC-PATTERN.md) §6). On create the parent comes from the request
+([RBAC-ReBAC-PATTERN](../../pattern/RBAC-ReBAC-PATTERN.md) §6). On create the parent comes from the request
 body; on read/update/delete of a specific record it is read from the stored receipt payment; on a
 parent-collection read it is the URL's parent id. Read and write collapse to the **same** rule — who may
 see a receipt payment is exactly who may write it (the org plane checks ACTIVE membership, not a separate
@@ -268,7 +268,7 @@ Which caller may act, and the extra preconditions each operation adds:
 - **Denial names the reason.** RBAC refusals are one of three HTTP 403 codes —
   `ORGANIZATION_NOT_MEMBER`, `ORGANIZATION_MEMBER_LOCKED`, `ORGANIZATION_PERMISSION_DENIED`;
   tour-implementation-access refusals carry their own 403
-  ([ERROR-CODE-REFERENCE](../reference/ERROR-CODE-REFERENCE.md)). Separating them keeps "you are not
+  ([ERROR-CODE-REFERENCE](../../reference/ERROR-CODE-REFERENCE.md)). Separating them keeps "you are not
   in this organization" distinct from "your role lacks this cell" distinct from "you are not on this
   tour" — and the client owns the Vietnamese copy for each, keyed by code.
 - **One plane per route.** A route's guards fix its plane (Flow 1 or Flow 2); the exceptions are the
