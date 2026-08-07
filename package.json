@@ -6,16 +6,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build:packages": "npm run build --workspace=packages/validation --workspace=packages/permission",
-    "dev:api": "npm run build:packages && npm run start:dev --workspace=apps/api",
-    "dev:mobile": "npm run build:packages && npm run android --workspace=apps/mobile",
-    "build": "npm run build --workspaces --if-present",
-    "lint": "npm run lint --workspaces --if-present"
+    "build:packages": "npm run build --workspace=@vinaup-platform/validation --workspace=@vinaup-platform/permission",
+    "dev:packages": "concurrently \"npm run dev --workspace=@vinaup-platform/validation\" \"npm run dev --workspace=@vinaup-platform/permission\"",
+    "dev:api": "concurrently \"npm:dev:packages\" \"npm run start:dev --workspace=apps/api\"",
+    "dev:mobile": "concurrently \"npm:dev:packages\" \"npm run android --workspace=apps/mobile\"",
+    "lint": "npm run build:packages && npm run lint --workspaces --if-present"
   },
   "version": "1.0.0",
-  "dependencies": {
-    "expo": "~57.0.7",
-    "react": "19.2.3",
-    "react-native": "0.86.0"
+  "devDependencies": {
+    "concurrently": "^10.0.4"
   }
 }
