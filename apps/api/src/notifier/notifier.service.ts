@@ -5,7 +5,7 @@ import type { SendOutcome } from 'src/_common/interfaces/notifier.interface';
 import { MailService } from './mail.service';
 import { PhoneService } from './phone.service';
 
-// ─── FACADE ────────────────────────────
+// ─── FACADE
 @Injectable()
 export class NotifierService {
   private readonly logger = new Logger(NotifierService.name);
@@ -36,7 +36,7 @@ export class NotifierService {
     this.dispatch(this.mail.send(email, { kind: 'PASSWORD_RESET_OTP', code }));
   }
 
-  // ─── The single swallow point ────────────────────────────────────────
+  // ─── The single swallow point
   private dispatch(sending: Promise<SendOutcome>): void {
     void sending
       .then((outcome) => {

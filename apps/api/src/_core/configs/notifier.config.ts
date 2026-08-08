@@ -22,7 +22,7 @@ export default registerAs('notifier', (): NotifierConfig => {
   const mailDriver = process.env.MAIL_DRIVER;
   const phoneDriver = process.env.PHONE_DRIVER;
 
-  // ─── Prove the value belongs to the union before trusting it ─────────
+  // ─── Prove the value belongs to the union before trusting it
   if (!isMailDriver(mailDriver)) {
     throw new Error(
       `MAIL_DRIVER: expected one of ${MAIL_DRIVERS.join(' | ')}, received "${mailDriver ?? ''}"`,
@@ -34,7 +34,7 @@ export default registerAs('notifier', (): NotifierConfig => {
     );
   }
 
-  // ─── Refuse to hand a log driver to production ───────────────────────
+  // ─── Refuse to hand a log driver to production
   if (isProduction && (mailDriver === 'log' || phoneDriver === 'log')) {
     throw new Error('MAIL_DRIVER / PHONE_DRIVER: a log driver must never be bound in production');
   }

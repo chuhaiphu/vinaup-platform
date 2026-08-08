@@ -1,14 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import type {
-  CreateUserRequestInterface,
   UpdateUserRequestInterface,
   UserFilterRequestInterface,
 } from '@vinaup-platform/validation';
-import { genSalt, hash } from 'bcrypt';
 
 import { AUTH_PROVIDER } from 'src/_common/constants/auth.constant';
 import { EXTENSION_BY_MIME } from 'src/_common/constants/storage.constant';
-import { AuthExistedException } from 'src/_common/exceptions/auth.exception';
+import {
+  DEFAULT_PROJECT_CATEGORIES,
+  SYSTEM_RECEIPT_PAYMENT_CATEGORIES,
+  USER_STATUS,
+} from 'src/_common/constants/user.constant';
 import { UploadFailedException } from 'src/_common/exceptions/storage.exception';
 import { UserNotFoundException } from 'src/_common/exceptions/user.exception';
 import { Prisma } from 'src/prisma/generated/client';
@@ -21,11 +23,6 @@ import {
   type UserResponse,
 } from './dtos/user.response.dto';
 
-
-const SYSTEM_RECEIPT_PAYMENT_CATEGORIES = [
-  'Hoa hồng', 'Tạm ứng', 'Đặt cọc',
-  'Hoàn ứng', 'Trả góp', 'Mượn nợ', 'Trả nợ',
-];
 
 @Injectable()
 export class UserService {
@@ -49,46 +46,42 @@ export class UserService {
     };
   }
 
-  async signUp(createUserReq: CreateUserRequestInterface): Promise<UserResponse> {
-    const { password, ...createUserData } = createUserReq;
-    const isAuthExisted = await this.prismaService.auth.findFirst({
-      where: { providerId: createUserReq.email },
-    });
-    if (isAuthExisted)
-      throw new AuthExistedException(
-        'User already has authentication provider or already existed'
-      );
-
-    const newUser = await this.prismaService.user.create({
-      data: createUserData,
+  // Takes the caller's transaction client so the account, its credential and its default categories
+  // either all land or none do — sign-up runs this alongside consuming the OTP row.
+  async createUserWithDefaults(
+    transaction: Prisma.TransactionClient,
+    input: { phone: string; name: string; passwordHash: string }
+  ): Promise<UserResponse> {
+    const newUser = await transaction.user.create({
+      data: {
+        phone: input.phone,
+        // The OTP already proved the number, so it is verified from the row's first moment.
+        phoneVerifiedAt: new Date(),
+        name: input.name,
+        status: USER_STATUS.ACTIVE,
+      },
       ...embeddedUserQueryArgs,
     });
-    await this.prismaService.user.update({
+    await transaction.user.update({
       where: { id: newUser.id },
       data: { createdByUserId: newUser.id },
     });
-    const hashedPassword = await hash(password, await genSalt());
-    await this.prismaService.auth.create({
+    await transaction.auth.create({
       data: {
-        providerId: createUserReq.email,
-        provider: AUTH_PROVIDER.LOCAL,
-        passwordHash: hashedPassword,
         userId: newUser.id,
+        provider: AUTH_PROVIDER.LOCAL,
+        passwordHash: input.passwordHash,
       },
     });
-    await this.prismaService.projectCategory.create({
-      data: { name: 'Tiền công', userId: newUser.id },
+    await transaction.projectCategory.createMany({
+      data: DEFAULT_PROJECT_CATEGORIES.map((name) => ({ name, userId: newUser.id })),
     });
-    await this.prismaService.projectCategory.create({
-      data: { name: 'Dự án', userId: newUser.id },
-    });
-    await this.prismaService.receiptPaymentCategory.createMany({
+    await transaction.receiptPaymentCategory.createMany({
       data: SYSTEM_RECEIPT_PAYMENT_CATEGORIES.map((name) => ({
         name,
         userId: newUser.id,
         isSystem: true,
       })),
-      skipDuplicates: true,
     });
 
     return {

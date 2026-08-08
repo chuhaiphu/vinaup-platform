@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -10,7 +9,12 @@ import { AttendanceConclusionService } from './services/attendance-conclusion.se
 import { AttendanceRecordService } from './services/attendance-record.service';
 
 @Module({
-  imports: [PrismaModule, StorageModule, AuthModule],
+  imports: [
+    // ─── PrismaModule: make PrismaService injectable in this module
+    PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
+    StorageModule,
+  ],
   controllers: [AttendanceRecordController, AttendanceConclusionController],
   providers: [AttendanceRecordService, AttendanceConclusionService],
 })

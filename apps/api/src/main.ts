@@ -20,7 +20,7 @@ async function bootstrap() {
     credentials: true,
   });
 
-  // ─── Dev-only static serving for uploaded files ─────────────────────
+  // ─── Dev-only static serving for uploaded files
   const storageConf = configService.get<StorageConfig>('storage')!;
   if (process.env.NODE_ENV !== 'production' && storageConf.driver === 'local') {
     app.useStaticAssets(resolve(storageConf.localRoot), {

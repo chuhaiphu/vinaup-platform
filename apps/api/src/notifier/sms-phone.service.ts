@@ -4,7 +4,7 @@ import type { PhoneIntent, SendOutcome } from 'src/_common/interfaces/notifier.i
 
 import { PhoneService } from './phone.service';
 
-// ─── DRIVER — SMS, not integrated yet ────────────────────────────────
+// ─── DRIVER — SMS, not integrated yet
 @Injectable()
 export class SmsPhoneService extends PhoneService {
   private readonly logger = new Logger(SmsPhoneService.name);

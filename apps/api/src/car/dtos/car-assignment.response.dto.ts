@@ -22,7 +22,7 @@ import {
   type EmbeddedCarResponse,
 } from './car.response.dto';
 
-// ─── A state row always ships its car + member (with user + organization) ───
+// ─── A state row always ships its car + member (with user + organization)
 export const carAssignmentQueryArgs = {
   include: {
     car: embeddedCarQueryArgs,

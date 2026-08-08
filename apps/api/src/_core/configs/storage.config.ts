@@ -34,7 +34,7 @@ export default registerAs('storage', (): StorageConfig => {
   const driver = process.env.STORAGE_DRIVER;
   const publicBaseUrl = process.env.STORAGE_PUBLIC_BASE_URL;
 
-  // ─── Prove the value belongs to the union before trusting it ─────────
+  // ─── Prove the value belongs to the union before trusting it
   if (!isStorageDriver(driver)) {
     throw new Error(
       `STORAGE_DRIVER: expected one of ${STORAGE_DRIVERS.join(' | ')}, received "${driver ?? ''}"`,

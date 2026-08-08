@@ -31,7 +31,7 @@ export class InvoiceService {
     userId: string,
     filter?: InvoiceFilterRequestInterface,
   ): Promise<InvoiceResponse[]> {
-    // ─── Step 1: Load the caller's granted permissions in THIS organization ─────
+    // ─── Step 1: Load the caller's granted permissions in THIS organization
     const grantedPermissionList = await this.prismaService.organizationRolePermission.findMany({
       where: {
         organizationRole: {
@@ -44,7 +44,7 @@ export class InvoiceService {
       },
     });
 
-    // ─── Step 2: Which invoice types may the caller READ? ─────
+    // ─── Step 2: Which invoice types may the caller READ?
     const userAbility = getUserAbility(
       grantedPermissionList.map((row) => row.organizationPermission),
     );
@@ -55,7 +55,7 @@ export class InvoiceService {
       ),
     );
 
-    // ─── Step 3: Query, restricted to those readable types ─────
+    // ─── Step 3: Query, restricted to those readable types
     const dateFilterClause = generateDateOverlapClause(filter);
     const whereClause = {
       AND: [

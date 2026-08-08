@@ -349,7 +349,7 @@ export class TourImplementationAssignmentService {
         .filter((userId) => userId !== null),
     );
 
-    // ─── Step 1: gather conflicting tours per assigned user ─────
+    // ─── Step 1: gather conflicting tours per assigned user
     const conflictingToursByUserId: Record<string, ConflictingTour[]> = {};
 
     for (const overlappingTourImplementationAssignment of overlappingTourImplementationAssignments) {
@@ -364,7 +364,7 @@ export class TourImplementationAssignmentService {
       }
     }
 
-    // ─── Step 2: dedupe each assigned user's tours by id ─────
+    // ─── Step 2: dedupe each assigned user's tours by id
     // An assigned user has no per-assignment uniqueness,
     // so the same user can sit in several assignments of one tour implementation,
     // so conflictingToursByUserId can have one userId key with several tour rows of the same tourId.

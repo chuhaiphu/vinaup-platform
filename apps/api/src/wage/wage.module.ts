@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -9,13 +8,11 @@ import { WageService } from './wage.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
-    // WageService injects PrismaService for DB access.//
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    AuthModule,
-    // ─── ValidatorsModule: register the custom request-DTO validators ───
-    ],
+  ],
   controllers: [WageController],
   providers: [WageService],
 })

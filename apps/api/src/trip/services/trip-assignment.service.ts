@@ -115,10 +115,10 @@ export class TripAssignmentService {
       await this.assertMembersInOrganization(updateTripAssignmentReq.organizationMemberIds, organizationId);
     }
 
-    // ─── Drop duplicates ───
+    // ─── Drop duplicates
     const uniqueMemberIds = Array.from(new Set(updateTripAssignmentReq.organizationMemberIds ?? []));
 
-    // ─── shape each id into the row object Prisma `create` expects ───
+    // ─── shape each id into the row object Prisma `create` expects
     const memberIdsToCreate = uniqueMemberIds.map((organizationMemberId) => ({
       organizationMemberId,
     }));
@@ -203,7 +203,7 @@ export class TripAssignmentService {
       currentTripAssignment.members.map((member) => member.organizationMemberId),
     );
 
-    // ─── Step 1: gather conflicting trips per resource ─────
+    // ─── Step 1: gather conflicting trips per resource
     // Cars need no dedupe: @@unique([tripId, carId]) guarantees a car sits in at most one assignment per trip.
     // The null check is required — two trip assignments not assign car must NOT count as sharing "the same car".
     const carConflictingTrips: ConflictingTrip[] = [];
@@ -227,7 +227,7 @@ export class TripAssignmentService {
       }
     }
 
-    // ─── Step 2: dedupe each member's trips by id ─────
+    // ─── Step 2: dedupe each member's trips by id
     // A member is unique only per assignment (@@unique([tripAssignmentId, organizationMemberId])),
     // so the same member can sit in several assignments of one trip (e.g. driving two cars),
     // so conflictingTripsByMemberId can have one memberId key with several trip rows of the same tripId.

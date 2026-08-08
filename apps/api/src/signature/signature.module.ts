@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -9,13 +8,11 @@ import { SignatureService } from './signature.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
-    // SignatureService injects PrismaService for DB access.//
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    AuthModule,
-    // ─── ValidatorsModule: register the custom request-DTO validators ───
-    ],
+  ],
   providers: [SignatureService],
   controllers: [SignatureController],
 })

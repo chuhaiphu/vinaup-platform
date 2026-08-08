@@ -1,7 +1,18 @@
-// Credential provider for an Auth row. `LOCAL` = email+password; the rest are OAuth subjects.
 export const AUTH_PROVIDER = {
   LOCAL: 'LOCAL',
   GOOGLE: 'GOOGLE',
 } as const;
 
 export type AuthProvider = (typeof AUTH_PROVIDER)[keyof typeof AUTH_PROVIDER];
+
+export const VERIFICATION_KIND = {
+  SIGN_UP_OTP: 'SIGN_UP_OTP',
+  SIGN_IN_OTP: 'SIGN_IN_OTP',
+  EMAIL_VERIFICATION: 'EMAIL_VERIFICATION',
+  PASSWORD_RESET_EMAIL_LINK: 'PASSWORD_RESET_EMAIL_LINK',
+  PASSWORD_RESET_EMAIL_OTP: 'PASSWORD_RESET_EMAIL_OTP',
+} as const;
+
+export type VerificationKind = (typeof VERIFICATION_KIND)[keyof typeof VERIFICATION_KIND];
+
+export const BCRYPT_COST = 10;

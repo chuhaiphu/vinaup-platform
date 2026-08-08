@@ -1,8 +1,10 @@
 import { registerAs } from '@nestjs/config';
 import { CookieOptions } from 'express';
 
-import { ONE_DAY, ONE_MINUTE, SEVEN_DAYS } from 'src/_common/constants/time.constant';
+import { ONE_MINUTE, SEVEN_DAYS } from 'src/_common/constants/time.constant';
 import { APP_DOMAIN_PRODUCTION } from 'src/_common/constants/uri.constant';
+
+const ACCESS_TOKEN_TTL = ONE_MINUTE * 15;
 
 export interface AuthConfig {
   cookies: {
@@ -22,6 +24,10 @@ export interface AuthConfig {
   refresh: {
     ttl: number;
   };
+  verification: {
+    signUpOtpTtl: number;
+    maxAttempts: number;
+  };
 }
 
 export default registerAs('auth', (): AuthConfig => {
@@ -35,7 +41,7 @@ export default registerAs('auth', (): AuthConfig => {
           secure: isProduction,
           sameSite: isProduction ? 'strict' : 'lax',
           ...(isProduction ? { domain: APP_DOMAIN_PRODUCTION } : {}),
-          maxAge: ONE_DAY,
+          maxAge: ACCESS_TOKEN_TTL,
         },
       },
       refreshToken: {
@@ -55,10 +61,15 @@ export default registerAs('auth', (): AuthConfig => {
     },
     jwt: {
       secret: process.env.JWT_SECRET!,
-      ttl: ONE_MINUTE * 10,
+      ttl: ACCESS_TOKEN_TTL,
     },
     refresh: {
       ttl: SEVEN_DAYS,
+    },
+    verification: {
+      signUpOtpTtl: ONE_MINUTE * 10,
+      // Caps guessing per row, so a ~20-bit code cannot be brute-forced inside its TTL.
+      maxAttempts: 5,
     },
   };
 });

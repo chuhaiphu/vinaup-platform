@@ -14,7 +14,7 @@ import { SmtpMailService } from './smtp-mail.service';
 import { ZnsPhoneService } from './zns-phone.service';
 
 @Module({
-  // ─── forFeature: make notifierConfig.KEY injectable HERE ─────────────
+  // ─── forFeature: make notifierConfig.KEY injectable HERE
   // The two factories below inject it. 
   // Without this line the container cannot resolve the token and the application fails at startup.
   // It does NOT read .env — forRoot in AppModule did that.
@@ -28,7 +28,7 @@ import { ZnsPhoneService } from './zns-phone.service';
     FallbackPhoneService,
     LogPhoneService,
 
-    // ─── Binding 1 — the MailService token ─────────────────────────────
+    // ─── Binding 1 — the MailService token
     {
       provide: MailService,
       useFactory: (config: NotifierConfig, smtp: SmtpMailService, log: LogMailService): MailService => {
@@ -42,7 +42,7 @@ import { ZnsPhoneService } from './zns-phone.service';
       inject: [notifierConfig.KEY, SmtpMailService, LogMailService],
     },
 
-    // ─── Binding 2 — the PhoneService token ───────
+    // ─── Binding 2 — the PhoneService token
     {
       provide: PhoneService,
       useFactory: (

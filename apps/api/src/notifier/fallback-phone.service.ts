@@ -6,7 +6,7 @@ import { PhoneService } from './phone.service';
 import { SmsPhoneService } from './sms-phone.service';
 import { ZnsPhoneService } from './zns-phone.service';
 
-// ─── DRIVER — a chain of two of its siblings ─────────────────────────
+// ─── DRIVER — a chain of two of its siblings
 // A driver like any other: it just implements the send by delegating. Neither ZnsPhoneService nor
 // SmsPhoneService knows the chain exists, so enabling, disabling or reordering it is one env value
 // (PHONE_DRIVER) and no change inside a driver.

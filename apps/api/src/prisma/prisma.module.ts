@@ -7,7 +7,7 @@ import databaseConfig from '../_core/configs/database.config';
 
 @Module({
   imports: [
-    // ─── ConfigModule.forFeature(databaseConfig): expose config locally ─
+    // ─── ConfigModule.forFeature(databaseConfig): expose config locally
     // forFeature = register a config namespace for THIS module only, 
     // so its token (databaseConfig.KEY) becomes injectable in the factory below.
     // It does NOT read .env — that is forRoot's job (app.module.ts), which must have run first.
@@ -15,7 +15,7 @@ import databaseConfig from '../_core/configs/database.config';
   ],
   providers: [PrismaService,
     {
-      // ─── Factory provider: build the Postgres adapter at runtime ────────
+      // ─── Factory provider: build the Postgres adapter at runtime
       //
       //   • provide    = the token (a lookup key) others will inject. 
       //                  PrismaService injects this exact key ('DATABASE').

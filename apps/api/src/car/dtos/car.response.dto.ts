@@ -18,7 +18,7 @@ import {
   type EmbeddedUserResponse,
 } from 'src/user/dtos/user.response.dto';
 
-// ─── The trips a car carries: a narrow slice, not the whole trip ─────────────
+// ─── The trips a car carries: a narrow slice, not the whole trip
 export const carTripAssignmentQueryArgs = {
   select: {
     id: true,

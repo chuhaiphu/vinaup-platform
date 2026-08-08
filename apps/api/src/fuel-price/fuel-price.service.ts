@@ -17,7 +17,7 @@ export class FuelPriceService {
   }
 
   async syncFuelPrice(): Promise<FuelPriceResponse> {
-    // ─── Step 1: Fetch current prices from VNExpress public API ─────
+    // ─── Step 1: Fetch current prices from VNExpress public API
     // This API aggregates petrolimex.com.vn prices and is publicly accessible
     let apiData: VnexpressFuelApiResponse;
     try {
@@ -27,7 +27,7 @@ export class FuelPriceService {
       throw new FuelPriceFetchFailedException();
     }
 
-    // ─── Step 2: Extract the 3 required fuel prices ─────
+    // ─── Step 2: Extract the 3 required fuel prices
     // VNExpress wraps the payload in a double envelope, so gas_oil lives at data.data.gas_oil
     const { ron_95, e5_ron_92, dau_diesel } = apiData.data.data.gas_oil;
     const fuelPriceData = {
@@ -36,7 +36,7 @@ export class FuelPriceService {
       diesel: dau_diesel.price,
     };
 
-    // ─── Step 3: Upsert singleton record — preserve electricity if it already exists ─────
+    // ─── Step 3: Upsert singleton record — preserve electricity if it already exists
     return this.prismaService.fuelPrice.upsert({
       where: { id: 'SINGLETON' },
       update: fuelPriceData,

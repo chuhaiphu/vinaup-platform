@@ -42,7 +42,7 @@ export class CarAssignmentService {
     return rows.map((row) => toCarAssignmentResponse(row, this.storageService));
   }
 
-  // ─── History: the append-only audit trail for one car ────────────────────────
+  // ─── History: the append-only audit trail for one car
   async findCarAssignmentEventsByCarId(carId: string): Promise<CarAssignmentEventResponse[]> {
     const rows = await this.prismaService.carAssignmentEvent.findMany({
       where: { carId },
@@ -56,7 +56,7 @@ export class CarAssignmentService {
   async createCarAssignment(
     createCarAssignmentReq: CreateCarAssignmentRequestInterface,
   ): Promise<CarAssignmentResponse[]> {
-    // ─── Step 1: Verify car exists and get its organizationId ────────────
+    // ─── Step 1: Verify car exists and get its organizationId
     const car = await this.prismaService.car.findUnique({
       where: { id: createCarAssignmentReq.carId },
     });
@@ -65,11 +65,11 @@ export class CarAssignmentService {
       throw new CarNotFoundException();
     }
 
-    // ─── Step 2: Normalize the target member set ─────────────────────────
+    // ─── Step 2: Normalize the target member set
     const targetMemberIdList = Array.from(new Set(createCarAssignmentReq.organizationMemberIds));
     const targetMemberIdSet = new Set(targetMemberIdList);
 
-    // ─── Step 3: Load target members — validate existence AND snapshot ───
+    // ─── Step 3: Load target members — validate existence AND snapshot
     const targetMemberList = await this.prismaService.organizationMember.findMany({
       where: { id: { in: targetMemberIdList }, organizationId: car.organizationId },
       select: { id: true, name: true, avatarKey: true },
@@ -79,7 +79,7 @@ export class CarAssignmentService {
       throw new CarAssignmentMemberNotFoundException();
     }
 
-    // ─── Step 4: Read the car's current ACTIVE state ─────────────────────
+    // ─── Step 4: Read the car's current ACTIVE state
     // Include the member snapshot for rows we may remove (they are not in the target list).
     const activeAssignmentList = await this.prismaService.carAssignment.findMany({
       where: { carId: createCarAssignmentReq.carId },
@@ -91,13 +91,13 @@ export class CarAssignmentService {
     });
     const activeMemberIdSet = new Set(activeAssignmentList.map((a) => a.organizationMemberId));
 
-    // ─── Step 5: Compute the set difference ──────────────────────────────
+    // ─── Step 5: Compute the set difference
     const memberToAddList = targetMemberList.filter((member) => !activeMemberIdSet.has(member.id));
     const assignmentToRemoveList = activeAssignmentList.filter(
       (assignment) => !targetMemberIdSet.has(assignment.organizationMemberId),
     );
 
-    // ─── Step 6: No-op guard — never write an empty history operation ────
+    // ─── Step 6: No-op guard — never write an empty history operation
     // If the target set already equals the active set, there is nothing to record.
     if (memberToAddList.length === 0 && assignmentToRemoveList.length === 0) {
       return this.findActiveAssignmentsByCarId(createCarAssignmentReq.carId);
@@ -111,7 +111,7 @@ export class CarAssignmentService {
     const operationId = randomUUID();
     const performedAt = new Date();
 
-    // ─── Step 7: Apply state change + append history atomically ──────────
+    // ─── Step 7: Apply state change + append history atomically
     await this.prismaService.$transaction([
       this.prismaService.carAssignment.deleteMany({
         where: { id: { in: assignmentToRemoveList.map((assignment) => assignment.id) } },
@@ -149,7 +149,7 @@ export class CarAssignmentService {
       }),
     ]);
 
-    // ─── Step 8: Return the car's resulting ACTIVE state ─────────────────
+    // ─── Step 8: Return the car's resulting ACTIVE state
     return this.findActiveAssignmentsByCarId(createCarAssignmentReq.carId);
   }
 

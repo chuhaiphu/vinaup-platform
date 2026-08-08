@@ -15,7 +15,7 @@ import { StorageService } from './storage.service';
     LocalDiskStorageService,
     R2StorageService,
 
-    // ─── Bind the CONTRACT to one driver, chosen by config ──────────────
+    // ─── Bind the CONTRACT to one driver, chosen by config
     {
       provide: StorageService,
       useFactory: (

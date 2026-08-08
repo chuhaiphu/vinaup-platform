@@ -53,7 +53,7 @@ export class OrganizationPermissionGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // ─── Step 1: Read the @CheckAbility stamped on this route ─────
+    // ─── Step 1: Read the @CheckAbility stamped on this route
     // A route without the metadata is not permission-guarded: pass it through untouched.
     const abilityMetadata = this.reflector.get<CheckAbilityMetadata | undefined>(
       CHECK_ABILITY_KEY,
@@ -66,7 +66,7 @@ export class OrganizationPermissionGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const { userId } = request.user;
 
-    // ─── Step 2: Resolve the organization this request acts in ─────
+    // ─── Step 2: Resolve the organization this request acts in
     const { organizationId, createdByUserId, scopeAttributes } = await this.resolveResourceOwnership(
       request,
       abilityMetadata.resource,
@@ -80,7 +80,7 @@ export class OrganizationPermissionGuard implements CanActivate {
       throw new OrganizationPermissionDeniedException();
     }
 
-    // ─── Step 3: Membership invariants ─────
+    // ─── Step 3: Membership invariants
     const member = await this.prismaService.organizationMember.findFirst({
       where: { userId, organizationId },
       select: { status: true },
@@ -92,12 +92,12 @@ export class OrganizationPermissionGuard implements CanActivate {
       throw new OrganizationMemberLockedException();
     }
 
-    // ─── Step 4: Ownership invariant — the record's creator may always act on it ─────
+    // ─── Step 4: Ownership invariant — the record's creator may always act on it
     if (createdByUserId && createdByUserId === userId) {
       return true;
     }
 
-    // ─── Step 5: Ask the engine with the caller's role in THIS organization ─────
+    // ─── Step 5: Ask the engine with the caller's role in THIS organization
     // Read fresh from the DB so an owner's matrix edit takes effect on the next request.
     const rolePermissionList = await this.prismaService.organizationRolePermission.findMany({
       where: {

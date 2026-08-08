@@ -4,7 +4,7 @@ export interface DatabaseConfig {
   url: string;
 }
 
-// ─── Namespaced config "database" ────────────────────────────────────
+// ─── Namespaced config "database"
 // registerAs(name, factory) function will: 
 // 1. Groups config under a name ("database")
 // 2. Returns it in a form NestJS can inject. Two terms it introduces:

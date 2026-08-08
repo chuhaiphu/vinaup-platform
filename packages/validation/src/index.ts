@@ -13,6 +13,11 @@ export type {
   AttendanceMode,
   AttendanceRecordStatus,
 } from './constants/attendance.constant';
+export {
+  OTP_CODE_LENGTH,
+  OTP_CODE_REGEX,
+  PASSWORD_MIN_LENGTH,
+} from './constants/auth.constant';
 export { BOOKING_STATUS } from './constants/booking.constant';
 export type { BookingStatus } from './constants/booking.constant';
 export { CAR_STATUS } from './constants/car.constant';
@@ -21,7 +26,7 @@ export { INVOICE_STATUS, INVOICE_TYPE } from './constants/invoice.constant';
 export type { InvoiceStatus, InvoiceType } from './constants/invoice.constant';
 export { ORGANIZATION_MEMBER_TYPE } from './constants/organization.constant';
 export type { OrganizationMemberType } from './constants/organization.constant';
-export { VN_PHONE_REGEX } from './constants/phone.constant';
+export { normalizeVnPhone, VN_PHONE_REGEX } from './constants/phone.constant';
 export { PROJECT_STATUS } from './constants/project.constant';
 export type { ProjectStatus } from './constants/project.constant';
 export {
@@ -53,7 +58,11 @@ export {
   updateAttendanceConclusionSchema,
   updateAttendanceRecordSchema,
 } from './zod-schemas/attendance.schema';
-export { localSignInSchema, updateAuthSecretSchema } from './zod-schemas/auth.schema';
+export {
+  localSignInSchema,
+  requestSignUpOtpSchema,
+  signUpSchema,
+} from './zod-schemas/auth.schema';
 export {
   bookingFilterSchema,
   createBookingSchema,
@@ -117,7 +126,7 @@ export {
   updateTourSettlementSchema,
   updateUserAssignedSchema,
 } from './zod-schemas/tour.schema';
-export { createUserSchema, updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
+export { updateUserSchema, userFilterSchema } from './zod-schemas/user.schema';
 export { createWageSchema, updateWageSchema, wageFilterSchema } from './zod-schemas/wage.schema';
 export { dateInstanceFilterFields } from './zod-schemas/_shared/date-filter.schema';
 export type {
@@ -130,7 +139,8 @@ export type {
 } from './interfaces/attendance.interface';
 export type {
   LocalSignInRequestInterface,
-  UpdateAuthSecretRequestInterface,
+  RequestSignUpOtpRequestInterface,
+  SignUpRequestInterface,
 } from './interfaces/auth.interface';
 export type {
   BookingFilterRequestInterface,
@@ -201,7 +211,6 @@ export type {
   UpdateUserAssignedRequestInterface,
 } from './interfaces/tour.interface';
 export type {
-  CreateUserRequestInterface,
   UpdateUserRequestInterface,
   UserFilterRequestInterface,
 } from './interfaces/user.interface';

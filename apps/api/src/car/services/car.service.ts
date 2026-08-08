@@ -95,7 +95,7 @@ export class CarService {
   async createCar(createCarReq: CreateCarRequestInterface, currentUserId: string): Promise<CarWithMeta> {
     await this.assertOrganizationExists(createCarReq.organizationId);
 
-    // ─── Create car + its maintenance log in a single transaction ───────
+    // ─── Create car + its maintenance log in a single transaction
     // CarMaintenanceLog is the container for all maintenance receipt payments.
     // It is always created together with the car (1-1 relationship).
     const car = await this.prismaService.car.create({
@@ -144,7 +144,7 @@ export class CarService {
     await this.prismaService.car.delete({ where: { id } });
   }
 
-  // ─── Expiring cars: any expiry date within threshold or already expired ─────
+  // ─── Expiring cars: any expiry date within threshold or already expired
   // Used by the frontend to show in-app warnings on login.
   // A car appears if ANY of its four expiry dates is ≤ (now + thresholdDays).
   // Cars with null expiry dates are excluded (no date = nothing to warn about).

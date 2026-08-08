@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 import { TourModule } from 'src/tour/tour.module';
@@ -12,17 +11,13 @@ import { ReceiptPaymentService } from './services/receipt-payment.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
-    // The receipt-payment services below inject PrismaService for DB access. DI only
-    // resolves a dependency whose provider is visible in THIS module's scope — without
-    // this import, building the services would fail at startup.
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    AuthModule,
-    // ─── TourModule: exports TourImplementationAccessService — the receipt-payment service selects the
-    // tour-implementation-access plane for a receipt payment attached to a tour implementation (Flow 3). ───
+    // ─── TourModule: make TourImplementationAccessService injectable in this module
     TourModule,
-    ],
+  ],
   controllers: [ReceiptPaymentController, ReceiptPaymentCategoryController],
   providers: [ReceiptPaymentService, ReceiptPaymentCategoryService],
 })

@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 
 import { PrismaClient } from './generated/client';
 
-// ─── PrismaService: the single injectable entry-point for all DB access ─
+// ─── PrismaService: the single injectable entry-point for all DB access
 //
 //   1. @Injectable() = lets NestJS's DI container build and manage this class as a SINGLETON,
 //      one shared instance for the whole app = one DB connection pool.

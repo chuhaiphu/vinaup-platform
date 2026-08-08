@@ -1,19 +1,21 @@
-import { Body, Controller, HttpCode, HttpStatus, Inject, Post, Put, Request, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, HttpCode, HttpStatus, Inject, Post, Request, Res, UseGuards } from "@nestjs/common";
 import type { ConfigType } from "@nestjs/config";
 import type { Request as ExpressRequest, Response } from "express";
 
-import { TokenInvalidException } from "src/_common/exceptions/auth.exception";
-import type { AuthenticatedRequest, HttpResponse } from "src/_common/interfaces/interface";
+import { RefreshTokenInvalidException } from "src/_common/exceptions/auth.exception";
+import type { HttpResponse } from "src/_common/interfaces/interface";
 import { isMobileRequest } from "src/_common/utils/predicate/is-mobile-request";
 import authConfig from "src/_core/configs/auth.config";
 import { CurrentUserId } from "src/_core/decorators/current-user-id.decorator";
 import { JwtAuthGuard } from "src/_core/guards/jwt-auth.guard";
+import type { UserResponse } from "src/user/dtos/user.response.dto";
 
 import { AuthService } from "./auth.service";
 import { AuthResponse } from './dtos/auth.response.dto';
 import { LocalSignInRequest } from './dtos/local-signin.request.dto';
 import type { RefreshTokenResponse } from './dtos/refresh.response.dto';
-import { UpdateAuthSecretRequest } from './dtos/update-auth-secret.request.dto';
+import { RequestSignUpOtpRequest } from './dtos/request-sign-up-otp.request.dto';
+import { SignUpRequest } from './dtos/sign-up.request.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -22,6 +24,29 @@ export class AuthController {
     @Inject(authConfig.KEY)
     private readonly authConf: ConfigType<typeof authConfig>
   ) { }
+
+  @Post('sign-up/request')
+  @HttpCode(HttpStatus.OK)
+  async requestSignUpOtp(
+    @Body() requestSignUpOtpReq: RequestSignUpOtpRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.requestSignUpOtp(requestSignUpOtpReq);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Verification code sent'
+    }
+  }
+
+  // 201 with the user and no tokens: one surface mints sessions, so the client follows with sign-in.
+  @Post('sign-up')
+  async signUp(@Body() signUpReq: SignUpRequest): Promise<HttpResponse<UserResponse>> {
+    const data = await this.authService.signUp(signUpReq);
+    return {
+      statusCode: HttpStatus.CREATED,
+      message: 'Account created successfully',
+      data
+    }
+  }
 
   @Post('local')
   async localSignIn(
@@ -67,16 +92,16 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
     @Body() body: { refreshToken?: string }
   ): Promise<HttpResponse<RefreshTokenResponse | undefined>> {
-    // ─── Resolve the refresh token by platform ──────────────────────────
+    // ─── Resolve the refresh token by platform
     const rawRefreshToken = isMobileRequest(req)
       ? body?.refreshToken
       : (req.cookies?.[this.authConf.cookies.refreshToken.name] as string | undefined);
 
-    if (!rawRefreshToken) throw new TokenInvalidException('Refresh token is missing');
+    if (!rawRefreshToken) throw new RefreshTokenInvalidException('Refresh token is missing');
 
     const { accessToken } = await this.authService.refreshAccessToken(rawRefreshToken);
 
-    // ─── Deliver the fresh access token per platform ────────────────────
+    // ─── Deliver the fresh access token per platform
     if (isMobileRequest(req)) {
       return {
         statusCode: HttpStatus.OK,
@@ -93,24 +118,6 @@ export class AuthController {
     return { statusCode: HttpStatus.OK, message: 'Token refreshed' };
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Put('secret')
-  async updateAuthSecret(
-    @Request() req: AuthenticatedRequest,
-    @Body() updateAuthSecretRequest: UpdateAuthSecretRequest
-  ): Promise<HttpResponse<boolean>> {
-    const result = await this.authService.updateAuthSecret(
-      req.user.userId,
-      updateAuthSecretRequest.provider,
-      updateAuthSecretRequest.secret
-    )
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Auth secret updated successfully',
-      data: result
-    }
-  }
-
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   async localSignOut(
@@ -118,7 +125,7 @@ export class AuthController {
     @Res({ passthrough: true }) response: Response,
     @Body() body: { refreshToken?: string }
   ): Promise<HttpResponse<void>> {
-    // ─── Resolve the refresh token by platform ─────────
+    // ─── Resolve the refresh token by platform
     const rawRefreshToken = isMobileRequest(req)
       ? body?.refreshToken
       : (req.cookies?.[this.authConf.cookies.refreshToken.name] as string | undefined);
@@ -153,7 +160,7 @@ export class AuthController {
     }
   }
 
-  // ─── Clear both session cookies (web only) ──────────────────────────
+  // ─── Clear both session cookies (web only)
   // Options must match those used to set each cookie (path included) or the browser keeps it —
   // hence we pass the same options objects the cookies were issued with.
   private clearSessionCookies(response: Response): void {

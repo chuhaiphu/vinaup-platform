@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -13,15 +12,11 @@ import { CarService } from './services/car.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
-    // The car services below inject PrismaService for DB access. DI only resolves a
-    // dependency whose provider is visible in THIS module's scope — without this
-    // import, building the services would fail at startup.
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    AuthModule,
-    // ─── ValidatorsModule: register the custom request-DTO validators ───
-    ],
+  ],
   controllers: [CarController, CarAssignmentController, CarMaintenanceLogController],
   providers: [CarService, CarAssignmentService, CarMaintenanceLogService],
   // Exported for cross-module reuse: other modules can inject these car services

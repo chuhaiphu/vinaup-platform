@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
-import { TokenInvalidException } from 'src/_common/exceptions/auth.exception';
+import { AccessTokenInvalidException } from 'src/_common/exceptions/auth.exception';
 import { JwtValidationReturn } from 'src/_common/interfaces/interface';
 
 @Injectable()
@@ -17,14 +17,14 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     // info is the Error object returned from passport-jwt
     if (info) {
       if (info.name === 'TokenExpiredError' || info.name === 'JsonWebTokenError') {
-        throw new TokenInvalidException('Token is invalid or has expired');
+        throw new AccessTokenInvalidException('Token is invalid or has expired');
       }
       else {
-        throw new TokenInvalidException(info.message);
+        throw new AccessTokenInvalidException(info.message);
       }
     }
     if (!user) {
-      throw new TokenInvalidException('User is no longer valid');
+      throw new AccessTokenInvalidException('User is no longer valid');
     }
 
     return user;

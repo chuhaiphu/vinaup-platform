@@ -5,6 +5,7 @@ import {
   PERMISSION_RESOURCE,
   PERMISSION_SCOPE,
 } from '@vinaup-platform/permission';
+import { normalizeVnPhone } from '@vinaup-platform/validation';
 import { hash, genSalt } from 'bcrypt';
 
 
@@ -13,6 +14,7 @@ import {
   ORGANIZATION_ROLE_CODE,
   ORGANIZATION_ROLE_DESCRIPTION,
 } from 'src/_common/constants/organization.constant';
+import { USER_STATUS } from 'src/_common/constants/user.constant';
 
 import { PrismaClient } from './generated/client';
 
@@ -66,9 +68,6 @@ async function seedOrganizationIndustries() {
 async function seedOrganizationPermissions() {
   console.log('Seeding organization permissions...');
 
-  // The grantable catalog is JAGGED (PERMISSION-GRANULARITY-PATTERN §2.2): it lists only the
-  // cells that exist in the business — never a resources × actions cross-product.
-  // A cell absent here cannot be granted by anyone, not even OWNER.
   const crudActions = [
     PERMISSION_ACTION.CREATE,
     PERMISSION_ACTION.READ,
@@ -76,8 +75,6 @@ async function seedOrganizationPermissions() {
     PERMISSION_ACTION.DELETE,
   ];
 
-  // Resources with plain CRUD cells. INVOICE is excluded: it exists only as scoped cells
-  // (SELL / BUY) — an unscoped INVOICE cell would bypass the scope split.
   const crudResources = Object.values(PERMISSION_RESOURCE).filter(
     (resource) =>
       resource !== PERMISSION_RESOURCE.ALL && resource !== PERMISSION_RESOURCE.INVOICE,
@@ -113,8 +110,6 @@ async function seedOrganizationPermissions() {
     });
   }
 
-  // Remove stale cells the jagged catalog no longer defines (e.g. the old unscoped INVOICE
-  // CRUD): grants cascade-delete with the cell, so a stale cell cannot survive as a grant.
   const validCellKeySet = new Set(
     cells.map((cell) => `${cell.resource}|${cell.action}|${cell.scope}`),
   );
@@ -133,7 +128,8 @@ async function seedOrganizationPermissions() {
 async function seedUsersAndOrganization() {
   console.log('Seeding users and organization...');
 
-  const password = await hash('vietna', await genSalt());
+  // Must satisfy PASSWORD_MIN_LENGTH, or a seeded account could not be re-created through sign-up.
+  const password = await hash('vietnam123', await genSalt());
 
   const industry = await prisma.organizationIndustry.findFirst();
   if (!industry) {
@@ -144,15 +140,27 @@ async function seedUsersAndOrganization() {
   const allPermissions = await prisma.organizationPermission.findMany();
 
   async function createFullUser(email: string, name: string, phone: string) {
-    let user = await prisma.user.findUnique({ where: { email } });
+    // Keyed on phone, not email: phone is the identity anchor every account is required to have.
+    const normalizedPhone = normalizeVnPhone(phone);
+    let user = await prisma.user.findUnique({ where: { phone: normalizedPhone } });
     if (!user) {
-      user = await prisma.user.create({ data: { email, name, phone } });
+      user = await prisma.user.create({
+        data: {
+          phone: normalizedPhone,
+          phoneVerifiedAt: new Date(),
+          email,
+          emailVerifiedAt: new Date(),
+          name,
+          status: USER_STATUS.ACTIVE,
+        },
+      });
       await prisma.user.update({
         where: { id: user.id },
         data: { createdByUserId: user.id },
       });
       await prisma.auth.create({
-        data: { provider: AUTH_PROVIDER.LOCAL, providerId: email, passwordHash: password, userId: user.id },
+        // providerId stays null for LOCAL — the identity lives on User, not on the credential.
+        data: { provider: AUTH_PROVIDER.LOCAL, passwordHash: password, userId: user.id },
       });
     }
     await prisma.receiptPaymentCategory.createMany({
@@ -238,7 +246,7 @@ async function seedUsersAndOrganization() {
         type: 'FULL_TIME',
         name: ownerUser.name,
         email: ownerUser.email,
-        phone: ownerUser.phone || '',
+        phone: ownerUser.phone,
         status: 'ACTIVE',
         joinedAt: new Date(),
         createdByUserId: ownerUser.id,

@@ -32,7 +32,7 @@ export class TourImplementationAccessGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    // ─── Step 1: Read how this route declares its access ─────
+    // ─── Step 1: Read how this route declares its access
     // A route without the metadata is not access-guarded: pass it through untouched.
     const metadata = this.reflector.get<TourImplementationAccessMetadata | undefined>(
       TOUR_IMPLEMENTATION_ACCESS_KEY,
@@ -45,7 +45,7 @@ export class TourImplementationAccessGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const { userId } = request.user;
 
-    // ─── Step 2: Read the raw id off the request (param or body) ─────
+    // ─── Step 2: Read the raw id off the request (param or body)
     const rawId = this.readTargetId(request, metadata);
     if (!rawId) {
       throw new ForbiddenException(
@@ -53,13 +53,13 @@ export class TourImplementationAccessGuard implements CanActivate {
       );
     }
 
-    // ─── Step 3: Resolve the tour implementation (one hop for a child-keyed route) ─────
+    // ─── Step 3: Resolve the tour implementation (one hop for a child-keyed route)
     const tourImplementationId = await this.resolveTourImplementationId(
       rawId,
       metadata.targetResource,
     );
 
-    // ─── Step 4: Decide — the single ReBAC assertion, shared with the receipt-payment service ─────
+    // ─── Step 4: Decide — the single ReBAC assertion, shared with the receipt-payment service
     await this.tourImplementationAccessService.assertTourImplementationAccess(tourImplementationId, userId, {
       requiredAccessLevel: metadata.requiredAccessLevel,
     });

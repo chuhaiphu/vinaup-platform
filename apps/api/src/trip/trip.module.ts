@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -11,12 +10,11 @@ import { TripService } from './services/trip.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    AuthModule,
-    // ─── ValidatorsModule: register the custom request-DTO validators ───
-    ],
+  ],
   controllers: [TripController, TripAssignmentController],
   providers: [TripService, TripAssignmentService],
   // Exported for cross-module reuse: other modules can inject these services directly

@@ -20,7 +20,7 @@ export interface TourImplementationAccessMetadata {
   requiredAccessLevel?: TourImplementationAccessLevel;
 }
 
-// ─── Stamp the route with how to reach its tour implementation + the access it demands ─────
+// ─── Stamp the route with how to reach its tour implementation + the access it demands
 // Nothing runs at request time here — TourImplementationAccessGuard reads the metadata back.
 export const CheckTourImplementationAccess = (metadata: TourImplementationAccessMetadata) =>
   SetMetadata(TOUR_IMPLEMENTATION_ACCESS_KEY, metadata);

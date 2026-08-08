@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from 'src/auth/auth.module';
 import { PrismaModule } from 'src/prisma/prisma.module';
 import { StorageModule } from 'src/storage/storage.module';
 
@@ -9,14 +8,13 @@ import { UserService } from './user.service';
 
 @Module({
   imports: [
-    // ─── PrismaModule: make PrismaService injectable in this module ───────────────
-    // UserService injects PrismaService for DB access.//
+    // ─── PrismaModule: make PrismaService injectable in this module
     PrismaModule,
-    AuthModule,
+    // ─── StorageModule: make StorageService injectable in this module
     StorageModule,
-    // ─── ValidatorsModule: register the custom request-DTO validators ───
-    ],
+  ],
   controllers: [UserController],
   providers: [UserService],
+  exports: [UserService],
 })
 export class UserModule {}

@@ -6,7 +6,7 @@ import storageConfig from 'src/_core/configs/storage.config';
 
 import { StorageService } from './storage.service';
 
-// ─── DRIVER — Cloudflare R2, not integrated yet ──────────────────────
+// ─── DRIVER — Cloudflare R2, not integrated yet
 // The seam is real: the class is registered and the factory returns it for STORAGE_DRIVER=r2.
 // Writes throw until an S3Client is wired behind them — see STORAGE-PATTERN.md.
 @Injectable()

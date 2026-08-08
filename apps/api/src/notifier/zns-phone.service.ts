@@ -4,7 +4,7 @@ import type { PhoneIntent, SendOutcome } from 'src/_common/interfaces/notifier.i
 
 import { PhoneService } from './phone.service';
 
-// ─── DRIVER — app-messaging, not integrated yet ──────────────────────
+// ─── DRIVER — app-messaging, not integrated yet
 @Injectable()
 export class ZnsPhoneService extends PhoneService {
   private readonly logger = new Logger(ZnsPhoneService.name);

@@ -15,7 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     authConf: ConfigType<typeof authConfig>,
     private prismaService: PrismaService,
   ) {
-    // ─── Step 1: Capture cookie name before super() ─────────────────────
+    // ─── Step 1: Capture cookie name before super()
     // super() is called before `this` is available, so we capture the cookie
     // name in a local variable to use inside the extractor closure.
     const cookieName = authConf.cookies.accessToken.name;

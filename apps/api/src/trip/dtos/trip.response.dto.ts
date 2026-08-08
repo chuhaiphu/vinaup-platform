@@ -29,7 +29,7 @@ export const tripQueryArgs = {
   },
 } satisfies Prisma.TripDefaultArgs;
 
-// ─── List variant: embed assignments so each list card can summarise drivers + cars ─────
+// ─── List variant: embed assignments so each list card can summarise drivers + cars
 export const tripListQueryArgs = {
   include: {
     ...tripQueryArgs.include,

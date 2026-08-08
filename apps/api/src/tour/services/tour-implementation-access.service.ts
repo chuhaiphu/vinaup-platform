@@ -25,7 +25,7 @@ export class TourImplementationAccessService {
     // rather than granting too much.
     const requiredAccessLevel = options?.requiredAccessLevel ?? TOUR_IMPLEMENTATION_ACCESS_LEVEL.MANAGER;
 
-    // ─── Existence first: a missing implementation is a 404, never an access 403 ─────
+    // ─── Existence first: a missing implementation is a 404, never an access 403
     const implementation = await this.prismaService.tourImplementation.findUnique({
       where: { id: tourImplementationId },
       select: { tour: { select: { organizationId: true } } },
@@ -34,18 +34,18 @@ export class TourImplementationAccessService {
       throw new TourImplementationNotFoundException();
     }
 
-    // ─── Owner-implies-access: the org owner may act on any tour in their organization ─────
+    // ─── Owner-implies-access: the org owner may act on any tour in their organization
     // Prevents an owner being locked out of a tour they were never explicitly assigned to.
     if (await this.isOrganizationOwner(implementation.tour.organizationId, userId)) {
       return;
     }
 
-    // ─── Member-assigned (an organization member on the implementation) — the crew-management level ─────
+    // ─── Member-assigned (an organization member on the implementation) — the crew-management level
     if (await this.isMemberAssigned(tourImplementationId, userId)) {
       return;
     }
 
-    // ─── ASSIGNEE also admits a non-member assigned user (tour guide/driver) ─────
+    // ─── ASSIGNEE also admits a non-member assigned user (tour guide/driver)
     if (requiredAccessLevel === TOUR_IMPLEMENTATION_ACCESS_LEVEL.ASSIGNEE && (await this.isUserAssigned(tourImplementationId, userId))) {
       return;
     }

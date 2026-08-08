@@ -1,4 +1,4 @@
-// ─── StorageService: the storage CONTRACT ───────────────────────────
+// ─── StorageService: the storage CONTRACT
 // Abstract class, not interface: TS interfaces are erased at compile time,
 // so they cannot serve as a DI token.
 export abstract class StorageService {

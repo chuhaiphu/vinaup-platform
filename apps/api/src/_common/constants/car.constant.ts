@@ -1,4 +1,4 @@
-// ─── Operational status: DERIVED, never stored ───────────────────────────────
+// ─── Operational status: DERIVED, never stored
 export const CAR_OPERATIONAL_STATUS = {
   OPERATING: 'OPERATING',
   RESTING: 'RESTING',

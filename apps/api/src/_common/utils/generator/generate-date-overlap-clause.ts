@@ -23,12 +23,12 @@ export function generateDateOverlapClause(filter?: {
   startDate?: string;
   endDate?: string;
 }) {
-  // ─── return a no-op clause when either boundary is absent ──
+  // ─── return a no-op clause when either boundary is absent
   // Spreading {} into a Prisma where object is harmless, 
   // so callers never need to null-check the return value.
   if (!filter?.startDate || !filter?.endDate) return {};
 
-  // ─── Build the overlap condition ───
+  // ─── Build the overlap condition
   // Translating to filter's [startDate, endDate] vs record's [startDate, endDate]:
   return {
     startDate: { lte: new Date(filter.endDate) },  // record starts before filter closes

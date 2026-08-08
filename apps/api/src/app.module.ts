@@ -10,6 +10,7 @@ import { AuthExceptionFilter } from './_core/filters/auth-exception.filter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AttendanceModule } from './attendance/attendance.module';
+import { AuthModule } from './auth/auth.module';
 import { BookingModule } from './booking/booking.module';
 import { CarModule } from './car/car.module';
 import { FuelPriceModule } from './fuel-price/fuel-price.module';
@@ -26,9 +27,12 @@ import { WageModule } from './wage/wage.module';
 
 @Module({
   imports: [
+    // Instantiating AuthModule is what constructs JwtStrategy,
+    // register the 'jwt' strategy with the global passport every JwtAuthGuard reads from.
+    AuthModule,
     UserModule,
     ReceiptPaymentModule,
-    // ─── ConfigModule.forRoot(): bootstrap config ONCE, at the root ─────
+    // ─── ConfigModule.forRoot(): bootstrap config ONCE, at the root
     // "bootstrap" = the one-time setup NestJS runs at startup before any request.
     //
     // What forRoot does here, in order:
@@ -66,7 +70,7 @@ import { WageModule } from './wage/wage.module';
   controllers: [AppController],
   providers: [
     AppService,
-    // ─── Class provider bound to the APP_FILTER token: a GLOBAL filter ───
+    // ─── Class provider bound to the APP_FILTER token: a GLOBAL filter
     //
     //   • provide  = APP_FILTER = a special token NestJS watches for.
     //                Any filter registered under it catches matching exceptions on EVERY route.

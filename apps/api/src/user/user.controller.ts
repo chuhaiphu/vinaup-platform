@@ -27,7 +27,6 @@ import {
 import type { AuthenticatedRequest, HttpResponse } from "src/_common/interfaces/interface";
 import { JwtAuthGuard } from "src/_core/guards/jwt-auth.guard";
 
-import { CreateUserRequest } from './dtos/create-user.request.dto';
 import { UpdateUserRequest } from './dtos/update-user.request.dto';
 import { UserFilterRequest } from './dtos/user-filter.request.dto';
 import type { UserResponse } from './dtos/user.response.dto';
@@ -38,16 +37,6 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
   ) { }
-
-  @Post('register')
-  async register(@Body() createUserRequest: CreateUserRequest): Promise<HttpResponse<UserResponse>> {
-    const data = await this.userService.signUp(createUserRequest);
-    return {
-      statusCode: HttpStatus.CREATED,
-      message: 'User created successfully',
-      data
-    };
-  }
 
   @UseGuards(JwtAuthGuard)
   @Put()
