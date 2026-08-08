@@ -1,13 +1,8 @@
-import type { Organization, User } from 'src/prisma/generated/client';
+import type { EmbeddedUserResponse } from 'src/user/dtos/user.response.dto';
 
-// Computed token payload — assembled server-side, never queried as one row,
-// so it is a hand-written interface (no query-args const).
+// Assembled server-side rather than queried as one row, so it is hand-written.
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: User & {
-    organizationOwnedCount: number;
-    organizationLinkedCount: number;
-  };
-  organizations?: Organization[];
+  user: EmbeddedUserResponse;
 }

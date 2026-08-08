@@ -102,37 +102,24 @@ model Session {
   @@index([userId])
 }
 
-// A ONE-TIME challenge: a sign-up code, a sign-in code, an email-verification code, or a
-// password-reset link/code. Split from Session because their lifecycles differ — a Session is a
-// signed-in device reused for 7 days and soft-revoked; a Verification is redeemed once and dies.
-// → docs/architecture/DB-DIAGRAM.md#session-vs-verification
 model Verification {
   id String @id @default(uuid())
 
-  // Nullable for the one kind where NO account exists yet: a SIGN_UP_OTP is issued before there is
-  // anything to attach it to. Every other kind fills it.
   userId String?
   user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   kind       String
   // The value under challenge (a claimed phone or email) — a value the account does not own YET.
-  // Writing it to User early would occupy the unique index, letting anyone permanently block a
-  // stranger's phone or email by typing it. Held here, the claim dies with the row.
   target     String?
-  // Hash only — never the raw token/code.
   tokenHash  String
   expiresAt  DateTime  @db.Timestamptz(3)
   consumedAt DateTime? @db.Timestamptz(3)
-  // OTP kinds only: the row is dead once this reaches the configured cap, so a ~20-bit code cannot
-  // be brute-forced inside its TTL.
   attempts   Int       @default(0)
   createdAt  DateTime  @default(now()) @db.Timestamptz(3)
 
+  // Every live flow finds its row by account or by claimed value; nothing looks one up by hash alone.
   @@index([userId, kind])
   @@index([kind, target])
-  // The reset-LINK flow looks a row up by token hash alone (the token is globally unique, so the
-  // lookup itself is the match) — without this it would be a sequential scan.
-  @@index([kind, tokenHash])
 }
 
 model Organization {

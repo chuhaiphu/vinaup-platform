@@ -100,3 +100,21 @@ sequenceDiagram
 > **The code leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
 > the code is written into the application log so the flow runs end to end without a mail provider →
 > [Notifier Facade Pattern](../../pattern/NOTIFIER-FACADE-PATTERN.md#the-log-drivers).
+
+## Email normalisation
+
+`@@unique(email)` compares raw strings, exactly like `phone`. Every address is lowercased before it reaches a service, the same shape as [phone normalisation](./SIGN-UP.md#phone-normalisation):
+
+| Where | Value it holds | What it does |
+| ----- | -------------- | ------------ |
+| Client | `  Foo@Example.COM  ` | sends whatever the user typed |
+| The global `ZodValidationPipe` before controller | `foo@example.com` | `.trim()` → `.toLowerCase()` → `.pipe(z.email())` |
+| `AuthService`, Prisma | `foo@example.com` | uses it as received — never normalises |
+| `User.email` | `foo@example.com` | the only form ever stored |
+
+> **Trim and lowercase come before the format check, via `.pipe()`.** Chaining the other way round
+> (`z.email().trim().toLowerCase()`) validates the raw string first, so a leading space rejects an
+> address the transform would have fixed.
+
+> **The same transform runs on sign-in.** [`identifierField`](../../../../../packages/validation/src/zod-schemas/auth.schema.ts)
+> lowercases its email branch, so the string typed at sign-in matches the string stored here.

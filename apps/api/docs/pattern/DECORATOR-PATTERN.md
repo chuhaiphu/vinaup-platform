@@ -150,8 +150,10 @@ move to Stage-3 decorators.
 
 ### In this codebase
 
-Our parameter decorator is **`@CurrentUserId()`**. A handler that needs the caller's id declares it as
-an argument:
+Two parameter decorators live in `src/_core/decorators/`: **`@CurrentUserId()`** below, and
+[**`@OptionalBody()`**](#optionalbody--a-body-that-may-legitimately-be-absent) further down.
+
+A handler that needs the caller's id declares it as an argument:
 
 ```ts
 @Get('me')
@@ -208,5 +210,28 @@ Our callback's two parameters:
 `ExecutionContext` is protocol-agnostic; `switchToHttp()` narrows it to the HTTP request before we read
 `request.user.userId` — a value an upstream guard placed there (see [GUARD-PATTERN.md](GUARD-PATTERN.md)).
 The decorator only _reads_ it; it never authenticates.
+
+---
+
+### `@OptionalBody()` — a body that may legitimately be absent
+
+```ts
+// src/_core/decorators/optional-body.decorator.ts
+export const OptionalBody = createParamDecorator((_data: unknown, ctx: ExecutionContext): unknown => {
+  const request = ctx.switchToHttp().getRequest<Request>();
+  return request.body ?? {};
+});
+```
+
+Used on `POST /auth/refresh` and `POST /auth/logout` — the two routes where a **mobile** client sends
+`{ refreshToken }` while a **web** client sends nothing at all, because its token rides in the `rtk`
+cookie.
+
+#### The bug it fixes
+
+Express 5 changed what an unparsed body is: `req.body` is now **`undefined`**, where Express 4 gave
+`{}`. Both routes had untyped bodies until then, so nothing noticed. The moment a DTO was attached,
+the global `ZodValidationPipe` received `undefined` and rejected every web call with **400** — a route
+that is *supposed* to accept no body.
 
 ---

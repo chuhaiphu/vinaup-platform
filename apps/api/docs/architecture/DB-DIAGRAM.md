@@ -35,7 +35,7 @@ erDiagram
         string   status "ACTIVE | DISABLED"
         string   description "nullable"
         string   province "nullable"
-        string   avatarUrl "nullable"
+        string   avatarKey "nullable — storage key; the response exposes avatarUrl"
         datetime createdAt
         datetime updatedAt
     }
@@ -65,10 +65,10 @@ erDiagram
     Verification {
         uuid     id PK
         uuid     userId FK "nullable — null for SIGN_UP_OTP, no account exists yet"
-        string   kind "SIGN_UP_OTP | SIGN_IN_OTP | EMAIL_VERIFICATION | PASSWORD_RESET_EMAIL_LINK | PASSWORD_RESET_EMAIL_OTP"
+        string   kind "SIGN_UP_OTP | SIGN_IN_OTP | EMAIL_VERIFICATION | PASSWORD_RESET_EMAIL_OTP | (PASSWORD_RESET_EMAIL_LINK — not built)"
         string   target "nullable — the value under challenge (claimed phone or email)"
         string   tokenHash "hash only — never the raw token/code"
-        datetime expiresAt "1h reset-link — 5m sign-in otp — 10m other otp"
+        datetime expiresAt "5m sign-in otp — 10m every other otp"
         datetime consumedAt "nullable — single-use marker"
         int      attempts "otp kinds: dead after 5 wrong tries"
         datetime createdAt
@@ -89,7 +89,7 @@ erDiagram
 | **User** | A person's identity. `phone` is the anchor — required, unique, and **proven by OTP before the row exists** ([Sign-Up](./authen/SIGN-UP.md)). `email` is an **optional second identity** attached later and written only once proven ([Link Email](./authen/LINK-EMAIL.md)). `status = DISABLED` blocks sign-in while retaining everything the user created. |
 | **Auth** | A credential — one row per login method. Today exactly one exists (`LOCAL` = our own password), so every user has one row carrying a bcrypt `passwordHash`. |
 | **Session** | A signed-in device, holding the hashed **refresh token** only. Carries `ipAddress` / `userAgent`, soft-revoked on logout, sign-out-all, and every password reset. |
-| **Verification** | A **one-time** challenge — a sign-up code, a sign-in code, an email-verification code, or a password-reset link/code. Short-lived, single-use (`consumedAt`), attempt-capped, hash-only. |
+| **Verification** | A **one-time** challenge — a sign-up code, a sign-in code, an email-verification code, or a password-reset code. Short-lived, single-use (`consumedAt`), attempt-capped, hash-only. |
 
 ---
 
@@ -142,8 +142,12 @@ A challenge is *about* something, and that something is not always the account:
 | `SIGN_UP_OTP` | **`null`** | the phone being registered | `target` |
 | `SIGN_IN_OTP` | the account | `null` | `userId` |
 | `EMAIL_VERIFICATION` | the account | the email being claimed | `userId` |
-| `PASSWORD_RESET_EMAIL_LINK` | the account | `null` | `tokenHash` |
 | `PASSWORD_RESET_EMAIL_OTP` | the account | `null` | `userId` |
+| `PASSWORD_RESET_EMAIL_LINK` — **not built** | the account | `null` | `tokenHash` |
+
+Every kind that exists is found by account or by claimed value, which is why `Verification` carries
+`@@index([userId, kind])` and `@@index([kind, target])` and nothing more. The lookup-by-hash column
+belongs to the [link flow](./authen/PASSWORD-RESET-EMAIL-LINK.md), which is not implemented.
 
 `target` holds a value the account **does not own yet**, for exactly as long as the challenge lives.
 Writing it to `User` early would occupy the unique index, letting anyone permanently block a stranger's
@@ -162,7 +166,7 @@ one table with a `kind` discriminator:
 | --- | --- | --- |
 | Nature | a signed-in **device** | a **one-time** challenge |
 | Reuse | on every token refresh | redeemed **once**, then dead |
-| Lifetime | 7 days | 1h (reset link) — 10m / 5m (otp) |
+| Lifetime | 7 days | 10m — 5m (sign-in otp) |
 | End of life | `revokedAt` (soft revoke) | `consumedAt` (single use) |
 | `ipAddress` / `userAgent` | meaningful | irrelevant |
 | `attempts` / `target` | n/a | the guard, and the value under challenge |
@@ -177,7 +181,7 @@ footgun. Auth.js separates `Session` from a one-time `VerificationToken` for the
 | Value | Hash | Why |
 | ----- | ---- | --- |
 | Password | **bcrypt**, cost 10, salted | low-entropy human input — the hash must be *slow*, and salted so identical passwords do not collide |
-| Refresh / reset-link token | **SHA-256**, unsalted | 256 bits of entropy already; hashed only to survive a DB leak, unsalted **because** lookup happens by hash |
+| Refresh token | **SHA-256**, unsalted | 256 bits of entropy already; hashed only to survive a DB leak, unsalted **because** lookup happens by hash |
 | 6-digit codes | **SHA-256**, unsalted | brute force is stopped by the 5-attempt cap and the TTL, not by hash cost; the hash keeps a DB leak from handing over live codes |
 
 Hash strength matches input entropy; it is not maximised blindly.

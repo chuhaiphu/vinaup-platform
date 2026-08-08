@@ -40,14 +40,14 @@ sequenceDiagram
     participant U as User's inbox
 
     C->>+Auth: POST /auth/forgot-password-otp { email }
-    Auth->>+DB: User by email, with its Auth(LOCAL)
-    DB-->>-Auth: user { id } + auths | null
-    alt user exists with an Auth(LOCAL) credential
-        Auth->>DB: consume any earlier live PASSWORD_RESET_EMAIL_OTP (one code at a time)
+    Auth->>+DB: User by email, then its Auth(LOCAL)
+    DB-->>-Auth: user { id, status } + auth { passwordHash } | null
+    alt user is ACTIVE and has an Auth(LOCAL) credential
+        Auth->>DB: consume any earlier live PASSWORD_RESET_EMAIL_OTP
         Note over Auth: code = 6 random digits (CSPRNG)
         Auth->>DB: Verification.create(kind=PASSWORD_RESET_EMAIL_OTP,<br/>tokenHash=sha256(code), expiresAt=+10m, attempts=0)
-        Auth-)N: sendPasswordResetOtp(email, code) — fire-and-forget
-    else no user / no local credential
+        Auth-)N: sendPasswordResetOtpToEmail(email, code)<br/>-fire-and-forget
+    else no user / disabled / no local credential
         Note over Auth: do nothing (silent)
     end
     Auth-->>-C: 200 (always — never reveal whether the address exists)
@@ -80,7 +80,7 @@ sequenceDiagram
             Auth->>DB: Auth(LOCAL).passwordHash = bcrypt(newPassword)
             Auth->>DB: Verification.consumedAt = now
             Auth->>DB: Session.revokedAt = now WHERE userId (sign out all)
-            Auth-->>C: 200 — re-login required
+            Auth-->>C: 200 — web: clear atk + rtk — re-login required
         end
     end
     deactivate Auth
@@ -102,8 +102,14 @@ sequenceDiagram
 > **Supersede.** A new forgot request consumes any earlier live code, so exactly one is valid at a time —
 > otherwise five resends would turn a 5-guess budget into 25 against the same account.
 
-> **Revoke every session** — same transaction as the [link flow](./PASSWORD-RESET-EMAIL-LINK.md), so
-> a stolen-then-reset account kicks the attacker out.
+> **Revoke every session**, in the **same transaction** as the credential rotation and the consume.
+
+> **A disabled account receives no code**, on this channel or any other — same rule as
+> [OTP sign-in](./LOCAL-SIGN-IN.md#mode-2--otp). `DISABLED` freezes the account. The miss stays silent.
+
+> **Cookies are cleared for a web caller here too.** The format (typed code) is chosen for mobile,
+> but the *platform* is decided at runtime by `isMobileRequest`, never by which route was called —
+> nothing stops a browser from using this one.`atk` is a stateless JWT and stays valid until it expires.
 
 > **The code leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
 > the code is written into the application log so the flow runs end to end without a mail provider →

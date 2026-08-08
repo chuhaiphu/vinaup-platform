@@ -1,5 +1,22 @@
 # Password Reset — Email Link
 
+> ## ⚠ NOT IMPLEMENTED — specification only
+>
+> No route, service method, schema or `Verification` row of this kind exists in `apps/api`. The page
+> below describes the intended design, not the code.
+>
+> **Why it is deferred.** The link must open a **web** page carrying a "new password" form, at
+> `${WEB_APP_URL}/reset-password?token=…`. There is no web client — `apps/` holds `api` and `mobile`
+> only — so the link would point at a route that exists nowhere and the flow cannot be exercised end
+> to end.
+>
+> **What building it needs.** Two routes and their schemas; `WEB_APP_URL` in the typed `auth` config
+> namespace, validated at boot and never read from the request (see *The reset URL* below); and
+> `@@index([kind, tokenHash])` back on `Verification` — removed because this is the only flow that
+> would look a row up by hash alone, and an index no query reads still costs every insert.
+> `VERIFICATION_KIND.PASSWORD_RESET_EMAIL_LINK` and `NotifierService.sendPasswordResetLinkToEmail`
+> are already in place.
+
 Two half-flows around a single one-time `Verification(kind=PASSWORD_RESET_EMAIL_LINK)`, driven by an
 **opaque link token** emailed as `?token=`. This is the **web** format. The **mobile** format delivers a
 typed code over the same channel — see
@@ -83,8 +100,14 @@ sequenceDiagram
 > **Revoke every session.** Rotate the credential, consume the token, revoke the sessions — three writes,
 > one transaction.
 
-> **The reset URL** is `${WEB_APP_URL}/reset-password?token=raw`, read through the typed `auth` config
-> namespace, never `process.env` inline.
+> **The reset URL** is `${WEB_APP_URL}/reset-password?token=raw`. This is the one place the API must
+> know the address of a system that is **not itself**: the link has to land on a page carrying a "new
+> password" form.
+>
+> **The origin must never come from the request.** Building it from `req.headers.host` or `Origin` is
+> *password reset poisoning*: an attacker POSTs the **victim's** email with `Host: attacker.com`, the
+> genuine service mails the victim a link to the attacker's domain, and clicking it hands over the raw
+> token.
 
 > **The URL leaves through the notifier**, which resolves `MAIL_DRIVER` at boot. If `MAIL_DRIVER=log`,
 > the whole URL — raw token included — is written into the application log so the flow runs end to end

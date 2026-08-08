@@ -7,14 +7,23 @@ import type { HttpResponse } from "src/_common/interfaces/interface";
 import { isMobileRequest } from "src/_common/utils/predicate/is-mobile-request";
 import authConfig from "src/_core/configs/auth.config";
 import { CurrentUserId } from "src/_core/decorators/current-user-id.decorator";
+import { OptionalBody } from "src/_core/decorators/optional-body.decorator";
 import { JwtAuthGuard } from "src/_core/guards/jwt-auth.guard";
 import type { UserResponse } from "src/user/dtos/user.response.dto";
 
 import { AuthService } from "./auth.service";
 import { AuthResponse } from './dtos/auth.response.dto';
+import { ForgotPasswordOtpRequest } from './dtos/forgot-password-otp.request.dto';
+import { LinkEmailRequest } from './dtos/link-email.request.dto';
 import { LocalSignInRequest } from './dtos/local-signin.request.dto';
+import { LogoutRequest } from './dtos/logout.request.dto';
+import { OtpSignInRequest } from './dtos/otp-sign-in.request.dto';
+import { RefreshRequest } from './dtos/refresh.request.dto';
 import type { RefreshTokenResponse } from './dtos/refresh.response.dto';
+import { RequestLinkEmailRequest } from './dtos/request-link-email.request.dto';
+import { RequestOtpSignInRequest } from './dtos/request-otp-sign-in.request.dto';
 import { RequestSignUpOtpRequest } from './dtos/request-sign-up-otp.request.dto';
+import { ResetPasswordOtpRequest } from './dtos/reset-password-otp.request.dto';
 import { SignUpRequest } from './dtos/sign-up.request.dto';
 
 @Controller('auth')
@@ -48,12 +57,13 @@ export class AuthController {
     }
   }
 
-  @Post('local')
+  @Post('local-sign-in')
+  @HttpCode(HttpStatus.OK)
   async localSignIn(
     @Request() req: ExpressRequest,
     @Res({ passthrough: true }) response: Response,
     @Body() localSignInReq: LocalSignInRequest
-  ): Promise<HttpResponse<AuthResponse | null>> {
+  ): Promise<HttpResponse<AuthResponse | Pick<AuthResponse, 'user'>>> {
     const authResult = await this.authService.localSignIn(localSignInReq, {
       ipAddress: req.ip ?? '',
       userAgent: req.get('user-agent') ?? '',
@@ -77,11 +87,123 @@ export class AuthController {
         this.authConf.cookies.refreshToken.options
       )
 
+      // The tokens ride in the cookies above; the body carries only what is not a secret.
       return {
         statusCode: HttpStatus.OK,
         message: 'Authentication completed successfully',
-        data: null
+        data: { user: authResult.user }
       }
+    }
+  }
+
+  @Post('otp-sign-in/request')
+  @HttpCode(HttpStatus.OK)
+  async requestOtpSignIn(
+    @Body() requestOtpSignInReq: RequestOtpSignInRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.requestOtpSignIn(requestOtpSignInReq);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Verification code sent'
+    }
+  }
+
+  @Post('otp-sign-in')
+  @HttpCode(HttpStatus.OK)
+  async otpSignIn(
+    @Request() req: ExpressRequest,
+    @Res({ passthrough: true }) response: Response,
+    @Body() otpSignInReq: OtpSignInRequest
+  ): Promise<HttpResponse<AuthResponse | Pick<AuthResponse, 'user'>>> {
+    const authResult = await this.authService.otpSignIn(otpSignInReq, {
+      ipAddress: req.ip ?? '',
+      userAgent: req.get('user-agent') ?? '',
+    })
+    if (isMobileRequest(req)) {
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Authentication completed successfully',
+        data: authResult
+      }
+    }
+    else {
+      response.cookie(
+        this.authConf.cookies.accessToken.name,
+        authResult.accessToken,
+        this.authConf.cookies.accessToken.options
+      )
+      response.cookie(
+        this.authConf.cookies.refreshToken.name,
+        authResult.refreshToken,
+        this.authConf.cookies.refreshToken.options
+      )
+
+      // The tokens ride in the cookies above; the body carries only what is not a secret.
+      return {
+        statusCode: HttpStatus.OK,
+        message: 'Authentication completed successfully',
+        data: { user: authResult.user }
+      }
+    }
+  }
+
+  @Post('link-email/request')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async requestLinkEmail(
+    @CurrentUserId() userId: string,
+    @Body() requestLinkEmailReq: RequestLinkEmailRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.requestLinkEmail(userId, requestLinkEmailReq);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Verification code sent'
+    }
+  }
+
+  @Post('link-email')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async linkEmail(
+    @CurrentUserId() userId: string,
+    @Body() linkEmailReq: LinkEmailRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.linkEmail(userId, linkEmailReq);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Email linked successfully'
+    }
+  }
+
+  // 200 whether or not the address exists — the response must not answer that.
+  @Post('forgot-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async forgotPasswordOtp(
+    @Body() forgotPasswordOtpReq: ForgotPasswordOtpRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.forgotPasswordOtp(forgotPasswordOtpReq);
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Verification code sent'
+    }
+  }
+
+  @Post('reset-password-otp')
+  @HttpCode(HttpStatus.OK)
+  async resetPasswordOtp(
+    @Request() req: ExpressRequest,
+    @Res({ passthrough: true }) response: Response,
+    @Body() resetPasswordOtpReq: ResetPasswordOtpRequest
+  ): Promise<HttpResponse<void>> {
+    await this.authService.resetPasswordOtp(resetPasswordOtpReq);
+
+    // The reset already revoked every session, so `rtk` is dead.
+    // Clearing keeps the browser from looking signed in on a session that no longer exists.
+    if (!isMobileRequest(req)) this.clearSessionCookies(response);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Password reset successful'
     }
   }
 
@@ -90,11 +212,11 @@ export class AuthController {
   async refresh(
     @Request() req: ExpressRequest,
     @Res({ passthrough: true }) response: Response,
-    @Body() body: { refreshToken?: string }
+    @OptionalBody() refreshReq: RefreshRequest
   ): Promise<HttpResponse<RefreshTokenResponse | undefined>> {
     // ─── Resolve the refresh token by platform
     const rawRefreshToken = isMobileRequest(req)
-      ? body?.refreshToken
+      ? refreshReq?.refreshToken
       : (req.cookies?.[this.authConf.cookies.refreshToken.name] as string | undefined);
 
     if (!rawRefreshToken) throw new RefreshTokenInvalidException('Refresh token is missing');
@@ -123,11 +245,11 @@ export class AuthController {
   async localSignOut(
     @Request() req: ExpressRequest,
     @Res({ passthrough: true }) response: Response,
-    @Body() body: { refreshToken?: string }
+    @OptionalBody() logoutReq: LogoutRequest
   ): Promise<HttpResponse<void>> {
     // ─── Resolve the refresh token by platform
     const rawRefreshToken = isMobileRequest(req)
-      ? body?.refreshToken
+      ? logoutReq?.refreshToken
       : (req.cookies?.[this.authConf.cookies.refreshToken.name] as string | undefined);
 
     if (rawRefreshToken) await this.authService.revokeSession(rawRefreshToken);

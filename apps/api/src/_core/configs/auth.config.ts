@@ -26,6 +26,9 @@ export interface AuthConfig {
   };
   verification: {
     signUpOtpTtl: number;
+    signInOtpTtl: number;
+    emailVerificationOtpTtl: number;
+    passwordResetOtpTtl: number;
     maxAttempts: number;
   };
 }
@@ -46,9 +49,6 @@ export default registerAs('auth', (): AuthConfig => {
       },
       refreshToken: {
         name: 'rtk',
-        // Path-scope the refresh token to the auth surface only: the browser ships it to
-        // every /auth/* route (refresh + logout) but never to business endpoints — so a 7-day
-        // secret is not rattled across the whole API, yet still reaches the routes that consume it.
         options: {
           httpOnly: true,
           secure: isProduction,
@@ -68,6 +68,10 @@ export default registerAs('auth', (): AuthConfig => {
     },
     verification: {
       signUpOtpTtl: ONE_MINUTE * 10,
+      // Shorter than sign-up's: the caller already holds an account and can resend at will.
+      signInOtpTtl: ONE_MINUTE * 5,
+      emailVerificationOtpTtl: ONE_MINUTE * 10,
+      passwordResetOtpTtl: ONE_MINUTE * 10,
       // Caps guessing per row, so a ~20-bit code cannot be brute-forced inside its TTL.
       maxAttempts: 5,
     },

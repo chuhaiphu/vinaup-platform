@@ -387,8 +387,8 @@ this.notifier.sendSignUpOtpToPhone(phone, code); // no await, no catch, no trans
 | `sendSignUpOtpToPhone(phone, code)`             | `PhoneService` | [Sign-Up](../architecture/authen/SIGN-UP.md) — step 1                              |
 | `sendSignInOtpToPhone(phone, code)`             | `PhoneService` | [Local Sign-In](../architecture/authen/LOCAL-SIGN-IN.md#mode-2--otp) — OTP mode    |
 | `sendEmailVerificationOtp(email, code)`         | `MailService`  | [Link Email](../architecture/authen/LINK-EMAIL.md) — step 1                        |
-| `sendPasswordResetLinkToEmail(email, resetUrl)` | `MailService`  | [Password Reset — Email Link](../architecture/authen/PASSWORD-RESET-EMAIL-LINK.md) |
 | `sendPasswordResetOtpToEmail(email, code)`      | `MailService`  | [Password Reset — Email OTP](../architecture/authen/PASSWORD-RESET-EMAIL-OTP.md)   |
+| `sendPasswordResetLinkToEmail(email, resetUrl)` | `MailService`  | [Password Reset — Email Link](../architecture/authen/PASSWORD-RESET-EMAIL-LINK.md) — **no caller yet**, that flow is not built |
 
 - One route → one method → one contract. The facade never branches.
 - The caller never learns whether the send succeeded; the response returns before delivery is attempted.

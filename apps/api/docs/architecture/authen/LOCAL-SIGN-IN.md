@@ -50,7 +50,7 @@ sequenceDiagram
         Auth-->>C: 403 ACCOUNT_DISABLED
     end
     Note over Auth: Issue tokens
-    Auth-->>-C: 200 — web: Set-Cookie atk + rtk — mobile: tokens in body
+    Auth-->>-C: 200 — web: Set-Cookie atk + rtk, body { user } — mobile: tokens + user in body
 ```
 
 > **One field, classified by `@`.** An `@` cannot appear in a phone number nor be absent from an email,
@@ -100,7 +100,7 @@ sequenceDiagram
             Note over Auth: User-status gate
             Auth->>DB: Verification.consumedAt = now
             Note over Auth: Issue tokens
-            Auth-->>C: 200 — web: Set-Cookie atk + rtk — mobile: tokens in body
+            Auth-->>C: 200 — web: Set-Cookie atk + rtk, body { user } — mobile: tokens + user in body
         end
     end
     deactivate Auth
@@ -130,11 +130,16 @@ sequenceDiagram
 _Why_ the refresh token is opaque rather than a JWT is argued in
 [Token Refresh](./TOKEN-REFRESH.md).
 
-> **Token delivery per platform**, switched on the `x-request-platform: mobile` header
-> (`isMobileRequest`). **Web** — both tokens as `httpOnly` + `Secure` + `SameSite` cookies, nothing in
-> the body; page JavaScript cannot read them, so an XSS cannot exfiltrate them, and `SameSite=strict`
-> closes the CSRF that trade opens. **Mobile** — no cookie jar, so both come back in the body. The `rtk`
-> cookie is path-scoped to `/auth` (not `/auth/refresh`) because [logout needs it too](./LOGOUT.md).
+> **Only the *tokens* are delivered per platform**, switched on the `x-request-platform: mobile` header
+> (`isMobileRequest`). **Web** — both tokens as `httpOnly` + `Secure` + `SameSite` cookies, never in the
+> body; page JavaScript cannot read them, so an XSS cannot exfiltrate them, and `SameSite=strict` closes
+> the CSRF that trade opens. **Mobile** — no cookie jar, so both come back in the body. The `rtk` cookie
+> is path-scoped to `/auth` (not `/auth/refresh`) because [logout needs it too](./LOGOUT.md).
+>
+> **`user` is in the body either way.** The split follows one rule with no exception: a *secret* takes
+> the platform's transport, *data* travels in the body. `user` is not a secret — the caller is signed in
+> by the time it is written. Withholding it from web would only force a second round trip to
+> `GET /user/me` before the client can render anything.
 
 > **The `atk` cookie's `maxAge` equals the JWT's `exp` — 15 minutes.** A cookie outliving its token makes
 > "am I signed in?" have two answers that disagree.

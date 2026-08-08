@@ -59,8 +59,16 @@ export {
   updateAttendanceRecordSchema,
 } from './zod-schemas/attendance.schema';
 export {
+  forgotPasswordOtpSchema,
+  linkEmailSchema,
   localSignInSchema,
+  logoutSchema,
+  otpSignInSchema,
+  refreshSchema,
+  requestLinkEmailSchema,
+  requestOtpSignInSchema,
   requestSignUpOtpSchema,
+  resetPasswordOtpSchema,
   signUpSchema,
 } from './zod-schemas/auth.schema';
 export {
@@ -138,8 +146,16 @@ export type {
   UpdateAttendanceRecordRequestInterface,
 } from './interfaces/attendance.interface';
 export type {
+  ForgotPasswordOtpRequestInterface,
+  LinkEmailRequestInterface,
   LocalSignInRequestInterface,
+  LogoutRequestInterface,
+  OtpSignInRequestInterface,
+  RefreshRequestInterface,
+  RequestLinkEmailRequestInterface,
+  RequestOtpSignInRequestInterface,
   RequestSignUpOtpRequestInterface,
+  ResetPasswordOtpRequestInterface,
   SignUpRequestInterface,
 } from './interfaces/auth.interface';
 export type {
