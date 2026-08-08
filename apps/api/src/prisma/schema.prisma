@@ -12,11 +12,6 @@ datasource db {
 model User {
   id String @id @default(uuid())
 
-  // ─── Identity ───────────────────────────────────────────────────────
-  // `phone` is the anchor: required, unique, and proven by OTP BEFORE this row exists, which is what
-  // makes SMS a recovery channel for 100% of accounts. `email` is an optional second identity written
-  // only once the link-email flow proves it — so a non-null value is verified by construction.
-  // → docs/architecture/DB-DIAGRAM.md#auth-model
   phone           String    @unique
   phoneVerifiedAt DateTime  @db.Timestamptz(3)
   email           String?   @unique

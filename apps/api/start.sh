@@ -8,9 +8,10 @@ until nc -z db 5432; do
 done
 echo "Database is ready"
 
-# `db push` WITHOUT --force-reset: it reconciles the schema and keeps the data.
-echo "Running prisma db push..."
-npx prisma db push
+# ⚠️  TEMPORARY — ONE DEPLOY ONLY. REVERT TO `npx prisma db push` IMMEDIATELY AFTER.
+# --force-reset DROPS THE ENTIRE DATABASE and recreates it from the schema.
+echo "Running prisma db push (FORCE RESET — data will be destroyed)..."
+npx prisma db push --force-reset
 
 # Safe to run on every boot: the seed is idempotent.
 echo "Running prisma db seed..."
